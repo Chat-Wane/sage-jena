@@ -1,3 +1,9 @@
+*~
+.classpath
+.settings/
+watdiv10M/
+target/
+
 # Compiled class file
 *.class
 
