@@ -20,6 +20,7 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.TripleTable;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.tupletable.TupleIndex;
+import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 import org.apache.jena.tdb2.store.tupletable.TupleTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import org.apache.jena.tdb2.sys.TDBInternal;
@@ -90,7 +91,18 @@ public class App {
         // BPlusTree bpt = null;
         // bpt.find(record);
         
+        TupleIndexRecord tir = (TupleIndexRecord) ti;
+        PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
+        var tuple = TupleFactory.create3(uri_id, NodeId.NodeIdAny, NodeId.NodeIdAny);
+        uri_ids = ptir.scan(tuple);
+
+        while (uri_ids.hasNext()) {
+            var meow = uri_ids.next();
+            System.out.printf("%s \n", meow);
+        };
         
+
+         
         Iterator<Tuple<NodeId>> iter = ntt.findAll();
 
         // iter.forEachRemaining(e -> System.out.println(e));

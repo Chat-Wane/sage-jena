@@ -20,9 +20,9 @@ public class ReflectionUtils {
         return null;
     }
 
-    static Method _getMethod(Class<?> clazz, String name) {
+    static Method _getMethod(Class<?> clazz, String name, Class<?>... clazzes) {
         try {
-            Method m = clazz.getDeclaredMethod(name);
+            Method m = clazz.getDeclaredMethod(name, clazzes);
             m.setAccessible(true);
             return m;
         } catch (NoSuchMethodException e) {
