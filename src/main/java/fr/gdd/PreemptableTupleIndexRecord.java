@@ -9,6 +9,7 @@ import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
 import org.apache.jena.atlas.iterator.NullIterator;
 import org.apache.jena.atlas.iterator.SingletonIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.atlas.lib.tuple.TupleMap;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.base.record.RecordMapper;
@@ -17,6 +18,7 @@ import org.apache.jena.dboe.trans.bplustree.BPTreeNode;
 import org.apache.jena.dboe.trans.bplustree.BPlusTree;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.NodeIdFactory;
+import org.apache.jena.tdb2.store.tupletable.TupleIndexBase;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 
 
@@ -26,6 +28,9 @@ public class PreemptableTupleIndexRecord {
     RecordFactory factory;
     RangeIndex index;
     RecordMapper<Tuple<NodeId>> recordMapper;
+
+    TupleMap tupleMap;
+    
     TupleIndexRecord tir;
     
     public PreemptableTupleIndexRecord(TupleIndexRecord tir) {
@@ -35,6 +40,9 @@ public class PreemptableTupleIndexRecord {
         this.index = (RangeIndex) ReflectionUtils._callField(indexField, tir.getClass(), tir);
         Field recordMapperField = ReflectionUtils._getField(TupleIndexRecord.class, "recordMapper");
         this.recordMapper = (RecordMapper<Tuple<NodeId>>) ReflectionUtils._callField(recordMapperField, tir.getClass(), tir);
+        Field tupleMapField = ReflectionUtils._getField(TupleIndexBase.class, "tupleMap");
+        this.tupleMap = (TupleMap) ReflectionUtils._callField(tupleMapField, TupleIndexBase.class, tir);
+
         this.tir = tir;
     }
 
@@ -106,7 +114,7 @@ public class PreemptableTupleIndexRecord {
             Method finishReadBlkMgrMethod = ReflectionUtils._getMethod(BPlusTree.class, "finishReadBlkMgr");
             ReflectionUtils._callMethod(finishReadBlkMgrMethod, bpt.getClass(), bpt);
             
-            tuples = BPTreePreemptableRangeIterator.create(root, minRec, maxRec, recordMapper);
+            tuples = BPTreePreemptableRangeIterator.create(tupleMap, root, minRec, maxRec, recordMapper);
             
             // in org.apache.jena.dboe.trans.bplustree.BPlusTree.java
             // startReadBlkMgr();

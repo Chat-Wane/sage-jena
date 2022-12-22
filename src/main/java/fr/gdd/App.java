@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
+import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.trans.bplustree.BPTreeNode;
 import org.apache.jena.dboe.trans.bplustree.BPTreePage;
 import org.apache.jena.dboe.trans.bplustree.BPlusTree;
@@ -46,7 +47,8 @@ public class App {
         NodeTupleTable ntt = tt.getNodeTupleTable();
         NodeTable node_table = ntt.getNodeTable();
 
-        Node uri = NodeFactory.createURI("http://db.uwaterloo.ca/~galuc/wsdbm/City193");
+        // Node uri = NodeFactory.createURI("http://db.uwaterloo.ca/~galuc/wsdbm/City193");
+        Node uri = NodeFactory.createURI("http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6");
         NodeId uri_id = node_table.getNodeIdForNode(uri);
         System.out.printf("%s \n", uri_id);
         
@@ -54,9 +56,11 @@ public class App {
 
         Iterator<Tuple<NodeId>> uri_ids = ntt.find(uri_id, NodeId.NodeIdAny, NodeId.NodeIdAny);
         Tuple<NodeId> found = null;
+        int j = 0;
         while (uri_ids.hasNext()) {
             found = uri_ids.next();
-            System.out.printf("%s \n", found);
+            j += 1;
+            System.out.printf("%s: %s \n", j, found);
         };
         
         Node predicate = node_table.getNodeForNodeId(found.get(1));
@@ -90,16 +94,36 @@ public class App {
         // bptn.search(root, record);
         // BPlusTree bpt = null;
         // bpt.find(record);
+
+        System.out.println();
         
         TupleIndexRecord tir = (TupleIndexRecord) ti;
+
         PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
         var tuple = TupleFactory.create3(uri_id, NodeId.NodeIdAny, NodeId.NodeIdAny);
-        uri_ids = ptir.scan(tuple);
+        BPTreePreemptableRangeIterator it = (BPTreePreemptableRangeIterator) ptir.scan(tuple);
 
-        while (uri_ids.hasNext()) {
-            var meow = uri_ids.next();
-            System.out.printf("%s \n", meow);
+        int limit = 0;
+        Record skip_to = null;
+        while (it.hasNext()) {
+            var meow = it.next();
+            limit += 1;
+            System.out.printf("%s: %s \n", limit, meow);
+            if (limit == 10) {
+                skip_to = it.current();
+                break;
+            }
         };
+
+        System.out.println("Resuming…");
+        
+        BPTreePreemptableRangeIterator it2 = (BPTreePreemptableRangeIterator) ptir.scan(tuple);
+        it2.skip(skip_to);
+        while (it2.hasNext()) {
+            var meow = it2.next();
+            limit += 1;
+            System.out.printf("%s: %s \n", limit, meow);
+        }
         
 
          
