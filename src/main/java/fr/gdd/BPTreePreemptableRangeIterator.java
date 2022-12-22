@@ -59,10 +59,35 @@ public class BPTreePreemptableRangeIterator implements Iterator<Tuple<NodeId>> {
         this.minRecord = minRec;
         this.maxRecord = maxRec;
         BPTreeRecords r = loadStack(node, null);
+        System.out.printf("leave count = %s\n", r.getCount());
         this.mapper = mapper;
         current = getRecordsIterator(r, minRecord, maxRecord, mapper);
+
     }
 
+    public long cardinality() {
+        // (TODO) (TODO)(TODO) (TODO)(TODO) (TODO)(TODO) (TODO)
+        long sum = 0;
+        System.out.printf("Stack size %s\n", stack.size());
+        var it = stack.iterator();
+        while (it.hasNext()) {
+            Iterator<BPTreePage> e = it.next();
+            System.out.println("Woof");
+
+            while (e.hasNext()) {
+                System.out.println("PAGE");
+                var page = e.next();
+                BPTreeNode n = (BPTreeNode) page;
+                sum += n.getCount();
+            }
+        }
+        while (current.hasNext()) {
+            current.next();
+            ++sum;
+        }
+        
+        return sum;
+    }
 
     public void skip(Record to) {
         stack.clear();
@@ -138,8 +163,12 @@ public class BPTreePreemptableRangeIterator implements Iterator<Tuple<NodeId>> {
         
         // Iterator<Record> iter = records.getRecordBuffer().iterator(minRecord, maxRecord);
         Method getRecordBufferMethod = ReflectionUtils._getMethod(BPTreeRecords.class, "getRecordBuffer");
-        Iterator<Record> iter = ((RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, records.getClass(), records))
-            .iterator(minRecord, maxRecord); //, mapper);
+        RecordBuffer recordBuffer = (RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, records.getClass(), records);
+        Iterator<Record> iter = recordBuffer.iterator(minRecord, maxRecord); //, mapper);
+
+        var min = recordBuffer.find(minRecord);
+        var max = recordBuffer.find(maxRecord);
+        System.out.printf("Size using recordbuffer %s-%s =  %s\n", max, min, max-min);
         
         // records.bpTree.finishReadBlkMgr();
         Method finishReadBlkMgrMethod = ReflectionUtils._getMethod(BPlusTree.class,"finishReadBlkMgr");

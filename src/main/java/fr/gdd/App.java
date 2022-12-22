@@ -124,7 +124,12 @@ public class App {
             limit += 1;
             System.out.printf("%s: %s \n", limit, meow);
         }
-        
+
+
+
+        BPTreePreemptableRangeIterator it3 = (BPTreePreemptableRangeIterator) ptir.scan(tuple);
+        System.out.printf("card: %s \n", it3.cardinality());
+                
 
          
         Iterator<Tuple<NodeId>> iter = ntt.findAll();
