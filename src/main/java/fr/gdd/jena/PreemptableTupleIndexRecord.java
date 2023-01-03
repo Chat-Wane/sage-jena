@@ -1,11 +1,12 @@
-package fr.gdd;
+package fr.gdd.jena;
+
+import fr.gdd.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
 import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
-
 import org.apache.jena.atlas.iterator.NullIterator;
 import org.apache.jena.atlas.iterator.SingletonIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -143,9 +144,6 @@ public class PreemptableTupleIndexRecord {
         }
         
         return tuples;
-
-        // Deadcode after this line, we skip it for now:
-        // <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb2/src/main/java/org/apache/jena/tdb2/store/tupletable/TupleIndexRecord.java#L216>
         
     }
 

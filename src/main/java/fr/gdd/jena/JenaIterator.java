@@ -1,4 +1,7 @@
-package fr.gdd;
+package fr.gdd.jena;
+
+import fr.gdd.ReflectionUtils;
+import fr.gdd.BackendIterator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -23,22 +26,12 @@ import org.slf4j.LoggerFactory;
 
 
 
-public class BPTreePreemptableRangeIterator implements Iterator<Tuple<NodeId>> {
+public class JenaIterator implements BackendIterator<NodeId, Record> {
     static Logger log = LoggerFactory.getLogger(BPTreePreemptableRangeIterator.class);
-
-    public static Iterator<Tuple<NodeId>> create(TupleMap tupleMap,
-                                                 BPTreeNode node, Record minRec, Record maxRec,
-                                                 RecordMapper<Tuple<NodeId>> mapper) {
-        if (minRec != null && maxRec != null && Record.keyGE(minRec, maxRec))
-            return Iter.nullIter();
-        return new BPTreePreemptableRangeIterator(tupleMap, node, minRec, maxRec, mapper);
-    }
-
     // Convert path to a stack of iterators
     private final Deque<Iterator<BPTreePage>> stack = new ArrayDeque<Iterator<BPTreePage>>();
     final private Record minRecord;
     final private Record maxRecord;
-    final private RecordMapper<Tuple<NodeId>> mapper;
     // private Iterator<Tuple<NodeId>> current;
     private Iterator<Record> current;
     private Tuple<NodeId> slot = null;
@@ -50,19 +43,15 @@ public class BPTreePreemptableRangeIterator implements Iterator<Tuple<NodeId>> {
     private Record slotRecord;
     private TupleMap tupleMap;
     BPTreeNode root;
-
     
-    
-    BPTreePreemptableRangeIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec, RecordMapper<Tuple<NodeId>> mapper) {
+    JenaIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec) {
         this.root = node;
         this.tupleMap = tupleMap;
         this.minRecord = minRec;
         this.maxRecord = maxRec;
         BPTreeRecords r = loadStack(node, null);
         System.out.printf("leave count = %s\n", r.getCount());
-        this.mapper = mapper;
-        current = getRecordsIterator(r, minRecord, maxRecord, mapper);
-
+        current = getRecordsIterator(r, minRecord, maxRecord);
     }
 
     public long cardinality() {
@@ -92,7 +81,7 @@ public class BPTreePreemptableRangeIterator implements Iterator<Tuple<NodeId>> {
     public void skip(Record to) {
         stack.clear();
         BPTreeRecords r = loadStack(this.root, to);
-        current = getRecordsIterator(r, to, maxRecord, mapper);
+        current = getRecordsIterator(r, to, maxRecord);
         next(); // because it's on step behind with Record to
     }
 
@@ -144,15 +133,14 @@ public class BPTreePreemptableRangeIterator implements Iterator<Tuple<NodeId>> {
         } else {
             r = (BPTreeRecords) p;
         }
-        return getRecordsIterator(r, minRecord, maxRecord, mapper);
+        return getRecordsIterator(r, minRecord, maxRecord);
     }
     
     // ---- Places we touch blocks.
 
     // private static Iterator<Tuple<NodeId>> getRecordsIterator(BPTreeRecords records,
     private static Iterator<Record> getRecordsIterator(BPTreeRecords records,
-                                                       Record minRecord, Record maxRecord,
-                                                       RecordMapper<Tuple<NodeId>> mapper) {
+                                                       Record minRecord, Record maxRecord) {
         // (TODO) move this to one time call
         // records.bpTree.startReadBlkMgr();
         Field bpTreeField = ReflectionUtils._getField(BPTreePage.class, "bpTree");

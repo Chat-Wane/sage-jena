@@ -3,6 +3,7 @@ package fr.gdd;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
+import fr.gdd.jena.*;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.dboe.base.record.Record;
@@ -70,7 +71,7 @@ public class App {
         TupleTable tuple_table = ntt.getTupleTable();
 
         // TODO get the proper index: <https://github.com/apache/jena/blob/c4e999d633b2532b504b35937db4bec9a7c2e539/jena-tdb2/src/main/java/org/apache/jena/tdb2/store/tupletable/TupleTable.java#L133>
-        
+
         TupleIndex ti = tuple_table.getIndex(0);
         // See to create an iterator: <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb2/src/main/java/org/apache/jena/tdb2/store/tupletable/TupleIndexRecord.java#L202>
         // it uses RangeIndex. We can get rangeindex by calling getRangeIndex on TupleIndexRecord that
@@ -98,7 +99,7 @@ public class App {
         System.out.println();
         
         TupleIndexRecord tir = (TupleIndexRecord) ti;
-
+        
         PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
         var tuple = TupleFactory.create3(uri_id, NodeId.NodeIdAny, NodeId.NodeIdAny);
         BPTreePreemptableRangeIterator it = (BPTreePreemptableRangeIterator) ptir.scan(tuple);
@@ -127,6 +128,25 @@ public class App {
 
 
 
+        start = System.currentTimeMillis();
+        Node retailer = NodeFactory.createURI("http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6");
+        NodeId retailer_id = node_table.getNodeIdForNode(retailer);
+        Tuple<NodeId> pattern_2 = TupleFactory.tuple(retailer_id, NodeId.NodeIdAny, NodeId.NodeIdAny);
+        PreemptableTupleTable ptt = new PreemptableTupleTable(ntt.getTupleTable());
+        var it_3 = ptt.find(pattern_2);
+        long sum_it_3 = 0;
+
+        while (it_3.hasNext()) {
+            var woof = it_3.next();
+            sum_it_3+=1;
+        };
+        end = System.currentTimeMillis();
+                
+        System.out.printf("PTT %s elements in %s ms\n", sum_it_3, end-start);
+        
+
+
+        
         BPTreePreemptableRangeIterator it3 = (BPTreePreemptableRangeIterator) ptir.scan(tuple);
         System.out.printf("card: %s \n", it3.cardinality());
                 
@@ -135,6 +155,7 @@ public class App {
         Iterator<Tuple<NodeId>> iter = ntt.findAll();
 
         // iter.forEachRemaining(e -> System.out.println(e));
+        start = System.currentTimeMillis();
         long i = 0;
         while (iter.hasNext()) {
             iter.next();

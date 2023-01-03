@@ -8,7 +8,7 @@ import java.lang.reflect.Method;
 
 public class ReflectionUtils {
     
-    static Field _getField(Class<?> clazz, String name) {
+    public static Field _getField(Class<?> clazz, String name) {
         try {
             Field f = clazz.getDeclaredField(name);
             f.setAccessible(true);
@@ -20,7 +20,7 @@ public class ReflectionUtils {
         return null;
     }
 
-    static Method _getMethod(Class<?> clazz, String name, Class<?>... clazzes) {
+    public static Method _getMethod(Class<?> clazz, String name, Class<?>... clazzes) {
         try {
             Method m = clazz.getDeclaredMethod(name, clazzes);
             m.setAccessible(true);
@@ -32,7 +32,7 @@ public class ReflectionUtils {
         return null;
     }
 
-    static Object _callField(Field f, Class<?> clazz, Object o) {
+    public static Object _callField(Field f, Class<?> clazz, Object o) {
         try {
             return f.get(clazz.cast(o));
         } catch (IllegalAccessException e) {
@@ -42,7 +42,7 @@ public class ReflectionUtils {
         return null;
     }
     
-    static Object _callMethod(Method m, Class<?> clazz, Object o, Object... args) {
+    public static Object _callMethod(Method m, Class<?> clazz, Object o, Object... args) {
         try {
             return m.invoke(o, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
@@ -52,7 +52,7 @@ public class ReflectionUtils {
         return null;
     }
 
-    static Class<?> _getClass(String name) {
+    public static Class<?> _getClass(String name) {
         try {
             return Class.forName(name);
         } catch (ClassNotFoundException e) {
