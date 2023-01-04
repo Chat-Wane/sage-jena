@@ -74,8 +74,8 @@ public class JenaBackend implements Backend<NodeId, Record> {
     }
 
     public String getValue(final NodeId id) {
-        // (TODO)
-        return null;
+        Node node = node_table.getNodeForNodeId(id);
+        return node.toString();
     }
 
 }

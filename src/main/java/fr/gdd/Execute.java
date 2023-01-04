@@ -22,6 +22,9 @@ public class Execute {
             System.out.printf("%s %s %s \n", it.getId(SPOC.SUBJECT),
                               it.getId(SPOC.PREDICATE),
                               it.getId(SPOC.OBJECT));
+            System.out.printf("%s %s %s \n", it.getValue(SPOC.SUBJECT),
+                              it.getValue(SPOC.PREDICATE),
+                              it.getValue(SPOC.OBJECT));
         };
         
     }
