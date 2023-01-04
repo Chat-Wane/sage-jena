@@ -1,8 +1,5 @@
-package fr.gdd;
+package fr.gdd.common;
  
-import java.util.Iterator;
-import org.apache.jena.atlas.lib.tuple.Tuple;
-
 
 
 /**
@@ -44,5 +41,10 @@ public interface Backend<ID, SKIP> {
      * @return The unique identifier of the context in the database.
      */
     public ID getContextId(final String context);
-    
+
+    /**
+     * @param id The identifier of the value to retrieve in the dictionary.
+     * @return The value as a string.
+     */
+    public String getValue(final ID id);
 }

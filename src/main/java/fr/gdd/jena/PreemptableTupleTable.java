@@ -1,13 +1,11 @@
 package fr.gdd.jena;
 
-import fr.gdd.ReflectionUtils;
+import fr.gdd.common.ReflectionUtils;
 
 import static java.lang.String.format;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Iterator;
 
-import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.store.NodeId;
@@ -63,8 +61,7 @@ public class PreemptableTupleTable extends TupleTable {
         return index;
     }
 
-    @Override
-    public Iterator<Tuple<NodeId>> find(Tuple<NodeId> pattern) {
+    public JenaIterator preemptable_find(Tuple<NodeId> pattern) {
         TupleIndexRecord tir = (TupleIndexRecord) this.findIndex(pattern);
         PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
         return ptir.scan(pattern);

@@ -1,7 +1,8 @@
 package fr.gdd.jena;
 
-import fr.gdd.ReflectionUtils;
-import fr.gdd.BackendIterator;
+import fr.gdd.common.ReflectionUtils;
+import fr.gdd.common.BackendIterator;
+import fr.gdd.common.SPOC;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -33,14 +34,16 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     final private Record minRecord;
     final private Record maxRecord;
     // private Iterator<Tuple<NodeId>> current;
-    private Iterator<Record> current;
+    private Iterator<Record> current; // current page
     private Tuple<NodeId> slot = null;
+    private Tuple<NodeId> r = null;
     private boolean finished = false;
 
     // double iterator to get record. temporary until using mapper on
     // records instead of iteratormapper.
     // private Iterator<Tuple<Record>> currentRecord;
-    private Record slotRecord;
+    private Record currentRecord;
+    private Record previousRecord;
     private TupleMap tupleMap;
     BPTreeNode root;
     
@@ -54,6 +57,31 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         current = getRecordsIterator(r, minRecord, maxRecord);
     }
 
+    @Override
+    public void reset() {
+        stack.clear();
+        previousRecord = null;
+        currentRecord = null;
+        BPTreeRecords r = loadStack(root, null);
+        current = getRecordsIterator(r, minRecord, maxRecord);
+    }
+
+    @Override
+    public NodeId getId(final int code) {
+        switch (code) {
+        case SPOC.SUBJECT:
+            return r.get(0);
+        case SPOC.PREDICATE:
+            return r.get(1);
+        case SPOC.OBJECT:
+            return r.get(2);
+        case SPOC.CONTEXT:
+            // return r.get(3); // (TODO) (TODO)
+            return null;
+        }
+        return null;
+    }
+    
     public long cardinality() {
         // (TODO) (TODO)(TODO) (TODO)(TODO) (TODO)(TODO) (TODO)
         long sum = 0;
@@ -86,7 +114,11 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     }
 
     public Record current() {
-        return this.slotRecord;
+        return this.currentRecord;
+    }
+
+    public Record previous() {
+        return this.previousRecord;
     }
     
     
@@ -105,8 +137,9 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         }
 
         // slot = current.next();
-        slotRecord = current.next();
-        slot = TupleLib.tuple(slotRecord, tupleMap);
+        previousRecord = currentRecord;
+        currentRecord = current.next();
+        slot = TupleLib.tuple(currentRecord, tupleMap);
 
         // <https://github.com/apache/jena/blob/31dc0d328c4858401e5d3fa99702c97eba0383a0/jena-db/jena-dboe-base/src/main/java/org/apache/jena/dboe/base/buffer/RecordBufferIteratorMapper.java#L77>
         //  maybe slot = rBuff.access(nextIdx, keySlot, mapper);
@@ -244,16 +277,16 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     }
 
     @Override
-    public Tuple<NodeId> next() {
+    public void next() {
         if (!hasNext())
             throw new NoSuchElementException();
 
-        Tuple<NodeId> r = slot;
+        this.r = slot;
         if (r == null)
             throw new InternalErrorException("Null slot after hasNext is true");
         // slotRecord = null;
         slot = null;
-        return r;
+        // return r;
     }
     
 }

@@ -1,6 +1,6 @@
 package fr.gdd.jena;
 
-import fr.gdd.ReflectionUtils;
+import fr.gdd.common.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -47,7 +47,7 @@ public class PreemptableTupleIndexRecord {
         this.tir = tir;
     }
 
-    public Iterator<Tuple<NodeId>> scan(Tuple<NodeId> patternNaturalOrder) {
+    public JenaIterator scan(Tuple<NodeId> patternNaturalOrder) {
         Tuple<NodeId> pattern = this.tir.getMapping().map(patternNaturalOrder);
         
         // Canonical form.
@@ -80,20 +80,25 @@ public class PreemptableTupleIndexRecord {
         }
 
         // Is it a simple existence test?
-        if ( numSlots == pattern.len() ) {
-            if ( index.contains(minRec) )
-                return new SingletonIterator<>(pattern);
-            else
-                return new NullIterator<>();
-        }
+        // (TODO)
+        // if ( numSlots == pattern.len() ) {
+        //     if ( index.contains(minRec) )
+        //         return new SingletonIterator<>(pattern);
+        //     else
+        //         return new NullIterator<>();
+        // }
         
-        Iterator<Tuple<NodeId>> tuples;
+        // Iterator<Tuple<NodeId>> tuples;
+        JenaIterator tuples;
         if ( leadingIdx < 0 ) {
             // fullScan always allowed
             // if ( ! fullScanAllowed )
             // return null;
             // Full scan necessary
-            tuples = index.iterator(null, null, recordMapper);
+            // tuples = index.iterator(null, null, recordMapper);
+            // (TODO)(TODO)(TODO)(TODO)(TODO)(TODO)
+            // tuples = new JenaIterator(tupleMap, null, minRec, maxRec);
+            tuples = null;
         } else {
             // Adjust the maxRec.
             NodeId X = pattern.get(leadingIdx);
@@ -101,7 +106,7 @@ public class PreemptableTupleIndexRecord {
             // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
             NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
 
-            tuples = index.iterator(minRec, maxRec, recordMapper);
+            // tuples = index.iterator(minRec, maxRec, recordMapper);
 
             RangeIndex rIndex = tir.getRangeIndex();
             BPlusTree bpt = (BPlusTree) rIndex;
@@ -115,7 +120,8 @@ public class PreemptableTupleIndexRecord {
             Method finishReadBlkMgrMethod = ReflectionUtils._getMethod(BPlusTree.class, "finishReadBlkMgr");
             ReflectionUtils._callMethod(finishReadBlkMgrMethod, bpt.getClass(), bpt);
             
-            tuples = BPTreePreemptableRangeIterator.create(tupleMap, root, minRec, maxRec, recordMapper);
+            // tuples = BPTreePreemptableRangeIterator.create(tupleMap, root, minRec, maxRec, recordMapper);
+            tuples = new JenaIterator(tupleMap, root, minRec, maxRec);
             
             // in org.apache.jena.dboe.trans.bplustree.BPlusTree.java
             // startReadBlkMgr();
@@ -139,8 +145,10 @@ public class PreemptableTupleIndexRecord {
             //pattern.unmap(colMap);
             Method scanMethod = ReflectionUtils._getMethod(TupleIndexRecord.class, "scan");
             // tuples = scan(tuples, patternNaturalOrder);
-            tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
-                                                                           tuples, patternNaturalOrder);
+            // tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
+            // tuples, patternNaturalOrder);
+            // (TODO)
+            tuples = null;
         }
         
         return tuples;

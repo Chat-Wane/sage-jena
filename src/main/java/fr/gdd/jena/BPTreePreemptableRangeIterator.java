@@ -1,6 +1,6 @@
 package fr.gdd.jena;
 
-import fr.gdd.ReflectionUtils;
+import fr.gdd.common.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

@@ -1,9 +1,12 @@
 package fr.gdd.jena;
 
-import fr.gdd.Backend;
-import fr.gdd.BackendIterator;
+import fr.gdd.common.Backend;
+import fr.gdd.common.BackendIterator;
+import fr.gdd.common.LazyIterator;
 
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
+import org.apache.jena.dboe.base.record.Record;
+
 import java.util.Iterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.query.Dataset;
@@ -19,7 +22,7 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 
 
-public class JenaBackend implements Backend<NodeId, Tuple<NodeId>> {
+public class JenaBackend implements Backend<NodeId, Record> {
 
     private Dataset dataset;
     private DatasetGraphTDB graph;
@@ -40,32 +43,39 @@ public class JenaBackend implements Backend<NodeId, Tuple<NodeId>> {
 
 
     
-    public BackendIterator<NodeId, Tuple<NodeId>> searchIDs(final NodeId s,
-                                                            final NodeId p,
-                                                            final NodeId o,
-                                                            final NodeId c) {
-        Tuple<NodeId> pattern = TupleFactory.tuple(s, p, o, c);
-        return this.preemptable_tuple_table.find(pattern);
+    public BackendIterator<NodeId, Record> searchIds(final NodeId s,
+                                                     final NodeId p,
+                                                     final NodeId o,
+                                                     final NodeId c) {
+        Tuple<NodeId> pattern = TupleFactory.tuple(s, p, o);
+        // (TODO) Tuple<NodeId> pattern = TupleFactory.tuple(s, p, o, c);
+        return new LazyIterator<NodeId, Record>(this,
+                                                this.preemptable_tuple_table.preemptable_find(pattern));
     }
 
-    public NodeId getSubjectID(final String subject) {
+    public NodeId getSubjectId(final String subject) {
         Node subject_node = NodeFactoryExtra.parseNode(subject);
         return node_table.getNodeIdForNode(subject_node);
     }
 
-    public NodeId getPredicateID(final String predicate) {
+    public NodeId getPredicateId(final String predicate) {
         Node predicate_node = NodeFactoryExtra.parseNode(predicate);
         return node_table.getNodeIdForNode(predicate_node);
     }
 
-    public NodeId getObjectID(final String object) {
+    public NodeId getObjectId(final String object) {
         Node object_node = NodeFactoryExtra.parseNode(object);
         return node_table.getNodeIdForNode(object_node);
     }
 
-    public NodeId getContextID(final String context) {
+    public NodeId getContextId(final String context) {
         Node context_node = NodeFactoryExtra.parseNode(context);
         return node_table.getNodeIdForNode(context_node);
+    }
+
+    public String getValue(final NodeId id) {
+        // (TODO)
+        return null;
     }
 
 }

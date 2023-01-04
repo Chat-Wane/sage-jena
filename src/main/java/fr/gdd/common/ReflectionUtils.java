@@ -1,4 +1,4 @@
-package fr.gdd;
+package fr.gdd.common;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
