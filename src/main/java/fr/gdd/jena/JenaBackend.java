@@ -34,11 +34,18 @@ public class JenaBackend implements Backend<NodeId, Record> {
     public JenaBackend(final String path) {
         this.dataset = TDB2Factory.connectDataset(path);
         this.graph = TDBInternal.getDatasetGraphTDB(this.dataset);
-        this.graph.begin(); // hopefully called close() on drop?
+        this.graph.begin(); 
 
         this.node_tuple_table = this.graph.getTripleTable().getNodeTupleTable();
         this.node_table  = this.node_tuple_table.getNodeTable();
         this.preemptable_tuple_table = new PreemptableTupleTable(node_tuple_table.getTupleTable());
+    }
+
+    /**
+     * Needs to be closed this one.
+     */
+    public void close() {
+        this.graph.end();
     }
 
 
