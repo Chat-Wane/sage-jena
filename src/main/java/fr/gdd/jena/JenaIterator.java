@@ -53,7 +53,7 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         this.minRecord = minRec;
         this.maxRecord = maxRec;
         BPTreeRecords r = loadStack(node, null);
-        System.out.printf("leave count = %s\n", r.getCount());
+        // System.out.printf("leave count = %s\n", r.getCount());
         current = getRecordsIterator(r, minRecord, maxRecord);
     }
 
@@ -107,10 +107,14 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     }
 
     public void skip(Record to) {
+        if (to == null) {
+            return;
+        }
         stack.clear();
         BPTreeRecords r = loadStack(this.root, to);
         current = getRecordsIterator(r, to, maxRecord);
-        next(); // because it's on step behind with Record to
+        hasNext(); // because it's on step behind with Record to
+        next();
     }
 
     public Record current() {
@@ -189,7 +193,7 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
 
         var min = recordBuffer.find(minRecord);
         var max = recordBuffer.find(maxRecord);
-        System.out.printf("Size using recordbuffer %s-%s =  %s\n", max, min, max-min);
+        // System.out.printf("Size using recordbuffer %s-%s =  %s\n", max, min, max-min);
         
         // records.bpTree.finishReadBlkMgr();
         Method finishReadBlkMgrMethod = ReflectionUtils._getMethod(BPlusTree.class,"finishReadBlkMgr");

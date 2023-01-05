@@ -10,7 +10,7 @@ import org.apache.jena.atlas.lib.Pair;
 public class SageResult<SKIP> {
 
     private ArrayList<ArrayList<String>> results = new ArrayList<>();
-    private TreeMap<Integer, SKIP> state = new TreeMap<>();
+    private TreeMap<Integer, SKIP> state = null;
 
     public SageResult() { }
 
@@ -19,9 +19,22 @@ public class SageResult<SKIP> {
     }
 
     public void save(Pair<Integer, SKIP>... states) {
-        for (Pair<Integer, SKIP> state : states) {
-            this.state.put(state.getLeft(), state.getRight());
+        this.state = new TreeMap<>();
+        for (Pair<Integer, SKIP> s : states) {
+            this.state.put(s.getLeft(), s.getRight());
         }
+    }
+
+    public ArrayList<ArrayList<String>> getResults() {
+        return results;
+    }
+
+    public int size() {
+        return results.size();
+    }
+
+    public TreeMap<Integer, SKIP> getState() {
+        return state;
     }
     
 }
