@@ -20,18 +20,18 @@ public class Execute {
     public static void main( String[] args ) {
         JenaBackend b = new JenaBackend("/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M");
 
-        NodeId s = b.getSubjectId("<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6>");
-        BackendIterator<NodeId, Record> it = b.searchIds(s, NodeId.NodeIdAny, NodeId.NodeIdAny, NodeId.NodeIdAny);
+        // NodeId s = b.getSubjectId("<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6>");
+        // BackendIterator<NodeId, Record> it = b.searchIds(s, NodeId.NodeIdAny, NodeId.NodeIdAny, NodeId.NodeIdAny);
 
-        while (it.hasNext()) {
-            it.next();
-            System.out.printf("%s %s %s \n", it.getId(SPOC.SUBJECT),
-                              it.getId(SPOC.PREDICATE),
-                              it.getId(SPOC.OBJECT));
-            System.out.printf("%s %s %s \n", it.getValue(SPOC.SUBJECT),
-                              it.getValue(SPOC.PREDICATE),
-                              it.getValue(SPOC.OBJECT));
-        };
+        // while (it.hasNext()) {
+        //     it.next();
+        //     System.out.printf("%s %s %s \n", it.getId(SPOC.SUBJECT),
+        //                       it.getId(SPOC.PREDICATE),
+        //                       it.getId(SPOC.OBJECT));
+        //     System.out.printf("%s %s %s \n", it.getValue(SPOC.SUBJECT),
+        //                       it.getValue(SPOC.PREDICATE),
+        //                       it.getValue(SPOC.OBJECT));
+        // };
         // b.close();
 
         
@@ -48,19 +48,22 @@ public class Execute {
             System.out.printf("ALL %s %s %s \n", it_1.getId(SPOC.SUBJECT),
                               it_1.getId(SPOC.PREDICATE),
                               it_1.getId(SPOC.OBJECT));
+            sum+=1;
         }
-        
+        System.out.printf("ALL SIZE = %s\n", sum);
         System.out.println("=================================");
 
 
         
         SageResult<Record> results = null;
+        SageResult<Record> fullResults = new SageResult<>();
         var input = new SageInput<Record>(100);
         input.setBackend(b);
         sum = 0;
         while (results == null || results.getState() != null) {
             sum +=1;
             results = query_0_simple(input);
+            fullResults.merge(results);
             input.setState(results.getState());
             System.out.printf("%s \n", results.getState());
             System.out.printf("%s results\n", results.size());
@@ -68,6 +71,7 @@ public class Execute {
                 break;
             }
         };
+        System.out.printf("FINAL SIZE = %s\n" , fullResults.size());
     }
 
 

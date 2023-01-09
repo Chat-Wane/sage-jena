@@ -25,6 +25,11 @@ public class SageResult<SKIP> {
         }
     }
 
+    public void merge(SageResult<SKIP> other) {
+        this.results.addAll(other.getResults());
+        this.state = other.state;
+    }
+    
     public ArrayList<ArrayList<String>> getResults() {
         return results;
     }

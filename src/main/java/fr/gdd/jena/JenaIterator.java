@@ -7,6 +7,7 @@ import fr.gdd.common.SPOC;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -31,7 +32,8 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     static Logger log = LoggerFactory.getLogger(BPTreePreemptableRangeIterator.class);
     // Convert path to a stack of iterators
     private final Deque<Iterator<BPTreePage>> stack = new ArrayDeque<Iterator<BPTreePage>>();
-    final private Record minRecord;
+    // final
+    private Record minRecord;
     final private Record maxRecord;
     // private Iterator<Tuple<NodeId>> current;
     private Iterator<Record> current; // current page
@@ -53,7 +55,6 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         this.minRecord = minRec;
         this.maxRecord = maxRec;
         BPTreeRecords r = loadStack(node, null);
-        // System.out.printf("leave count = %s\n", r.getCount());
         current = getRecordsIterator(r, minRecord, maxRecord);
     }
 
@@ -111,12 +112,12 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
             return;
         }
         stack.clear();
-        BPTreeRecords r = loadStack(this.root, to);
+        BPTreeRecords r = loadStack(root, to);
         current = getRecordsIterator(r, to, maxRecord);
         hasNext(); // because it's on step behind with Record to
         next();
     }
-
+    
     public Record current() {
         return this.currentRecord;
     }
@@ -165,7 +166,10 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         
         BPTreePage p = iter.next();
         BPTreeRecords r = null;
+        System.out.printf("LOADING PAGE %s \n", p.getId());
         if (p instanceof BPTreeNode) {
+            System.out.printf("LOAD A STACK: %s", p.getId());
+
             r = loadStack((BPTreeNode) p, null);
         } else {
             r = (BPTreeRecords) p;
@@ -191,8 +195,8 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         RecordBuffer recordBuffer = (RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, records.getClass(), records);
         Iterator<Record> iter = recordBuffer.iterator(minRecord, maxRecord); //, mapper);
 
-        var min = recordBuffer.find(minRecord);
-        var max = recordBuffer.find(maxRecord);
+        // var min = recordBuffer.find(minRecord);
+        // var max = recordBuffer.find(maxRecord);
         // System.out.printf("Size using recordbuffer %s-%s =  %s\n", max, min, max-min);
         
         // records.bpTree.finishReadBlkMgr();
@@ -241,10 +245,24 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
             var step = AccessStepClass.cast(step_o);
             BPTreeNode n = ((BPTreeNode) ReflectionUtils._callField(nodeField, step.getClass(), step));
 
+            // Field idxField = ReflectionUtils._getField(AccessStepClass, "idx");
+            // int idx = (int) ReflectionUtils._callField(idxField, step.getClass(), step);
+            // System.out.printf("step.idx : %s\n", idx);
+            
             // Iterator<BPTreePage> it = n.iterator(minRecord, maxRecord);
-            Iterator<BPTreePage> it = ((Iterator<BPTreePage>)
-                                       ReflectionUtils._callMethod(iteratorMethod, n.getClass(), n,
-                                                                   minRecord, maxRecord));
+            Iterator<BPTreePage> it = null;
+            // (TODO) better way to do that, i.e. `from`and
+            // (TODO) `minRecord` seem more related than expected.
+            if (from!= null) {
+                it =  ((Iterator<BPTreePage>)
+                       ReflectionUtils._callMethod(iteratorMethod, n.getClass(), n,
+                                                   from, maxRecord));
+            } else {
+                it = ((Iterator<BPTreePage>)
+                      ReflectionUtils._callMethod(iteratorMethod, n.getClass(), n,
+                                                  minRecord, maxRecord));
+                
+            }
             if (it == null || !it.hasNext())
                 continue;
             BPTreePage p = it.next();
