@@ -17,6 +17,10 @@ import org.apache.jena.tdb2.store.tupletable.TupleTable;
 
 public class PreemptableTupleTable extends TupleTable {
 
+    // by default, we get
+    // SPO POS OSP
+    // GSPO GPOS GOSP
+    // POSG OSPG SPOG
     public PreemptableTupleTable(TupleTable parent) {
         super(parent.getTupleLen(), parent.getIndexes());
     }
@@ -32,8 +36,10 @@ public class PreemptableTupleTable extends TupleTable {
             NodeId x = pattern.get(i);
             if ( ! NodeId.isAny(x) )
                 numSlots++;
-            if ( NodeId.isDoesNotExist(x))
+            if ( NodeId.isDoesNotExist(x)) {
+                // System.out.println("WOOF");
                 return null;
+            }
         }
         
         if (numSlots == 0) {

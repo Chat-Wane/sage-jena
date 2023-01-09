@@ -27,25 +27,29 @@ public class JenaBackend implements Backend<NodeId, Record> {
     private Dataset dataset;
     private DatasetGraphTDB graph;
 
-    private NodeTupleTable node_tuple_table;
+    private NodeTupleTable node_quad_tuple_table;
+    private NodeTupleTable node_triple_tuple_table;
     private NodeTable  node_table;
-    private PreemptableTupleTable preemptable_tuple_table;
+    private PreemptableTupleTable preemptable_quad_tuple_table;
+    private PreemptableTupleTable preemptable_triple_tuple_table;
     
     public JenaBackend(final String path) {
-        this.dataset = TDB2Factory.connectDataset(path);
-        this.graph = TDBInternal.getDatasetGraphTDB(this.dataset);
-        this.graph.begin(); 
+        dataset = TDB2Factory.connectDataset(path);
+        graph = TDBInternal.getDatasetGraphTDB(this.dataset);
+        graph.begin(); 
 
-        this.node_tuple_table = this.graph.getTripleTable().getNodeTupleTable();
-        this.node_table  = this.node_tuple_table.getNodeTable();
-        this.preemptable_tuple_table = new PreemptableTupleTable(node_tuple_table.getTupleTable());
+        node_quad_tuple_table = graph.getQuadTable().getNodeTupleTable();
+        node_triple_tuple_table = graph.getTripleTable().getNodeTupleTable();
+        node_table  = node_quad_tuple_table.getNodeTable(); 
+        preemptable_triple_tuple_table = new PreemptableTupleTable(node_triple_tuple_table.getTupleTable());
+        preemptable_quad_tuple_table   = new PreemptableTupleTable(node_quad_tuple_table.getTupleTable());
     }
 
     /**
      * Needs to be closed this one.
      */
     public void close() {
-        this.graph.end();
+        graph.end();
     }
 
 
@@ -54,10 +58,15 @@ public class JenaBackend implements Backend<NodeId, Record> {
                                                      final NodeId p,
                                                      final NodeId o,
                                                      final NodeId c) {
-        Tuple<NodeId> pattern = TupleFactory.tuple(s, p, o);
-        // (TODO) Tuple<NodeId> pattern = TupleFactory.tuple(s, p, o, c);
-        return new LazyIterator<NodeId, Record>(this,
-                                                this.preemptable_tuple_table.preemptable_find(pattern));
+        Tuple<NodeId> pattern = null;
+        if (c == null) {
+            pattern = TupleFactory.tuple(s, p, o);
+            return new LazyIterator<NodeId, Record>(this, preemptable_triple_tuple_table.preemptable_find(pattern));
+        } else {
+            pattern = TupleFactory.tuple(c, s, p, o);
+            return new LazyIterator<NodeId, Record>(this, preemptable_quad_tuple_table.preemptable_find(pattern));
+        }
+
     }
 
     public NodeId getSubjectId(final String subject) {

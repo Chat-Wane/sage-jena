@@ -48,14 +48,16 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     private Record previousRecord;
     private TupleMap tupleMap;
     BPTreeNode root;
+
+    private BPTreeRecords firstPage;
     
     JenaIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec) {
         this.root = node;
         this.tupleMap = tupleMap;
         this.minRecord = minRec;
         this.maxRecord = maxRec;
-        BPTreeRecords r = loadStack(node, null);
-        current = getRecordsIterator(r, minRecord, maxRecord);
+        firstPage = loadStack(node, null);
+        current = getRecordsIterator(firstPage, minRecord, maxRecord);
     }
 
     @Override
@@ -63,46 +65,83 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         stack.clear();
         previousRecord = null;
         currentRecord = null;
-        BPTreeRecords r = loadStack(root, null);
-        current = getRecordsIterator(r, minRecord, maxRecord);
+        firstPage = loadStack(root, null);
+        //BPTreeRecords r = loadStack(root, null);
+        current = getRecordsIterator(firstPage, minRecord, maxRecord);
     }
 
     @Override
     public NodeId getId(final int code) {
-        switch (code) {
-        case SPOC.SUBJECT:
-            return r.get(0);
-        case SPOC.PREDICATE:
-            return r.get(1);
-        case SPOC.OBJECT:
-            return r.get(2);
-        case SPOC.CONTEXT:
-            // return r.get(3); // (TODO) (TODO)
-            return null;
-        }
-        return null;
-    }
-    
-    public long cardinality() {
-        // (TODO) (TODO)(TODO) (TODO)(TODO) (TODO)(TODO) (TODO)
-        long sum = 0;
-        System.out.printf("Stack size %s\n", stack.size());
-        var it = stack.iterator();
-        while (it.hasNext()) {
-            Iterator<BPTreePage> e = it.next();
-            System.out.println("Woof");
-
-            while (e.hasNext()) {
-                System.out.println("PAGE");
-                var page = e.next();
-                BPTreeNode n = (BPTreeNode) page;
-                sum += n.getCount();
+        if (r.len() > 3) {
+            switch (code) {
+            case SPOC.SUBJECT:
+                return r.get(1);
+            case SPOC.PREDICATE:
+                return r.get(2);
+            case SPOC.OBJECT:
+                return r.get(3);
+            case SPOC.CONTEXT:
+                return r.get(0);
+            }
+        } else {
+            switch (code) {
+            case SPOC.SUBJECT:
+                return r.get(0);
+            case SPOC.PREDICATE:
+                return r.get(1);
+            case SPOC.OBJECT:
+                return r.get(2);
+            case SPOC.CONTEXT:
+                return null;
             }
         }
-        while (current.hasNext()) {
-            current.next();
-            ++sum;
-        }
+        
+        return null;
+    }
+
+    public Deque<Iterator<BPTreePage>> getStack() {
+        return stack;
+    }
+
+    public Iterator<Record> getCurrentIterator() {
+        return current;
+    }
+
+    @Override
+    public long cardinality() {
+        JenaIterator ji = new JenaIterator(tupleMap, root, minRecord, maxRecord);
+        long sum = 0;
+
+        for (Iterator<BPTreePage> ji_it : ji.getStack()) {
+            while (ji_it.hasNext()) {
+                BPTreePage node_or_record = ji_it.next();
+                if (node_or_record == null) {
+                    continue;
+                }
+            
+                if (node_or_record != null && node_or_record instanceof BPTreeNode) {
+                    BPTreeNode node = (BPTreeNode) node_or_record;
+                    sum += node.getCount();
+                } else {
+                    BPTreeRecords records = (BPTreeRecords) node_or_record;
+                    sum += records.getCount();
+                }
+            }
+        };
+        
+        Method getRecordBufferMethod = ReflectionUtils._getMethod(BPTreeRecords.class, "getRecordBuffer");
+        RecordBuffer recordBuffer = (RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, firstPage.getClass(), firstPage);
+        
+        var min = recordBuffer.find(minRecord);
+        var max = recordBuffer.find(maxRecord);
+        
+        sum += (min-max); //(max-min);
+
+        // (TODO) remove last iterator to get exact cardinality.
+
+        // (TODO) if on more than 3 pages
+        // (TODO) if on 2 pages firstPage + lastPage
+        // (TODO) if on 1 page firstPage
         
         return sum;
     }

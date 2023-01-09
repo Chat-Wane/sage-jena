@@ -51,7 +51,7 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP> {
     public boolean hasNext() {
         return iterator.hasNext();
     }
-    
+
     @Override
     public void next() {
         iterator.next();
@@ -73,6 +73,11 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP> {
             this.context_id = iterator.getId(SPOC.CONTEXT);
         }
     };
+
+    @Override
+    public long cardinality() {
+        return iterator.cardinality();
+    }
 
     @Override
     public void reset() {
