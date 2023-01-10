@@ -2,6 +2,11 @@ package fr.gdd.common;
 
 
 
+/**
+ * An iterator over a backend that enables pausing/resuming query
+ * execution. Its internal identifiers are of type `ID`, and it can
+ * resume its execution using type `SKIP`.
+ */
 public interface BackendIterator<ID, SKIP> {
 
     /**

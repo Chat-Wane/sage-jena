@@ -10,7 +10,7 @@ import org.apache.jena.tdb2.store.NodeId;
 import fr.gdd.common.BackendIterator;
 import fr.gdd.common.SPOC;
 import fr.gdd.common.SageInput;
-import fr.gdd.common.SageResult;
+import fr.gdd.common.SageOutput;
 import fr.gdd.jena.JenaBackend;
 import fr.gdd.jena.JenaIterator;
 
@@ -63,11 +63,11 @@ public class Execute {
         
         System.out.println("=================================");
 
-        NodeId p_1 = b.getPredicateId("<http://schema.org/eligibleRegion>");
-        NodeId o_1 = b.getObjectId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
+        NodeId p_1 = b.getId("<http://schema.org/eligibleRegion>");
+        NodeId o_1 = b.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
         // NodeId any = NodeId.NodeIdAny;
         
-        BackendIterator<NodeId, Record> it_1 = b.searchIds(any, p_1, o_1, null);
+        BackendIterator<NodeId, Record> it_1 = b.search(any, p_1, o_1);
         long sum = 0;
         while (it_1.hasNext()) {
             it_1.next();
@@ -82,8 +82,8 @@ public class Execute {
 
 
         
-        SageResult<Record> results = null;
-        SageResult<Record> fullResults = new SageResult<>();
+        SageOutput<Record> results = null;
+        SageOutput<Record> fullResults = new SageOutput<>();
         var input = new SageInput<Record>(10);
         input.setBackend(b);
         sum = 0;
@@ -96,21 +96,18 @@ public class Execute {
             System.out.printf("%s results\n", results.size());
         };
         System.out.printf("FINAL SIZE = %s\n" , fullResults.size());
-
-
-        
     }
 
 
-    public static SageResult<Record> query_0_simple(SageInput<Record> input) {
+    public static SageOutput<Record> query_0_simple(SageInput<Record> input) {
         JenaBackend b = (JenaBackend) input.getBackend();
-        NodeId p_1 = b.getPredicateId("<http://schema.org/eligibleRegion>");
-        NodeId o_1 = b.getObjectId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
+        NodeId p_1 = b.getId("<http://schema.org/eligibleRegion>");
+        NodeId o_1 = b.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
         NodeId any = NodeId.NodeIdAny;
-        SageResult<Record> results = new SageResult<>();
+        SageOutput<Record> results = new SageOutput<>();
         
         boolean once_1 = false;
-        BackendIterator<NodeId, Record> it_1 = b.searchIds(any, p_1, o_1, null);
+        BackendIterator<NodeId, Record> it_1 = b.search(any, p_1, o_1);
         if (!once_1) {
             once_1 = true;
             var to = input.getState(1);
@@ -132,7 +129,7 @@ public class Execute {
     }
     
 
-    public static SageResult<Record> query_0(SageInput<Record> input) {
+    public static SageOutput<Record> query_0(SageInput<Record> input) {
         // SELECT ?v1 ?v0 ?v2 ?v4 ?v6 ?v3 WHERE {
 	// ?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country21>.
         // ?v0 <http://purl.org/goodrelations/validThrough> ?v3.
@@ -144,17 +141,17 @@ public class Execute {
              
         // JenaBackend b = new JenaBackend("/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M");
         JenaBackend b = (JenaBackend) input.getBackend();
-        NodeId p_1 = b.getPredicateId("<http://schema.org/eligibleRegion>");
-        NodeId o_1 = b.getObjectId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
-        NodeId p_2 = b.getPredicateId("<http://purl.org/goodrelations/validThrough>");
-        NodeId p_3 = b.getPredicateId("<http://purl.org/goodrelations/includes>");
-        NodeId p_4 = b.getPredicateId("<http://schema.org/text>");
-        NodeId p_5 = b.getPredicateId("<http://schema.org/eligibleQuantity>");
-        NodeId p_6 = b.getPredicateId("<http://purl.org/goodrelations/price>");
+        NodeId p_1 = b.getId("<http://schema.org/eligibleRegion>");
+        NodeId o_1 = b.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
+        NodeId p_2 = b.getId("<http://purl.org/goodrelations/validThrough>");
+        NodeId p_3 = b.getId("<http://purl.org/goodrelations/includes>");
+        NodeId p_4 = b.getId("<http://schema.org/text>");
+        NodeId p_5 = b.getId("<http://schema.org/eligibleQuantity>");
+        NodeId p_6 = b.getId("<http://purl.org/goodrelations/price>");
         NodeId any = NodeId.NodeIdAny;
 
         // ArrayList<ArrayList<String>> results = new ArrayList<>();
-        SageResult<Record> results = new SageResult<>();
+        SageOutput<Record> results = new SageOutput<>();
         
         boolean once_1 = false;
         boolean once_2 = false;
@@ -164,7 +161,7 @@ public class Execute {
         boolean once_6 = false;
 
         // ?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country21>.
-        BackendIterator<NodeId, Record> it_1 = b.searchIds(any, p_1, o_1, null);
+        BackendIterator<NodeId, Record> it_1 = b.search(any, p_1, o_1);
         if (!once_1) {
             once_1 = true;
             it_1.skip(input.getState(1));
@@ -172,7 +169,7 @@ public class Execute {
         while (it_1.hasNext()) {
             it_1.next();
             // ?v0 <http://purl.org/goodrelations/validThrough> ?v3.
-            BackendIterator<NodeId, Record> it_2 = b.searchIds(it_1.getId(SPOC.SUBJECT), p_2, any, null);
+            BackendIterator<NodeId, Record> it_2 = b.search(it_1.getId(SPOC.SUBJECT), p_2, any);
             if (!once_2) {
                 once_2 = true;
                 it_2.skip(input.getState(2));
@@ -180,7 +177,7 @@ public class Execute {
             while (it_2.hasNext()) {
                 it_2.next();
                 // ?v0 <http://purl.org/goodrelations/includes> ?v1.
-                BackendIterator<NodeId, Record> it_3 = b.searchIds(it_1.getId(SPOC.SUBJECT), p_3, any, null);
+                BackendIterator<NodeId, Record> it_3 = b.search(it_1.getId(SPOC.SUBJECT), p_3, any);
                 if (!once_3) {
                     once_3 = true;
                     it_3.skip(input.getState(3));
@@ -189,7 +186,7 @@ public class Execute {
                 while (it_3.hasNext()) {
                     it_3.next();
                     // ?v1 <http://schema.org/text> ?v6.
-                    var it_4 = b.searchIds(it_3.getId(SPOC.OBJECT), p_4, any, null);
+                    var it_4 = b.search(it_3.getId(SPOC.OBJECT), p_4, any);
                     if (!once_4) {
                         once_4 = true;
                         it_4.skip(input.getState(4));
@@ -198,7 +195,7 @@ public class Execute {
                     while (it_4.hasNext()) {
                         it_4.next();
                         // ?v0 <http://schema.org/eligibleQuantity> ?v4.
-                        var it_5 = b.searchIds(it_1.getId(SPOC.SUBJECT), p_5, any, null);
+                        var it_5 = b.search(it_1.getId(SPOC.SUBJECT), p_5, any);
                         if (!once_5) {
                             once_5 = true;
                             it_5.skip(input.getState(5));
@@ -208,7 +205,7 @@ public class Execute {
                             it_5.next();
 
                             // ?v0 <http://purl.org/goodrelations/price> ?v2.
-                            var it_6 = b.searchIds(it_1.getId(SPOC.SUBJECT), p_6, any, null);
+                            var it_6 = b.search(it_1.getId(SPOC.SUBJECT), p_6, any);
                             if (!once_6) {
                                 once_6 = true;
                                 it_6.skip(input.getState(6));

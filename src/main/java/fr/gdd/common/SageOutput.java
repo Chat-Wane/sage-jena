@@ -7,12 +7,12 @@ import org.apache.jena.atlas.lib.Pair;
 
 
 
-public class SageResult<SKIP> {
+public class SageOutput<SKIP> {
 
     private ArrayList<ArrayList<String>> results = new ArrayList<>();
     private TreeMap<Integer, SKIP> state = null;
 
-    public SageResult() { }
+    public SageOutput() { }
 
     public void addResult(ArrayList<String> result) {
         results.add(result);
@@ -25,7 +25,7 @@ public class SageResult<SKIP> {
         }
     }
 
-    public void merge(SageResult<SKIP> other) {
+    public void merge(SageOutput<SKIP> other) {
         this.results.addAll(other.getResults());
         this.state = other.state;
     }

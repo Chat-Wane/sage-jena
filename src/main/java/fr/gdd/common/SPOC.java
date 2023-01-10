@@ -2,6 +2,9 @@ package fr.gdd.common;
 
 
 
+/**
+ * Code used by iterators for basic term types.
+ */
 public final class SPOC {
     public static final int SUBJECT   = 0;
     public static final int PREDICATE = 1;

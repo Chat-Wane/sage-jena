@@ -2,8 +2,11 @@
 *~
 .classpath
 .settings/
-watdiv10M/
 target/
+
+# datasets
+watdiv10M/
+watdiv42M/
 
 # Compiled class file
 *.class

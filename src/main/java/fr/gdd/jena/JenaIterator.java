@@ -7,18 +7,15 @@ import fr.gdd.common.SPOC;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.apache.jena.dboe.trans.bplustree.*;
-import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.InternalErrorException;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
 import org.apache.jena.dboe.base.record.Record;
-import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.trans.bplustree.AccessPath;
 import org.apache.jena.tdb2.lib.TupleLib;
@@ -32,8 +29,7 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
     static Logger log = LoggerFactory.getLogger(BPTreePreemptableRangeIterator.class);
     // Convert path to a stack of iterators
     private final Deque<Iterator<BPTreePage>> stack = new ArrayDeque<Iterator<BPTreePage>>();
-    // final
-    private Record minRecord;
+    final private Record minRecord;
     final private Record maxRecord;
     // private Iterator<Tuple<NodeId>> current;
     private Iterator<Record> current; // current page
