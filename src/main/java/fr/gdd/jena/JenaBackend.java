@@ -3,6 +3,7 @@ package fr.gdd.jena;
 import fr.gdd.common.Backend;
 import fr.gdd.common.BackendIterator;
 import fr.gdd.common.LazyIterator;
+import fr.gdd.common.RandomIterator;
 
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.dboe.base.record.Record;
@@ -34,7 +35,7 @@ public class JenaBackend implements Backend<NodeId, Record> {
     private NodeTable  node_table;
     private PreemptableTupleTable preemptable_quad_tuple_table;
     private PreemptableTupleTable preemptable_triple_tuple_table;
-    
+
     public JenaBackend(final String path) {
         dataset = TDB2Factory.connectDataset(path);
         graph = TDBInternal.getDatasetGraphTDB(this.dataset);
@@ -50,12 +51,12 @@ public class JenaBackend implements Backend<NodeId, Record> {
     /**
      * Needs to be closed this one.
      */
-    public void close() {
-        graph.end();
-    }
+    public void close() { graph.end(); }
 
 
 
+    // Backend interface
+    
     @Override
     public BackendIterator<NodeId, Record> search(final NodeId s, final NodeId p, final NodeId o, final NodeId... c) {
         if (c.length == 0) {

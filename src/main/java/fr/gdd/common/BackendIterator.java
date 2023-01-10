@@ -10,10 +10,10 @@ package fr.gdd.common;
 public interface BackendIterator<ID, SKIP> {
 
     /**
-     * Get the identifier of the variable code.
      * @param code Typically, for basic scan operator, the code would
      * be 0 for subject, 1 for predicate etc.; while for values
      * operator, the code would depend on the variable order.
+     * @return The identifier of the variable code.
      */
     ID getId(int code);
 
@@ -22,6 +22,7 @@ public interface BackendIterator<ID, SKIP> {
      * means that the iterator probably does not have access to the
      * backend dictionary.
      * @param code Same as `getId`.
+     * @return The value of the variable code.
      */
     default String getValue(int code){return null;};
     
@@ -57,9 +58,4 @@ public interface BackendIterator<ID, SKIP> {
      * @return The previous offset that allows skipping.
      */
     public SKIP previous();
-
-    /**
-     * @return The estimated cardinality of the iterator.
-     */
-    default long cardinality () { return -1; }
 }

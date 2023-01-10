@@ -3,12 +3,14 @@ package fr.gdd.jena;
 import fr.gdd.common.ReflectionUtils;
 import fr.gdd.common.BackendIterator;
 import fr.gdd.common.SPOC;
+import fr.gdd.common.RandomIterator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.jena.dboe.trans.bplustree.*;
@@ -25,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 
 
-public class JenaIterator implements BackendIterator<NodeId, Record> {
+public class JenaIterator implements BackendIterator<NodeId, Record>, RandomIterator {
     static Logger log = LoggerFactory.getLogger(BPTreePreemptableRangeIterator.class);
     // Convert path to a stack of iterators
     private final Deque<Iterator<BPTreePage>> stack = new ArrayDeque<Iterator<BPTreePage>>();
@@ -56,6 +58,18 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         current = getRecordsIterator(firstPage, minRecord, maxRecord);
     }
 
+    private void end() {
+        finished = true;
+        current = null;
+    }
+
+    public void close() {
+        if (!finished)
+            end();
+    }
+
+
+    
     @Override
     public void reset() {
         stack.clear();
@@ -95,53 +109,7 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         return null;
     }
 
-    public Deque<Iterator<BPTreePage>> getStack() {
-        return stack;
-    }
-
-    public Iterator<Record> getCurrentIterator() {
-        return current;
-    }
-
     @Override
-    public long cardinality() {
-        JenaIterator ji = new JenaIterator(tupleMap, root, minRecord, maxRecord);
-        long sum = 0;
-
-        for (Iterator<BPTreePage> ji_it : ji.getStack()) {
-            while (ji_it.hasNext()) {
-                BPTreePage node_or_record = ji_it.next();
-                if (node_or_record == null) {
-                    continue;
-                }
-            
-                if (node_or_record != null && node_or_record instanceof BPTreeNode) {
-                    BPTreeNode node = (BPTreeNode) node_or_record;
-                    sum += node.getCount();
-                } else {
-                    BPTreeRecords records = (BPTreeRecords) node_or_record;
-                    sum += records.getCount();
-                }
-            }
-        };
-        
-        Method getRecordBufferMethod = ReflectionUtils._getMethod(BPTreeRecords.class, "getRecordBuffer");
-        RecordBuffer recordBuffer = (RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, firstPage.getClass(), firstPage);
-        
-        var min = recordBuffer.find(minRecord);
-        var max = recordBuffer.find(maxRecord);
-        
-        sum += (min-max); //(max-min);
-
-        // (TODO) remove last iterator to get exact cardinality.
-
-        // (TODO) if on more than 3 pages
-        // (TODO) if on 2 pages firstPage + lastPage
-        // (TODO) if on 1 page firstPage
-        
-        return sum;
-    }
-
     public void skip(Record to) {
         if (to == null) {
             return;
@@ -152,15 +120,16 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         hasNext(); // because it's on step behind with Record to
         next();
     }
-    
+
+    @Override
     public Record current() {
         return this.currentRecord;
     }
 
+    @Override
     public Record previous() {
         return this.previousRecord;
     }
-    
     
     @Override
     public boolean hasNext() {
@@ -286,9 +255,9 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
             
             // Iterator<BPTreePage> it = n.iterator(minRecord, maxRecord);
             Iterator<BPTreePage> it = null;
-            // (TODO) better way to do that, i.e. `from`and
+            // (TODO) better way to do that, i.e. `from` and
             // (TODO) `minRecord` seem more related than expected.
-            if (from!= null) {
+            if (from != null) {
                 it =  ((Iterator<BPTreePage>)
                        ReflectionUtils._callMethod(iteratorMethod, n.getClass(), n,
                                                    from, maxRecord));
@@ -319,20 +288,6 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         return (BPTreeRecords) p;
     }
 
-    // ----
-
-    private void end() {
-        finished = true;
-        current = null;
-    }
-
-    // ----
-
-    public void close() {
-        if (!finished)
-            end();
-    }
-
     @Override
     public void next() {
         if (!hasNext())
@@ -342,8 +297,181 @@ public class JenaIterator implements BackendIterator<NodeId, Record> {
         if (r == null)
             throw new InternalErrorException("Null slot after hasNext is true");
         // slotRecord = null;
-        slot = null;
+        slot = null; // consumed
         // return r;
     }
     
+
+
+    // RandomIterator interface
+    
+    @Override
+    public long cardinality() {
+        JenaIterator ji = new JenaIterator(tupleMap, root, minRecord, maxRecord);
+        long sum = 0;
+        
+        for (Iterator<BPTreePage> ji_it : ji.getStack()) {
+            while (ji_it.hasNext()) {
+                BPTreePage node_or_record = ji_it.next();
+                if (node_or_record == null) {
+                    continue;
+                }
+            
+                if (node_or_record != null && node_or_record instanceof BPTreeNode) {
+                    BPTreeNode node = (BPTreeNode) node_or_record;
+                    sum += node.getCount();
+                    // (TODO) multiply by depth
+                } else {
+                    BPTreeRecords records = (BPTreeRecords) node_or_record;
+                    sum += records.getCount();
+                }
+            }
+        };
+        
+        Method getRecordBufferMethod = ReflectionUtils._getMethod(BPTreeRecords.class, "getRecordBuffer");
+        RecordBuffer recordBuffer = (RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, firstPage.getClass(), firstPage);
+        
+        var min = recordBuffer.find(minRecord);
+        var max = recordBuffer.find(maxRecord);
+        
+        sum += (min-max); // (max-min);
+
+        // (TODO) remove last iterator to get exact cardinality.
+
+        // (TODO) if on more than 3 pages
+        // (TODO) if on 2 pages firstPage + lastPage
+        // (TODO) if on 1 page firstPage
+        
+        return sum;
+    }
+
+    @Override
+    public void random() {
+        // (TODO)
+        Method internalSearchMethod = ReflectionUtils._getMethod(BPTreeNode.class, "internalSearch", AccessPath.class, Record.class);
+        AccessPath minPath = new AccessPath(null);
+        ReflectionUtils._callMethod(internalSearchMethod, root.getClass(), root, minPath, minRecord);
+        
+        AccessPath maxPath = new AccessPath(null);
+        ReflectionUtils._callMethod(internalSearchMethod, root.getClass(), root, maxPath, maxRecord);
+        // System.out.printf("MIN PATH %s\n", minPath.toString()); 
+        // System.out.printf("MAX PATH %s\n", maxPath.toString());
+
+        AccessPath randomPath = new AccessPath(null);
+        // #1 process common branch
+        var minSteps = minPath.getPath();
+        var maxSteps = maxPath.getPath();
+
+        Class<?> AccessStepClass = ReflectionUtils._getClass("org.apache.jena.dboe.trans.bplustree.AccessPath$AccessStep");
+        Field nodeField = ReflectionUtils._getField(AccessStepClass, "node");
+        Field idxField  = ReflectionUtils._getField(AccessStepClass, "idx");
+        Field pageField = ReflectionUtils._getField(AccessStepClass, "page");
+        
+        int i = 0;
+        var minStep = AccessStepClass.cast(minSteps.get(i));
+        var maxStep = AccessStepClass.cast(maxSteps.get(i));
+        // (TODO) better equal comparison
+        boolean done = false;
+        while (i < minSteps.size() && i < maxSteps.size() && equalsStep(minStep, maxStep)) {
+            BPTreeNode node = ((BPTreeNode) ReflectionUtils._callField(nodeField, minStep.getClass(), minStep));
+            int        idx  = ((int)        ReflectionUtils._callField(idxField , minStep.getClass(), minStep));
+            BPTreePage page = ((BPTreePage) ReflectionUtils._callField(pageField, minStep.getClass(), minStep));
+
+            randomPath.add(node, idx, page);
+            ++i;
+            if (i< minSteps.size() && i < maxSteps.size()) { // ugly
+                minStep = AccessStepClass.cast(minSteps.get(i));
+                maxStep = AccessStepClass.cast(maxSteps.get(i));
+            } else {
+                done = true;
+            }
+        }
+        
+        // System.out.printf("After common %s\n", randomPath);
+        // #2 random between the remainder of the branches
+        BPTreeNode lastMinNode = ((BPTreeNode) ReflectionUtils._callField(nodeField, minStep.getClass(), minStep));
+        BPTreeNode lastMaxNode = ((BPTreeNode) ReflectionUtils._callField(nodeField, minStep.getClass(), maxStep));
+        // System.out.printf("%s\n", lastNode.getCount());
+
+        // #A if last was same node but different pages
+        if (!done && lastMinNode.getId() == lastMaxNode.getId()) {
+            int idxMin  = ((int) ReflectionUtils._callField(idxField , minStep.getClass(), minStep));
+            int idxMax  = ((int) ReflectionUtils._callField(idxField , maxStep.getClass(), maxStep));
+            // (TODO) seeded random for the sake of reproducibility
+            // (TODO) better casts
+            int found_idx = (int) ((double)idxMin + Math.random() * ((double)(idxMax - idxMin)));
+            
+            Method getMethod = ReflectionUtils._getMethod(BPTreeNode.class, "get", int.class);
+
+            BPTreePage chosenPage = (BPTreePage) ReflectionUtils._callMethod(getMethod, BPTreeNode.class, lastMinNode, found_idx);
+            // System.out.printf("FOUND RANDOM %s\n", found_idx );
+            // System.out.printf("Page %s\n", chosenPage.getId());
+            randomPath.add(lastMinNode, found_idx, chosenPage);
+            
+            // System.out.printf("After common node %s\n", randomPath);
+            
+            // #B random among the whole range of the underlying branch
+            // 
+            // while (!chosenNode.isLeaf()) {
+            while (!(chosenPage instanceof BPTreeRecords)) {
+                BPTreeNode chosenNode = (BPTreeNode) chosenPage;
+                idxMax = chosenNode.getCount();
+                found_idx = (int) (Math.random() * ((double)(idxMax)));
+                // System.out.printf("FOUND RANDOM %s\n", found_idx );
+                chosenPage = (BPTreePage) ReflectionUtils._callMethod(getMethod, BPTreeNode.class, chosenPage, found_idx);
+                randomPath.add(chosenNode, found_idx, chosenPage);
+            }
+
+            // System.out.printf("After going down %s\n", randomPath);
+        }
+
+        var randomSteps = randomPath.getPath();
+        var lastStep = AccessStepClass.cast(randomSteps.get(randomSteps.size() - 1));
+        BPTreePage p = (BPTreePage) ReflectionUtils._callField(pageField, lastStep.getClass(), lastStep);
+
+        BPTreeRecords record = (BPTreeRecords) p;
+
+        Method getRecordBufferMethod = ReflectionUtils._getMethod(BPTreeRecords.class, "getRecordBuffer");
+        RecordBuffer recordBuffer = (RecordBuffer) ReflectionUtils._callMethod(getRecordBufferMethod, record.getClass(), record);
+
+        var min = -recordBuffer.find(minRecord)-1; // must be negative -1 
+        var max = -recordBuffer.find(maxRecord)-1;
+        // System.out.printf("min %s   ;  max %s\n", min, max);
+
+        int randomInRecords = ((int) ((double) min + Math.random()*((double) max - min)));
+        Record currentRecord = recordBuffer._get(randomInRecords);
+
+        stack.clear();
+        firstPage = loadStack(root, currentRecord);
+        this.current = getRecordsIterator(firstPage, currentRecord, maxRecord);
+    }
+
+    
+    public Deque<Iterator<BPTreePage>> getStack() {
+        return stack;
+    }
+
+    public Iterator<Record> getCurrentIterator() {
+        return current;
+    }
+
+    private static boolean equalsStep(Object o1, Object o2) {
+        Class<?> AccessStepClass = ReflectionUtils._getClass("org.apache.jena.dboe.trans.bplustree.AccessPath$AccessStep");
+        Field nodeField = ReflectionUtils._getField(AccessStepClass, "node");
+        Field idxField  = ReflectionUtils._getField(AccessStepClass, "idx");
+        Field pageField = ReflectionUtils._getField(AccessStepClass, "page");
+        var o1_casted = AccessStepClass.cast(o1);
+        var o2_casted = AccessStepClass.cast(o2);
+
+        BPTreeNode node_o1 = ((BPTreeNode) ReflectionUtils._callField(nodeField, o1_casted.getClass(), o1_casted));
+        int        idx_o1  = ((int)        ReflectionUtils._callField(idxField , o1_casted.getClass(), o1_casted));
+        BPTreePage page_o1 = ((BPTreePage) ReflectionUtils._callField(pageField, o1_casted.getClass(), o1_casted));
+
+        BPTreeNode node_o2 = ((BPTreeNode) ReflectionUtils._callField(nodeField, o2_casted.getClass(), o2_casted));
+        int        idx_o2  = ((int)        ReflectionUtils._callField(idxField , o2_casted.getClass(), o2_casted));
+        BPTreePage page_o2 = ((BPTreePage) ReflectionUtils._callField(pageField, o2_casted.getClass(), o2_casted));
+
+        return node_o1.getId() == node_o2.getId() && idx_o1 == idx_o2 && page_o1.getId() == page_o2.getId();
+    }
+
 }

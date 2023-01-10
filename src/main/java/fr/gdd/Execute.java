@@ -8,6 +8,7 @@ import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.tdb2.store.NodeId;
 
 import fr.gdd.common.BackendIterator;
+import fr.gdd.common.RandomIterator;
 import fr.gdd.common.SPOC;
 import fr.gdd.common.SageInput;
 import fr.gdd.common.SageOutput;
@@ -60,23 +61,74 @@ public class Execute {
         // };
         // b.close();
 
-        
-        System.out.println("=================================");
+
 
         NodeId p_1 = b.getId("<http://schema.org/eligibleRegion>");
         NodeId o_1 = b.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
+        // NodeId any = NodeId.NodeIdAny;
+        
+        BackendIterator<NodeId, Record> it_for_random = b.search(any, p_1, o_1);
+        for (int i=0; i<10; ++i) {
+            ((RandomIterator) it_for_random).random();
+            if (it_for_random.hasNext()) {
+                it_for_random.next();
+                System.out.printf("RNG %s %s %s \n",
+                                  it_for_random.getId(SPOC.SUBJECT),
+                                  it_for_random.getId(SPOC.PREDICATE),
+                                  it_for_random.getId(SPOC.OBJECT));
+            }
+        };
+        System.out.println();
+        
+        NodeId s_1 = b.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6>");
+        BackendIterator<NodeId, Record> it_for_random_2 = b.search(s_1, any, any);
+
+        for (int i=0; i<10; ++i) {
+            ((RandomIterator) it_for_random_2).random();
+            if (it_for_random_2.hasNext()) {
+                it_for_random_2.next();
+                System.out.printf("RNG %s %s %s \n",
+                                  it_for_random_2.getId(SPOC.SUBJECT),
+                                  it_for_random_2.getId(SPOC.PREDICATE),
+                                  it_for_random_2.getId(SPOC.OBJECT));
+            }
+        }
+        
+        System.out.println();
+        
+        NodeId p_2 = b.getId("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>");
+        BackendIterator<NodeId, Record> it_for_random_3 = b.search(any, p_2, any);
+        for (int i=0; i<10; ++i) {
+            ((RandomIterator) it_for_random_3).random();
+            if (it_for_random_3.hasNext()) {
+                it_for_random_3.next();
+                System.out.printf("RNG %s %s %s \n",
+                                  it_for_random_3.getId(SPOC.SUBJECT),
+                                  it_for_random_3.getId(SPOC.PREDICATE),
+                                  it_for_random_3.getId(SPOC.OBJECT));
+            }
+        }
+        
+        System.exit(1);
+        
+        
+        System.out.println("=================================");
+
+        // NodeId p_1 = b.getId("<http://schema.org/eligibleRegion>");
+        // NodeId o_1 = b.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
         // NodeId any = NodeId.NodeIdAny;
         
         BackendIterator<NodeId, Record> it_1 = b.search(any, p_1, o_1);
         long sum = 0;
         while (it_1.hasNext()) {
             it_1.next();
-            System.out.printf("ALL %s %s %s \n", it_1.getId(SPOC.SUBJECT),
+            System.out.printf("ALL %s %s %s \n",
+                              it_1.getId(SPOC.SUBJECT),
                               it_1.getId(SPOC.PREDICATE),
                               it_1.getId(SPOC.OBJECT));
             sum+=1;
         }
-        System.out.printf("CARD = %s\n", it_1.cardinality());
+        System.out.printf("CARD = %s\n", ((RandomIterator) it_1).cardinality());
         System.out.printf("ALL SIZE = %s\n", sum);
         System.out.println("=================================");
 

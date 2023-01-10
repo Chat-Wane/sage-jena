@@ -7,7 +7,7 @@ package fr.gdd.common;
  * retrieved, the value is cached and only gets erased when the
  * underlying identifier changes.
  */
-public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP> {
+public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP>, RandomIterator {
 
     private BackendIterator<ID, SKIP> iterator;
     private Backend<ID, SKIP> backend;
@@ -75,11 +75,6 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP> {
     };
 
     @Override
-    public long cardinality() {
-        return iterator.cardinality();
-    }
-
-    @Override
     public void reset() {
         iterator.reset();
         this.subject_id = null;
@@ -137,5 +132,18 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP> {
     public void skip(SKIP to) {
         iterator.skip(to);
     }
+
+
+    
+    @Override
+    public void random() {
+        ((RandomIterator) iterator).random();
+    }
+
+    @Override
+    public long cardinality() {
+        return ((RandomIterator) iterator).cardinality();
+    }
+
 
 }
