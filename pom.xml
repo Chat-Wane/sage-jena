@@ -59,7 +59,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>fr.gdd.Execute</mainClass>
+              <mainClass>fr.gdd.VolcanoApp</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -69,7 +69,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <mainClass>fr.gdd.Execute</mainClass>
+          <mainClass>fr.gdd.VolcanoApp</mainClass>
         </configuration>
       </plugin>
     </plugins>

@@ -30,9 +30,9 @@ public class JenaBackend implements Backend<NodeId, Record> {
     private Dataset dataset;
     private DatasetGraphTDB graph;
 
-    private NodeTupleTable node_quad_tuple_table;
-    private NodeTupleTable node_triple_tuple_table;
-    private NodeTable  node_table;
+    public NodeTupleTable node_quad_tuple_table;
+    public NodeTupleTable node_triple_tuple_table;
+    public NodeTable  node_table;
     private PreemptableTupleTable preemptable_quad_tuple_table;
     private PreemptableTupleTable preemptable_triple_tuple_table;
 
