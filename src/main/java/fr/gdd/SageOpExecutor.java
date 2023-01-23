@@ -13,30 +13,19 @@ import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
 public class SageOpExecutor extends OpExecutorTDB2 {
 
-    public final static OpExecutorFactory factory = new OpExecutorFactory() {
-            @Override
-            public OpExecutor create(ExecutionContext execCxt){
-                System.out.println("NEW SAGE OP EXEC");
-                return new SageOpExecutor(execCxt);
-            }
-        };
-
-    public SageOpExecutor(ExecutionContext execCxt) {
+    SageStageGenerator generator;
+    
+    public SageOpExecutor(ExecutionContext execCxt, SageStageGenerator generator) {
         super(execCxt);
+        this.generator = generator;
     }
 
     @Override
     public QueryIterator execute(OpSlice opSlice, QueryIterator input) {
         System.out.println("SLIIIIIICE");
         QueryIterator qIter = exec(opSlice.getSubOp(), input);
-        qIter = new QueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt);
+        qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt, this.generator.iterators);
         return qIter;
     }
-
-    // @Override
-    // public QueryIterator execute(OpBGP opBPG, QueryIterator input) {
-    //     System.out.println("BGP");
-    //     return null;
-    // }
-
+    
 }

@@ -37,6 +37,7 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
+import fr.gdd.common.BackendIterator;
 import fr.gdd.common.ReflectionUtils;
 import fr.gdd.jena.JenaBackend;
 import fr.gdd.jena.VolcanoIterator;
@@ -45,9 +46,13 @@ import fr.gdd.jena.VolcanoIterator;
 
 public class SageStageGenerator implements StageGenerator {
     StageGenerator parent;
-
     JenaBackend backend;
 
+    /**
+     * Registers the preemptables iterators for later.
+     */
+    List<VolcanoIterator> iterators = new ArrayList<>();
+    
     public SageStageGenerator(StageGenerator parent, JenaBackend backend) {
         this.parent = parent;
         this.backend = backend;
@@ -134,11 +139,13 @@ public class SageStageGenerator implements StageGenerator {
         //                                                      ExecutionContext.class);
         // Iterator<Quad> dsgIter = (Iterator<Quad>) ReflectionUtils._callMethod(accessDataMethod, null, null,
         //                                                                       patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
-        Iterator<Quad> dsgIter = (Iterator<Quad>) new VolcanoIterator(backend.search(nodeTable.getNodeIdForNode(s),
-                                                                                     nodeTable.getNodeIdForNode(p),
-                                                                                     nodeTable.getNodeIdForNode(o)),
-                                                                      // (TODO) Graph
-                                                                      backend.node_table);
+        VolcanoIterator volcanoIterator =  new VolcanoIterator(backend.search(nodeTable.getNodeIdForNode(s),
+                                                                              nodeTable.getNodeIdForNode(p),
+                                                                              nodeTable.getNodeIdForNode(o)),
+                                                               // (TODO) Graph
+                                                               backend.node_table);
+        this.iterators.add(volcanoIterator);
+        Iterator<Quad> dsgIter = (Iterator<Quad>) volcanoIterator;
         
         
         Iterator<Binding> matched = Iter.iter(dsgIter)

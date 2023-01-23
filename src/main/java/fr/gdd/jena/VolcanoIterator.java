@@ -15,7 +15,7 @@ import fr.gdd.common.SPOC;
 
 public class VolcanoIterator implements Iterator<Quad> {
 
-    BackendIterator<NodeId, Record> wrapped;
+    public BackendIterator<NodeId, Record> wrapped;
     NodeTable nodeTable;
     
     public VolcanoIterator (BackendIterator<NodeId, Record> iterator, NodeTable nodeTable) {
