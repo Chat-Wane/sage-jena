@@ -32,10 +32,16 @@ public class VolcanoApp {
         
         StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
 
-        String query_as_str = "SELECT ?s WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o}";
+        String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o . FILTER(Regex(str(?o), 'Offer')) } LIMIT 1";
+        // String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o . FILTER(?o != uri('http://db.uwaterloo.ca/~galuc/wsdbm/User67267')) } ";
 
         Query query = QueryFactory.create(query_as_str);
         QueryExecution engine = QueryExecutionFactory.create(query, dataset.getDefaultModel());
+        // engine.setTimeout(300); (TODO)
+
+
+        System.out.println(query.toString());
+
 
         QueryExecUtils.executeQuery(query, engine) ;
     }

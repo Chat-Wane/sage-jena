@@ -64,6 +64,7 @@ public class JenaIterator implements BackendIterator<NodeId, Record>, RandomIter
     }
 
     public void close() {
+        System.out.println("CLOOOOZZZZ");
         if (!finished)
             end();
     }
@@ -290,6 +291,11 @@ public class JenaIterator implements BackendIterator<NodeId, Record>, RandomIter
 
     @Override
     public void next() {
+        try { // (TODO) remove this, only for testing timeout
+            Thread.sleep(100);
+        } catch (Exception e) {
+        }
+        
         if (!hasNext())
             throw new NoSuchElementException();
 

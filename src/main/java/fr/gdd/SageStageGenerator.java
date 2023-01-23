@@ -27,6 +27,7 @@ import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 import org.apache.jena.tdb2.solver.BindingTDB;
+import org.apache.jena.tdb2.solver.QC2;
 import org.apache.jena.tdb2.solver.SolverLibTDB;
 import org.apache.jena.tdb2.solver.SolverRX;
 import org.apache.jena.tdb2.store.GraphTDB;
@@ -37,6 +38,7 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 import fr.gdd.common.ReflectionUtils;
 import fr.gdd.jena.JenaBackend;
+import fr.gdd.jena.VolcanoIterator;
 
 
 
@@ -66,21 +68,14 @@ public class SageStageGenerator implements StageGenerator {
         
         for (Triple triple: pattern.getList()) {
             System.out.printf("%s\n", triple.toString());
-            
-            Tuple<Node> patternTuple = TupleFactory.create3(triple.getSubject(),
-                                                            triple.getPredicate(),
-                                                            triple.getObject());
-
-
             // From <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L73>
+            // anygraph false => null , ie. search default graph for triples
+            Predicate<Tuple<NodeId>> filter = QC2.getFilter(execCxt.getContext());
             Function<BindingNodeId, Iterator<BindingNodeId>> step =
-                bnid -> find(bnid, backend.node_triple_tuple_table, null, triple, true, null, execCxt);
+                bnid -> find(bnid, backend.node_triple_tuple_table, null, triple, false, filter, execCxt);
             chain = Iter.flatMap(chain, step);
-            System.out.printf("%s\n", patternTuple.toString());
-            
-            
+            chain = SolverLib.makeAbortable(chain, killList);
         }
-
 
         //  Iterator<Binding> iterBinding = SolverLibTDB.convertToNodes(chain, nodeTable);
         Method convertToNodesMethod = ReflectionUtils._getMethod(SolverLibTDB.class,
@@ -89,8 +84,6 @@ public class SageStageGenerator implements StageGenerator {
                                                                  NodeTable.class);
         var iterBinding = (Iterator<Binding>) ReflectionUtils._callMethod(convertToNodesMethod,
                                                                           null, null, chain, backend.node_table);
-        
-        System.out.println("CARJACKED");
 
         QueryIterAbortable abortable = new QueryIterAbortable(iterBinding, killList, input, execCxt);
         return abortable;
@@ -101,10 +94,15 @@ public class SageStageGenerator implements StageGenerator {
 
     
     // from <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L78>
-    private static Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
-                                                Node xGraphNode, Triple xPattern,
-                                                boolean anyGraph, Predicate<Tuple<NodeId>> filter,
-                                                ExecutionContext execCxt) {
+    private Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
+                                         Node xGraphNode, Triple xPattern,
+                                         boolean anyGraph, Predicate<Tuple<NodeId>> filter,
+                                         ExecutionContext execCxt) {
+
+        System.out.printf("bnid %s\n", bnid.toString());
+        // (TODO) add filter when on NodeId
+        // System.out.printf("filter %s \n", filter.toString());
+        
         NodeTable nodeTable = nodeTupleTable.getNodeTable();
         Binding input = bnid.isEmpty() ? BindingFactory.empty() : new BindingTDB(bnid, nodeTable);
         Triple tPattern = Substitute.substitute(xPattern, input);
@@ -124,19 +122,24 @@ public class SageStageGenerator implements StageGenerator {
 
 
         System.out.printf("MEOW %s\n", patternTuple);
+        // (TODO) replasce dsgIter by our preemptable iterator.
         // Iterator<Quad> dsgIter = SolverRX.accessData(patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
-        Method accessDataMethod = ReflectionUtils._getMethod(SolverRX.class, "accessData",
-                                                             Tuple.class, NodeTupleTable.class,
-                                                             boolean.class, Predicate.class,
-                                                             ExecutionContext.class);
-        Iterator<Quad> dsgIter = (Iterator<Quad>) ReflectionUtils._callMethod(accessDataMethod, null, null,
-                                                                              patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
-
-
+        // Method accessDataMethod = ReflectionUtils._getMethod(SolverRX.class, "accessData",
+        //                                                      Tuple.class, NodeTupleTable.class,
+        //                                                      boolean.class, Predicate.class,
+        //                                                      ExecutionContext.class);
+        // Iterator<Quad> dsgIter = (Iterator<Quad>) ReflectionUtils._callMethod(accessDataMethod, null, null,
+        //                                                                       patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
+        Iterator<Quad> dsgIter = (Iterator<Quad>) new VolcanoIterator(backend.search(nodeTable.getNodeIdForNode(s),
+                                                                                     nodeTable.getNodeIdForNode(p),
+                                                                                     nodeTable.getNodeIdForNode(o)),
+                                                                      // (TODO) Graph
+                                                                      backend.node_table);
+        
+        
         Iterator<Binding> matched = Iter.iter(dsgIter)
             .map(dQuad->SolverRX4.matchQuad(input, dQuad, tGraphNode, tPattern)).removeNulls();
-
-
+        
         //  convFromBinding(matched, nodeTable);
         // => Iter.map(matched, SolverLibTDB.convFromBinding(nodeTable));
         Method convFromBindingMethod = ReflectionUtils._getMethod(SolverLibTDB.class,
