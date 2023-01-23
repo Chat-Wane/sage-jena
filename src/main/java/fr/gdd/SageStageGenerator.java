@@ -25,6 +25,7 @@ import org.apache.jena.sparql.engine.iterator.QueryIterAbortable;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
+import org.apache.jena.sparql.mgt.Explain;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 import org.apache.jena.tdb2.solver.BindingTDB;
 import org.apache.jena.tdb2.solver.QC2;
@@ -54,6 +55,9 @@ public class SageStageGenerator implements StageGenerator {
 
     @Override
     public QueryIterator execute(BasicPattern pattern, QueryIterator input, ExecutionContext execCxt) {
+        Explain.explain(pattern, execCxt.getContext()) ;
+
+
         if (!(execCxt.getActiveGraph() instanceof GraphViewSwitchable)) {
             return parent.execute(pattern, input, execCxt);
         }
