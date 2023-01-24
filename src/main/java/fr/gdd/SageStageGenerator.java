@@ -14,6 +14,7 @@ import com.github.andrewoma.dexx.collection.HashMap;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
+import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
@@ -43,6 +44,7 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 import fr.gdd.common.BackendIterator;
 import fr.gdd.common.ReflectionUtils;
+import fr.gdd.common.SageInput;
 import fr.gdd.jena.JenaBackend;
 import fr.gdd.jena.VolcanoIterator;
 
@@ -51,6 +53,8 @@ import fr.gdd.jena.VolcanoIterator;
 public class SageStageGenerator implements StageGenerator {
     StageGenerator parent;
     JenaBackend backend;
+
+    SageInput sageInput;
 
     /**
      * Registers the preemptables iterators for later.
@@ -62,6 +66,12 @@ public class SageStageGenerator implements StageGenerator {
     public SageStageGenerator(StageGenerator parent, JenaBackend backend) {
         this.parent = parent;
         this.backend = backend;
+    }
+
+    public void setSageInput(SageInput sageInput) {
+        // (TODO) cleaner 
+        this.iterators_map = new TreeMap<>();
+        this.sageInput = sageInput;
     }
 
     @Override
@@ -161,8 +171,12 @@ public class SageStageGenerator implements StageGenerator {
                                                                // (TODO) Graph
                                                                backend.node_table);
         if (!iterators_map.containsKey(id)) {
-            System.out.println("(TODO) should resume by loading state when available");
+            if (sageInput != null && sageInput.getState() != null) {
+                System.out.println("(TODO) should resume by loading state when available");
+                volcanoIterator.wrapped.skip((Record) sageInput.getState(id));
+            }
         }
+        System.out.printf("LIMIT CHECK = %s\n", sageInput.getLimit());
         this.iterators_map.put(id, volcanoIterator); // register and/or erase previous iterator
         this.iterators.add(volcanoIterator);
         Iterator<Quad> dsgIter = (Iterator<Quad>) volcanoIterator;

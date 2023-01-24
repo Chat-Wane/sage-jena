@@ -88,7 +88,7 @@ public class SageQueryIterSlice extends QueryIter1 {
             // need to have a datastructure to extract exactly what is
             // needed by a operator that saves.
             if (lastKey != null) {
-                var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.current());
+                var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
                 this.output.addState(toSave);
             }
             
