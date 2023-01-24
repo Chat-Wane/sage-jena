@@ -18,6 +18,7 @@ import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.sparql.ARQConstants;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Substitute;
@@ -31,6 +32,7 @@ import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
 import org.apache.jena.sparql.mgt.Explain;
+import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 import org.apache.jena.tdb2.solver.BindingTDB;
 import org.apache.jena.tdb2.solver.QC2;
@@ -132,6 +134,13 @@ public class SageStageGenerator implements StageGenerator {
                                          Node xGraphNode, Triple xPattern,
                                          boolean anyGraph, Predicate<Tuple<NodeId>> filter,
                                          ExecutionContext execCxt, Integer id) {
+        // (TODO) maybe add preempt metadata in execution context.
+        for (Symbol s : execCxt.getContext().keys()) {
+            System.out.printf("Symbol %s =>> %s \n" ,s.toString() , execCxt.getContext().getAsString(s));
+        }
+        var startedAt = execCxt.getContext().get(ARQConstants.sysCurrentTime);
+        System.out.printf("started at %s\n", startedAt);
+        
         System.out.printf("bnid %s\n", bnid.toString());
         System.out.printf("scanId %s\n", id);
         

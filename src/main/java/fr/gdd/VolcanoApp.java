@@ -49,15 +49,15 @@ public class VolcanoApp {
             "SELECT * WHERE {" +
             "<http://db.uwaterloo.ca/~galuc/wsdbm/City193> <http://www.geonames.org/ontology#parentCountry> ?v1." +
             "?v6 <http://schema.org/nationality> ?v1." +
-            // "?v6 <http://db.uwaterloo.ca/~galuc/wsdbm/likes> ?v3." +
+            "?v6 <http://db.uwaterloo.ca/~galuc/wsdbm/likes> ?v3." +
             // "?v2 <http://purl.org/goodrelations/includes> ?v3." +
             // "?v2 <http://purl.org/goodrelations/validThrough> ?v5." +
             // "?v2 <http://purl.org/goodrelations/serialNumber> ?v4." +
             // "?v2 <http://schema.org/eligibleQuantity> ?v8." +
             // "?v6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v7." +
-            // "?v9 <http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor> ?v3." +
+            "?v9 <http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor> ?v3." +
             // "?v2 <http://schema.org/eligibleRegion> ?v1." +
-            "} LIMIT 1";
+            "} LIMIT 1000";
         
         // String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o . ?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Offer0> . FILTER(Regex(str(?o), 'Offer')) } LIMIT 3";
         // String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o . FILTER(Regex(str(?o), 'Offer')) } LIMIT 3";
@@ -79,12 +79,13 @@ public class VolcanoApp {
             // (TODO) maybe not the way to go to create another
             // queryExecution, double check
             QueryExecution qe = QueryExecutionFactory.create(query, dataset.getDefaultModel());
+            qe.setTimeout(300);//  (TODO)
             QC.setFactory(qe.getContext(), sageFactory);
             ResultSet result_set = qe.execSelect();
             
             while (result_set.hasNext()) {
                 System.out.printf("%s \n",result_set.next());
-                sum+=1;
+                sum += 1;
             }
             
             results = output;
@@ -106,7 +107,7 @@ public class VolcanoApp {
      
         System.out.printf("Got %s results.\n", sum);
         
-        // engine.setTimeout(300); (TODO)
+
 
 
 
