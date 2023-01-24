@@ -1,6 +1,10 @@
 package fr.gdd;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import com.github.andrewoma.dexx.collection.ArrayList;
 
 import org.apache.jena.atlas.lib.Pair;
 import org.apache.jena.query.Query;
@@ -24,13 +28,13 @@ public class SageQueryIterSlice extends QueryIter1 {
     long limit;
     long offset;
     
-    List<VolcanoIterator> iterators;
+    Map<Integer, VolcanoIterator> iterators_map;
     SageOutput<Record> output;
 
     public SageQueryIterSlice(QueryIterator cIter, long startPosition, long numItems, ExecutionContext context,
-                              List<VolcanoIterator> iterators, SageOutput<Record> output) {
+                              Map<Integer, VolcanoIterator> iterators, SageOutput<Record> output) {
         super(cIter, context);
-        this.iterators = iterators;
+        this.iterators_map = iterators;
         this.output = output;
 
         // copy from `QueryIterSlice`.
@@ -69,12 +73,25 @@ public class SageQueryIterSlice extends QueryIter1 {
         
         if ( count >= limit ) {
             System.out.println("(TODO) Save! ");
-            System.out.printf("%s iterators\n", iterators.size());
-            for (VolcanoIterator volcanoIterator : this.iterators) {
+            System.out.printf("%s iterators\n", iterators_map.size());
+            Entry<Integer, VolcanoIterator> lastKey = null;
+            for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
+                lastKey = e;
                 // (TODO) not necessarily .current()
-                var toSave = new Pair(1, volcanoIterator.wrapped.current());
-                this.output.save(toSave);
+                var toSave = new Pair(e.getKey(), e.getValue().wrapped.previous());
+                this.output.addState(toSave);
             }
+            // (TODO) this is a ugly way to say that the last iterator
+            // before the projection should save its current instead
+            // of previous. However, this only work because iterators
+            // are sorted and there is only one projection. etc. So we
+            // need to have a datastructure to extract exactly what is
+            // needed by a operator that saves.
+            if (lastKey != null) {
+                var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.current());
+                this.output.addState(toSave);
+            }
+            
             return false;
         }
         return true;

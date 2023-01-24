@@ -4,8 +4,12 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import com.github.andrewoma.dexx.collection.HashMap;
 
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -52,7 +56,9 @@ public class SageStageGenerator implements StageGenerator {
      * Registers the preemptables iterators for later.
      */
     List<VolcanoIterator> iterators = new ArrayList<>();
-    
+    public Map<Integer, VolcanoIterator> iterators_map = new TreeMap<>();
+
+    // (TODO) add sage input here ?  or in `execute` ?  
     public SageStageGenerator(StageGenerator parent, JenaBackend backend) {
         this.parent = parent;
         this.backend = backend;
@@ -74,16 +80,22 @@ public class SageStageGenerator implements StageGenerator {
                                                                                   null, null, backend.node_table);
         Iterator<BindingNodeId> chain = Iter.map(input, conv);
         List<Abortable> killList = new ArrayList<>();
-        
+
+        int sumId = 0;
         for (Triple triple: pattern.getList()) {
-            System.out.printf("%s\n", triple.toString());
+            System.out.printf("NEW TRIPLE %s\n", triple.toString());
             // From <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L73>
             // anygraph false => null , ie. search default graph for triples
             Predicate<Tuple<NodeId>> filter = QC2.getFilter(execCxt.getContext());
+            Integer scanId = new Integer(sumId);
+            // create the function that will be called everytime a
+            // scan iterator is created.
             Function<BindingNodeId, Iterator<BindingNodeId>> step =
-                bnid -> find(bnid, backend.node_triple_tuple_table, null, triple, false, filter, execCxt);
+                bnid -> find(bnid, backend.node_triple_tuple_table, null, triple, false, filter, execCxt, scanId);
+            
             chain = Iter.flatMap(chain, step);
             chain = SolverLib.makeAbortable(chain, killList);
+            sumId += 1;
         }
 
         //  Iterator<Binding> iterBinding = SolverLibTDB.convertToNodes(chain, nodeTable);
@@ -101,14 +113,18 @@ public class SageStageGenerator implements StageGenerator {
 
 
 
-    
+    // This function is called every time an iterator is created but
+    // the `bnid` changes and contains the bindings created so far
+    // that may be injected in the current iterator.
+    // 
     // from <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L78>
     private Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
                                          Node xGraphNode, Triple xPattern,
                                          boolean anyGraph, Predicate<Tuple<NodeId>> filter,
-                                         ExecutionContext execCxt) {
-
+                                         ExecutionContext execCxt, Integer id) {
         System.out.printf("bnid %s\n", bnid.toString());
+        System.out.printf("scanId %s\n", id);
+        
         // (TODO) add filter when on NodeId
         // System.out.printf("filter %s \n", filter.toString());
         
@@ -144,6 +160,10 @@ public class SageStageGenerator implements StageGenerator {
                                                                               nodeTable.getNodeIdForNode(o)),
                                                                // (TODO) Graph
                                                                backend.node_table);
+        if (!iterators_map.containsKey(id)) {
+            System.out.println("(TODO) should resume by loading state when available");
+        }
+        this.iterators_map.put(id, volcanoIterator); // register and/or erase previous iterator
         this.iterators.add(volcanoIterator);
         Iterator<Quad> dsgIter = (Iterator<Quad>) volcanoIterator;
         

@@ -25,6 +25,13 @@ public class SageOutput<SKIP> {
         }
     }
 
+    public void addState(Pair<Integer, SKIP> state) {
+        if (this.state == null) {
+            this.state = new TreeMap<>();
+        }
+        this.state.put(state.getLeft(), state.getRight());
+    }
+
     public void merge(SageOutput<SKIP> other) {
         this.results.addAll(other.getResults());
         this.state = other.state;
