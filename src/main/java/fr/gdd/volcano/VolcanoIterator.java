@@ -1,4 +1,4 @@
-package fr.gdd.jena;
+package fr.gdd.volcano;
 
 import java.util.Iterator;
 import java.util.Map;

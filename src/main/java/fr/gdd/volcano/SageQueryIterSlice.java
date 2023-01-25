@@ -1,10 +1,7 @@
 package fr.gdd.volcano;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.github.andrewoma.dexx.collection.ArrayList;
 
 import org.apache.jena.atlas.lib.Pair;
 import org.apache.jena.query.Query;
@@ -15,7 +12,6 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.QueryIter1;
 
 import fr.gdd.common.SageOutput;
-import fr.gdd.jena.VolcanoIterator;
 
 
 

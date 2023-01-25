@@ -73,7 +73,7 @@ public class VolcanoApp {
         long nbPreempt = 0;
         long sum = 0;
         SageOutput<Record> results = null;
-        long timeout = 10000; //ms
+        long timeout = 1; //ms
         SageInput  input  = new SageInput<Record>();
         
         long startExecution = System.currentTimeMillis();

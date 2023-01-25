@@ -44,12 +44,10 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
-import fr.gdd.common.BackendIterator;
 import fr.gdd.common.ReflectionUtils;
 import fr.gdd.common.SageInput;
 import fr.gdd.common.SageOutput;
 import fr.gdd.jena.JenaBackend;
-import fr.gdd.jena.VolcanoIterator;
 
 
 
