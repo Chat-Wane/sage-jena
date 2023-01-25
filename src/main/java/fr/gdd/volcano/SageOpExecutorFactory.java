@@ -1,4 +1,4 @@
-package fr.gdd;
+package fr.gdd.volcano;
 
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.main.OpExecutor;

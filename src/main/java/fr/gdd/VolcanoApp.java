@@ -25,6 +25,8 @@ import org.apache.jena.tdb2.sys.TDBInternal;
 import fr.gdd.common.SageInput;
 import fr.gdd.common.SageOutput;
 import fr.gdd.jena.JenaBackend;
+import fr.gdd.volcano.SageOpExecutorFactory;
+import fr.gdd.volcano.SageStageGenerator;
 
 
 
