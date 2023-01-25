@@ -4,23 +4,20 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 
-import fr.gdd.common.SageOutput;
-
 
 
+/**
+ * Factory to be registered in Jena ARQ. It creates an OpExecutor for
+ * Sage in charge of operations customized for pausing/resuming
+ * queries.
+ */
 public class SageOpExecutorFactory implements OpExecutorFactory {
 
-    SageStageGenerator generator;
-    SageOutput output;
-    
-    public SageOpExecutorFactory(SageStageGenerator generator, SageOutput output) {
-        this.generator = generator;
-        this.output = output;
-    }
+    public SageOpExecutorFactory() { }
     
     @Override
     public OpExecutor create(ExecutionContext execCxt) {
-        return new SageOpExecutor(execCxt, generator, output);
+        return new SageOpExecutor(execCxt);
     }
 
     

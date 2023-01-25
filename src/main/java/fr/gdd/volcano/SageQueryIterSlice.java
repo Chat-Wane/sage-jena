@@ -20,27 +20,25 @@ import fr.gdd.jena.VolcanoIterator;
 
 
 /**
- * Basic copy (instead of inherited since inner parameters are
- * private) of
+ * Basic copy of
  * <https://github.com/apache/jena/blob/main/jena-arq/src/main/java/org/apache/jena/sparql/engine/iterator/QueryIterSlice.java>
- * except for it pauses the execution when the limit of bindings is
- * reached.
  */
 public class SageQueryIterSlice extends QueryIter1 {
-    long count = 0; // number of binding already returned
-    long limit; // maximum number of bindings
+    long count = 0;
+    long limit;
+    long offset;
     
     Map<Integer, VolcanoIterator> iterators_map;
-    SageOutput output; // to save the state when limit is reached
+    SageOutput<Record> output;
 
     public SageQueryIterSlice(QueryIterator cIter, long startPosition, long numItems, ExecutionContext context,
-                              Map<Integer, VolcanoIterator> iterators) {
+                              Map<Integer, VolcanoIterator> iterators, SageOutput<Record> output) {
         super(cIter, context);
         this.iterators_map = iterators;
-
+        this.output = output;
 
         // copy from `QueryIterSlice`.
-        long offset = startPosition;
+        offset = startPosition;
         if (offset == Query.NOLIMIT)
             offset = 0;
 
@@ -74,9 +72,10 @@ public class SageQueryIterSlice extends QueryIter1 {
             return false ;
         
         if ( count >= limit ) {
-            // Entry<Integer, VolcanoIterator> lastKey = null;
+            Entry<Integer, VolcanoIterator> lastKey = null;
             for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
-                // lastKey = e;
+                lastKey = e;
+                // (TODO) not necessarily .current()
                 var toSave = new Pair(e.getKey(), e.getValue().wrapped.previous());
                 this.output.addState(toSave);
             }
@@ -86,10 +85,10 @@ public class SageQueryIterSlice extends QueryIter1 {
             // are sorted and there is only one projection. etc. So we
             // need to have a datastructure to extract exactly what is
             // needed by a operator that saves.
-            // if (lastKey != null) {
-            // var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
-            // this.output.addState(toSave);
-            // }
+            if (lastKey != null) {
+                var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
+                this.output.addState(toSave);
+            }
             
             return false;
         }

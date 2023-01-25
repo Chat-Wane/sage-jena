@@ -25,8 +25,9 @@ public class SageInput<SKIP> {
         this.timeout = timeout;
     }
 
-    public void setBackend(Backend backend) {
+    public SageInput setBackend(Backend backend) {
         this.backend = backend;
+        return this;
     }
 
     public Backend getBackend() {
@@ -40,8 +41,9 @@ public class SageInput<SKIP> {
         }
     }
 
-    public void setState(TreeMap<Integer, SKIP> state) {
+    public SageInput setState(TreeMap<Integer, SKIP> state) {
         this.state = state;
+        return this;
     }
 
     public SKIP getState(Integer id) {

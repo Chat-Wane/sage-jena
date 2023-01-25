@@ -83,8 +83,10 @@ public class SageStageGenerator implements StageGenerator {
 
     @Override
     public QueryIterator execute(BasicPattern pattern, QueryIterator input, ExecutionContext execCxt) {
-        Explain.explain(pattern, execCxt.getContext()) ;
-
+        Explain.explain(pattern, execCxt.getContext());
+        this.iterators_map = new TreeMap<>();
+        this.sageInput = execCxt.getContext().get(SageStageGenerator.input);
+        System.out.printf("SAGE INPUT %s \n", sageInput);
 
         if (!(execCxt.getActiveGraph() instanceof GraphViewSwitchable)) {
             return parent.execute(pattern, input, execCxt);

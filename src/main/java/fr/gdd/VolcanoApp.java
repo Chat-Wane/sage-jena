@@ -59,7 +59,7 @@ public class VolcanoApp {
             "?v6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v7." +
             "?v9 <http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor> ?v3." +
             "?v2 <http://schema.org/eligibleRegion> ?v1." +
-            "}";
+            "} LIMIT 1000";
         
         // String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o . ?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Offer0> . FILTER(Regex(str(?o), 'Offer')) } LIMIT 3";
         // String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o . FILTER(Regex(str(?o), 'Offer')) } LIMIT 3";
@@ -67,16 +67,15 @@ public class VolcanoApp {
 
         Query query = QueryFactory.create(query_as_str);
 
-
-        SageOutput output = new SageOutput<Record> ();
-        SageOpExecutorFactory sageFactory = new SageOpExecutorFactory(sageStageGenerator, output);
-
-        sageStageGenerator.setSageInput(new SageInput<Record>(10));
+        SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
+        // sageStageGenerator.setSageInput(new SageInput<Record>(10));
+        
         long nbPreempt = 0;
         long sum = 0;
         SageOutput<Record> results = null;
-        long timeout = 1; //ms
-
+        long timeout = 10000; //ms
+        SageInput  input  = new SageInput<Record>();
+        
         long startExecution = System.currentTimeMillis();
         while (results == null || (results.getState() != null && results.getState().size() > 0)) {
             nbPreempt +=1;
@@ -84,8 +83,9 @@ public class VolcanoApp {
             // queryExecution, double check
             System.out.println("RESTARTING NEW EXECUTION");
             QueryExecution qe = QueryExecutionFactory.create(query, dataset.getDefaultModel());
+            qe.getContext().put(SageStageGenerator.input, input);
             qe.getContext().put(SageStageGenerator.deadline, System.currentTimeMillis() + timeout);
-            qe.getContext().put(SageStageGenerator.output, output);
+            qe.getContext().put(SageStageGenerator.output, new SageOutput<>());
             QC.setFactory(qe.getContext(), sageFactory);
             ResultSet result_set = qe.execSelect();
             
@@ -95,14 +95,13 @@ public class VolcanoApp {
                 sum += 1;
             }
             
-            results = output;
-            output = new SageOutput<Record> ();
-            SageInput<Record> newInput = new SageInput<Record>(5);
-            newInput.setState(results.getState());
-            sageStageGenerator.setSageInput(newInput);
+            results = qe.getContext().get(SageStageGenerator.output);
+            input.setState(results.getState());
+            //sageStageGenerator.setSageInput(input.setState(results.getState()));
             System.out.println();
             System.out.printf("Saved state %s \n", results.getState());
             System.out.printf("%s results so far\n", sum);
+            qe.close();
         };
         System.out.printf("NB PReempt = %s\n" , nbPreempt);
         System.out.printf("Took %s ms to get %s results.\n", System.currentTimeMillis() - startExecution,  sum);
