@@ -47,6 +47,7 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import fr.gdd.common.BackendIterator;
 import fr.gdd.common.ReflectionUtils;
 import fr.gdd.common.SageInput;
+import fr.gdd.common.SageOutput;
 import fr.gdd.jena.JenaBackend;
 import fr.gdd.jena.VolcanoIterator;
 
@@ -57,6 +58,10 @@ public class SageStageGenerator implements StageGenerator {
     JenaBackend backend;
 
     SageInput sageInput;
+
+    static public Symbol deadline = Symbol.create("sageDeadline");
+    static public Symbol output   = Symbol.create("sageOutput");
+    static public Symbol input    = Symbol.create("sageInput");
 
     /**
      * Registers the preemptables iterators for later.
@@ -95,7 +100,6 @@ public class SageStageGenerator implements StageGenerator {
 
         int sumId = 0;
         for (Triple triple: pattern.getList()) {
-            System.out.printf("NEW TRIPLE %s\n", triple.toString());
             // From <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L73>
             // anygraph false => null , ie. search default graph for triples
             Predicate<Tuple<NodeId>> filter = QC2.getFilter(execCxt.getContext());
@@ -135,14 +139,11 @@ public class SageStageGenerator implements StageGenerator {
                                          boolean anyGraph, Predicate<Tuple<NodeId>> filter,
                                          ExecutionContext execCxt, Integer id) {
         // (TODO) maybe add preempt metadata in execution context.
-        for (Symbol s : execCxt.getContext().keys()) {
-            System.out.printf("Symbol %s =>> %s \n" ,s.toString() , execCxt.getContext().getAsString(s));
-        }
-        var startedAt = execCxt.getContext().get(ARQConstants.sysCurrentTime);
-        System.out.printf("started at %s\n", startedAt);
+        // for (Symbol s : execCxt.getContext().keys()) {
+        // System.out.printf("Symbol %s =>> %s \n" ,s.toString() , execCxt.getContext().getAsString(s));
+        // }
         
-        System.out.printf("bnid %s\n", bnid.toString());
-        System.out.printf("scanId %s\n", id);
+        System.out.printf("CREATE SCAN n°%s bnid %s\n", id, bnid.toString());
         
         // (TODO) add filter when on NodeId
         // System.out.printf("filter %s \n", filter.toString());
@@ -165,7 +166,6 @@ public class SageStageGenerator implements StageGenerator {
                 : TupleFactory.create4(g,s,p,o);
 
 
-        System.out.printf("MEOW %s\n", patternTuple);
         // (TODO) replasce dsgIter by our preemptable iterator.
         // Iterator<Quad> dsgIter = SolverRX.accessData(patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
         // Method accessDataMethod = ReflectionUtils._getMethod(SolverRX.class, "accessData",
@@ -174,22 +174,27 @@ public class SageStageGenerator implements StageGenerator {
         //                                                      ExecutionContext.class);
         // Iterator<Quad> dsgIter = (Iterator<Quad>) ReflectionUtils._callMethod(accessDataMethod, null, null,
         //                                                                       patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
+
+        long deadline = execCxt.getContext().get(SageStageGenerator.deadline);
+        SageOutput output = (SageOutput) execCxt.getContext().get(SageStageGenerator.output);
+
         VolcanoIterator volcanoIterator =  new VolcanoIterator(backend.search(nodeTable.getNodeIdForNode(s),
                                                                               nodeTable.getNodeIdForNode(p),
                                                                               nodeTable.getNodeIdForNode(o)),
                                                                // (TODO) Graph
-                                                               backend.node_table);
+                                                               backend.node_table,
+                                                               deadline,
+                                                               this.iterators_map,
+                                                               output,
+                                                               id);
         if (!iterators_map.containsKey(id)) {
             if (sageInput != null && sageInput.getState() != null) {
-                System.out.println("(TODO) should resume by loading state when available");
-                volcanoIterator.wrapped.skip((Record) sageInput.getState(id));
+                volcanoIterator.skip((Record) sageInput.getState(id));
             }
         }
-        System.out.printf("LIMIT CHECK = %s\n", sageInput.getLimit());
         this.iterators_map.put(id, volcanoIterator); // register and/or erase previous iterator
         this.iterators.add(volcanoIterator);
         Iterator<Quad> dsgIter = (Iterator<Quad>) volcanoIterator;
-        
         
         Iterator<Binding> matched = Iter.iter(dsgIter)
             .map(dQuad->SolverRX4.matchQuad(input, dQuad, tGraphNode, tPattern)).removeNulls();

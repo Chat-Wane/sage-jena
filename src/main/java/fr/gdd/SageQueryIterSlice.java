@@ -72,8 +72,6 @@ public class SageQueryIterSlice extends QueryIter1 {
             return false ;
         
         if ( count >= limit ) {
-            System.out.println("(TODO) Save! ");
-            System.out.printf("%s iterators\n", iterators_map.size());
             Entry<Integer, VolcanoIterator> lastKey = null;
             for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
                 lastKey = e;

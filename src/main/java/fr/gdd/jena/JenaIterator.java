@@ -64,7 +64,6 @@ public class JenaIterator implements BackendIterator<NodeId, Record>, RandomIter
     }
 
     public void close() {
-        System.out.println("CLOOOOZZZZ");
         if (!finished)
             end();
     }
@@ -171,9 +170,9 @@ public class JenaIterator implements BackendIterator<NodeId, Record>, RandomIter
         
         BPTreePage p = iter.next();
         BPTreeRecords r = null;
-        System.out.printf("LOADING PAGE %s \n", p.getId());
+        // System.out.printf("LOADING PAGE %s \n", p.getId());
         if (p instanceof BPTreeNode) {
-            System.out.printf("LOAD A STACK: %s", p.getId());
+            // System.out.printf("LOAD A STACK: %s", p.getId());
 
             r = loadStack((BPTreeNode) p, null);
         } else {
