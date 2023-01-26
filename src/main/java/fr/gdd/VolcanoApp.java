@@ -1,6 +1,7 @@
 package fr.gdd;
 
 import org.apache.jena.dboe.base.record.Record;
+import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
@@ -33,10 +34,20 @@ import fr.gdd.volcano.SageStageGenerator;
 public class VolcanoApp {
 
     public static void main( String[] args ) {
-        ARQ.setExecutionLogging(InfoLevel.ALL);
-        
+        // ARQ.setExecutionLogging(InfoLevel.ALL);
+
         String path = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
         Dataset dataset = TDB2Factory.connectDataset(path);
+        // dataset.begin();
+
+        FusekiServer server = FusekiServer.create()
+            .add("/meow", dataset)
+            .build();
+
+        server.start();
+
+
+        
         // DatasetGraphTDB graph = TDBInternal.getDatasetGraphTDB(dataset);
 
         JenaBackend backend = new JenaBackend("/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M");
