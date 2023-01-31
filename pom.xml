@@ -9,6 +9,32 @@
   <url>http://maven.apache.org</url>
 
   <dependencies>
+    <dependency><!--security and access-->
+      <groupId>org.apache.shiro</groupId> 
+      <artifactId>shiro-core</artifactId>
+      <version>1.11.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.shiro</groupId>
+      <artifactId>shiro-web</artifactId>
+      <version>1.11.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>9.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jena</groupId> <!-- to get ShiroEnvironmentLoader -->
+      <artifactId>jena-fuseki-webapp</artifactId>
+      <version>4.7.0</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.15</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jena</groupId>
       <artifactId>jena-fuseki-core</artifactId>
@@ -86,7 +112,34 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <filtering>false</filtering>
+        <directory>src/main/resources</directory>
+      </resource> 
+    </resources>
+    
     <plugins>
+      <plugin>
+        <!-- mvn dependency:build-classpath -Dmdep.outputFile=cp.txt -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.9</version>
+        <executions>
+          <execution>
+            <id>build-classpath</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>build-classpath</goal>
+            </goals>
+            <configuration>
+              <!-- configure the plugin here -->
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

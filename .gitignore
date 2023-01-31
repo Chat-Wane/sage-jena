@@ -3,6 +3,7 @@
 .classpath
 .settings/
 target/
+.factorypath
 
 # datasets
 watdiv10M/
@@ -10,6 +11,8 @@ watdiv42M/
 
 # Compiled class file
 *.class
+# classpath file sometimes generated
+cp.txt
 
 # Log file
 *.log

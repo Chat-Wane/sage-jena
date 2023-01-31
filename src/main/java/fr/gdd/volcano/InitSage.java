@@ -8,6 +8,7 @@ public class InitSage extends InitTDB2 {
 
     @Override
     public void start() {
+        System.out.println("InitSage.start()");
         super.start();
         // StageGenerator parent = (StageGenerator)ARQ.getContext().get(ARQ.stageGenerator) ;
         // SageStageGenerator sageStageGenerator = new SageStageGenerator(parent, backend);
@@ -17,8 +18,8 @@ public class InitSage extends InitTDB2 {
 
     @Override
     public void stop() {
+        System.out.println("InitSage.stop()");
         super.stop();
     }
-
 
 }
