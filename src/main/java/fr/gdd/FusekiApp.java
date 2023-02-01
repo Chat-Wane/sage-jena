@@ -5,15 +5,20 @@ import java.io.IOException;
 
 import javax.servlet.FilterConfig;
 
+import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.atlas.web.AuthScheme;
 import org.apache.jena.fuseki.auth.Auth;
+import org.apache.jena.fuseki.cmd.JettyFusekiWebapp;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.cmds.FusekiMain;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.fuseki.main.sys.FusekiModules;
+import org.apache.jena.fuseki.mgt.ActionDatasets;
+import org.apache.jena.fuseki.mgt.ActionServerStatus;
 import org.apache.jena.fuseki.server.DataService;
 import org.apache.jena.fuseki.server.Operation;
 import org.apache.jena.fuseki.server.OperationRegistry;
+import org.apache.jena.fuseki.servlets.ActionService;
 import org.apache.jena.fuseki.servlets.SPARQL_QueryGeneral;
 import org.apache.jena.fuseki.system.FusekiLogging;
 import org.apache.jena.fuseki.validation.QueryValidator;
@@ -57,54 +62,30 @@ import fr.gdd.volcano.SageStageGenerator;
 public class FusekiApp {
 
     public static void main( String[] args ) {
-        FusekiEnv.setEnvironment();
-        JenaSystem.init();
-        FusekiLogging.setLogging();
-        // ARQ.setExecutionLogging(InfoLevel.ALL);
-
         String ui = "/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/webapp";
-            // "/Users/nedelec-b-2/Desktop/Projects/jena/jena-fuseki2/jena-fuseki-ui/target/webapp";
+        // "/Users/nedelec-b-2/Desktop/Projects/jena/jena-fuseki2/jena-fuseki-ui/target/webapp";
         
-        String path = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
-        Dataset dataset = TDB2Factory.connectDataset(path);
-        // dataset.begin();
+        String datasetPath = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
+        Dataset dataset = TDB2Factory.connectDataset(datasetPath);
+        // dataset.begin() in backend 
+        JenaBackend backend = new JenaBackend(datasetPath);
+        
+        // already in META-INF/services/…FusekiModule so starts from there
+        // FusekiModules.add(new SageModule());
 
-        JenaBackend backend = new JenaBackend("/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M");
         
-        StageGenerator parent = (StageGenerator)ARQ.getContext().get(ARQ.stageGenerator) ;
+        StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
         SageStageGenerator sageStageGenerator = new SageStageGenerator(parent, backend);
         StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
-
+        
         SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
+        QC.setFactory(ARQ.getContext(), sageFactory);
 
-        FusekiModule module = new SageModule();
-
-        System.out.printf("FULL QUALIFIED NAME : %s\n", module.getClass().getName());
-        
-        FusekiModules.add(module);
         
 
-        // FusekiServer server = FusekiMain.build("--base="+ ui,
-        //                                        "--localhost", "--port=3030",
-        //                                        "--ping", "--stats", "--metrics", "--compact", "--no-cors",
-        //                                        "--loc="+ path, "meow");
-
-        // Model m = ModelFactory.createDefaultModel();
-
-        // Factory<SecurityManager> factory = new IniSecurityManagerFactory("/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/run/shiro.ini");
-        // SecurityManager securityManager = factory.getInstance();
-
-        // DatasetGraph dsg = (DatasetGraph) dataset;
-        // DataService dataService = new DataService(dsg);
-        // dataService.addEndpoint(OperationName.GSP_RW, "");
-        // dataService.addEndpoint(OperationName.Query, "");
-        // dataService.addEndpoint(OperationName.Update, "");
-
-        var ds = DatasetFactory.createTxnMem();
         
         FusekiServer server = FusekiServer.create()
             // .parseConfigFile("/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/run/config.ttl")
-            // .add("test", ds)
             .staticFileBase(ui)
             .enablePing(true)
             .enableCompact(true)
@@ -115,52 +96,30 @@ public class FusekiApp {
             .numServerThreads(1, 10)
             // .loopback(false)
             .serverAuthPolicy(Auth.ANY_ANON)
-            // .add("meow", dataset)
+            .addProcessor("/$/server", new ActionServerStatus())
+            //.addProcessor("/$/datasets/*", new ActionDatasets())
+            .add("meow", dataset)
             // .auth(AuthScheme.BASIC)
-            // .addEndpoint("meow", "/woof", Operation.Query, Auth.ANY_ANON)
+            .addEndpoint("meow", "/woof", Operation.Query, Auth.ANY_ANON)
             .build();
 
-        Server jettyServer = server.getJettyServer();
-
-        ServletContextHandler servletContextHandler = (ServletContextHandler) jettyServer.getHandler();
-        ServletHandler servletHandler = servletContextHandler.getServletHandler();
-
-        // for shiro
-        // ShiroEnvironmentLoader sel = new ShiroEnvironmentLoader();
-        // MyShiro sel = new MyShiro();
-        // EnvironmentLoaderListener ell = new EnvironmentLoaderListener();
-        // System.out.printf("ENV PARAM %s\n",ell.CONFIG_LOCATIONS_PARAM);
-
-        // servletContextHandler.addEventListener(sel);
-        // servletContextHandler.addEventListener(ell);
-
-
-        
-        System.out.printf("register %s \n", server.getOperationRegistry().toString());
-
-        
-        
-        
         server.start();
-        // System.out.printf("meow     %s \n", server.datasetURL("/meow"));
 
-        Handler handler = server.getJettyServer().getHandler();
-        ServletContextHandler sch =  (ServletContextHandler)handler;
-        ServletHandler servletHander = sch.getServletHandler() ;
-
-        ServletHolder[] holder = servletHander.getServlets();
-        for (int i = 0; i < holder.length; ++i) {
-            System.out.printf("name:  %s \n", holder[i].getName());
-
-        }
-
-        Handler[] children = servletHander.getChildHandlers();
-        for (int i =0; i < children.length; ++i) {
-            System.out.printf("child:  %s \n", children[i].getClass().getName());
-        }
         
-        server.getDataAccessPointRegistry().keys().forEach((e) -> System.out.printf("dataaccesspoint %s \n", e));        
+
+
         
-        
-    }    
+        // Handler handler = server.getJettyServer().getHandler();
+        // ServletContextHandler sch =  (ServletContextHandler)handler;
+        // ServletHandler servletHander = sch.getServletHandler() ;
+
+        // ServletHolder[] holder = servletHander.getServlets();
+        // for (int i = 0; i < holder.length; ++i) {
+        //     System.out.printf("name:  %s \n", holder[i].getName());
+        // }
+
+        ActionService as3 =  server.getOperationRegistry().findHandler(Operation.Query);
+        System.out.printf("AS3 QUERY : %s\n", as3.toString());
+
+    }
 }

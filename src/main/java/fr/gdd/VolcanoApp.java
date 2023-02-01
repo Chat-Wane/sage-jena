@@ -39,14 +39,6 @@ public class VolcanoApp {
         String path = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
         Dataset dataset = TDB2Factory.connectDataset(path);
         // dataset.begin();
-
-        FusekiServer server = FusekiServer.create()
-            .add("/meow", dataset)
-            .build();
-
-        server.start();
-
-
         
         // DatasetGraphTDB graph = TDBInternal.getDatasetGraphTDB(dataset);
 
@@ -98,6 +90,13 @@ public class VolcanoApp {
             qe.getContext().put(SageStageGenerator.deadline, System.currentTimeMillis() + timeout);
             qe.getContext().put(SageStageGenerator.output, new SageOutput<>());
             QC.setFactory(qe.getContext(), sageFactory);
+
+            // for (var key : qe.getContext().keys()) {
+            //     System.out.printf("%s  => %s \n", key, qe.getContext().get(key));
+            // }
+
+            // System.exit(1);
+
             ResultSet result_set = qe.execSelect();
             
             while (result_set.hasNext()) { // must enumerate to call volcano
@@ -105,6 +104,8 @@ public class VolcanoApp {
                 // System.out.printf("%s \n",result_set.next());
                 sum += 1;
             }
+
+
             
             results = qe.getContext().get(SageStageGenerator.output);
             input.setState(results.getState());
