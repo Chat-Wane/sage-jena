@@ -33,6 +33,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
+import org.apache.jena.sparql.mgt.Explain.InfoLevel;
 import org.apache.jena.sys.JenaSystem;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.shiro.config.IniSecurityManagerFactory;
@@ -62,6 +63,9 @@ import fr.gdd.volcano.SageStageGenerator;
 public class FusekiApp {
 
     public static void main( String[] args ) {
+        System.out.println("HELLO WORLD");
+        ARQ.setExecutionLogging(InfoLevel.ALL);
+        
         String ui = "/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/webapp";
         // "/Users/nedelec-b-2/Desktop/Projects/jena/jena-fuseki2/jena-fuseki-ui/target/webapp";
         
@@ -74,16 +78,13 @@ public class FusekiApp {
         // FusekiModules.add(new SageModule());
 
         
-        StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
-        SageStageGenerator sageStageGenerator = new SageStageGenerator(parent, backend);
-        StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
+        // StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
+        // SageStageGenerator sageStageGenerator = new SageStageGenerator(parent, backend);
+        // StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
         
         SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
         QC.setFactory(ARQ.getContext(), sageFactory);
 
-        
-
-        
         FusekiServer server = FusekiServer.create()
             // .parseConfigFile("/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/run/config.ttl")
             .staticFileBase(ui)
@@ -104,22 +105,5 @@ public class FusekiApp {
             .build();
 
         server.start();
-
-        
-
-
-        
-        // Handler handler = server.getJettyServer().getHandler();
-        // ServletContextHandler sch =  (ServletContextHandler)handler;
-        // ServletHandler servletHander = sch.getServletHandler() ;
-
-        // ServletHolder[] holder = servletHander.getServlets();
-        // for (int i = 0; i < holder.length; ++i) {
-        //     System.out.printf("name:  %s \n", holder[i].getName());
-        // }
-
-        ActionService as3 =  server.getOperationRegistry().findHandler(Operation.Query);
-        System.out.printf("AS3 QUERY : %s\n", as3.toString());
-
     }
 }

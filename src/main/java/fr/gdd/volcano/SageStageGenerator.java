@@ -71,6 +71,7 @@ public class SageStageGenerator implements StageGenerator {
     public SageStageGenerator(StageGenerator parent, JenaBackend backend) {
         this.parent = parent;
         this.backend = backend;
+        System.out.println("SAGE STAGE INIT");
     }
 
     public void setSageInput(SageInput sageInput) {
@@ -81,6 +82,8 @@ public class SageStageGenerator implements StageGenerator {
 
     @Override
     public QueryIterator execute(BasicPattern pattern, QueryIterator input, ExecutionContext execCxt) {
+        System.out.printf("SAGE STAGE GENERATOR \n");
+        
         Explain.explain(pattern, execCxt.getContext());
         this.iterators_map = new TreeMap<>();
         this.sageInput = execCxt.getContext().get(SageStageGenerator.input);

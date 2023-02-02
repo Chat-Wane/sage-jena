@@ -1,6 +1,7 @@
 package fr.gdd.server;
 
 import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.atlas.lib.Pair;
 import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.SPARQL_QueryDataset;
@@ -15,11 +16,14 @@ import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryEngineFactoryWrapper;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.main.StageGenerator;
+import org.apache.jena.sparql.engine.main.solver.StageMatchTriple;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.ContextAccumulator;
 
 import fr.gdd.volcano.SageOpExecutorFactory;
 import fr.gdd.volcano.SageStageGenerator;
+
+
 
 public class Sage_QueryDataset extends SPARQL_QueryDataset {
 
@@ -47,9 +51,7 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
 
         // System.out.printf("DATASET CHOSEN %s \n", dataset.getClass().getName());
 
-        
 
-        
         ContextAccumulator contextAcc =
             ContextAccumulator.newBuilder(()->ARQ.getContext(), ()->Context.fromDataset(dataset));
         QueryEngineFactory qef = QueryEngineRegistry.findFactory(query, dataset, contextAcc.context());
@@ -59,8 +61,7 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
         for (var key : c.keys()) {
             System.out.printf("CONTEXT %s : %s\n", key, c.get(key));
         }
-        
-        
+
         super.execute(queryString, action);
     }
 
@@ -72,11 +73,13 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
         SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
         // QueryEngineRegistry.addFactory(sageFactory);
         
-        QueryEngineFactory qeFactory = QueryEngineRegistry.findFactory(query, dataset, ARQ.getContext());
-        System.out.printf("THEN FACTORY CHOSEN : %s\n", qeFactory.getClass().getName());
-                
         var qe = QueryExecutionFactory.create(query, dataset);
         QC.setFactory(qe.getContext(), sageFactory);
+        
+        QueryEngineFactory qeFactory = QueryEngineRegistry.findFactory(query, dataset, ARQ.getContext());
+        System.out.printf("THEN FACTORY CHOSEN : %s\n", qeFactory.getClass().getName());
+
+        System.out.printf("STAGE BUILDER %s\n", StageBuilder.getGenerator().getClass().getName());
 
         // for (var key : qe.getContext().keys()) {
         //     System.out.printf("QE CONTEXT %s : %s\n", key, qe.getContext().get(key));
@@ -96,7 +99,6 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
 
         qe = QueryExecutionFactory.create(query, dataset);
         QC.setFactory(qe.getContext(), sageFactory);
-
         
         return qe;
 
