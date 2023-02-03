@@ -27,10 +27,11 @@ public class SageOpExecutor extends OpExecutorTDB2 {
 
     SageStageGenerator generator; // contains the map of all iterators.
     SageOutput output; // where pausing state is saved when need be.
+    ExecutionContext context;
     
-    public SageOpExecutor(ExecutionContext execCxt) {
-        super(execCxt);
-        System.out.println("SAGE OP EXECTOR INIT");
+    public SageOpExecutor(ExecutionContext context) {
+        super(context);
+        this.context = context;
         this.output = execCxt.getContext().get(SageStageGenerator.output);
         // this.generator = execCxt.getContext().get(ARQ.stageGenerator);
     }
@@ -68,12 +69,10 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     
     @Override
     public QueryIterator execute(OpSlice opSlice, QueryIterator input) {
-        System.out.println("SLIIIIICE");
-        return super.execute(opSlice, input);
-        // QueryIterator qIter = exec(opSlice.getSubOp(), input);
-        // qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
-        //                                this.generator.iterators_map, this.output);
-        // return qIter;
+        QueryIterator qIter = exec(opSlice.getSubOp(), input);
+        qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
+                                       this.generator.iterators_map, this.output);
+        return qIter;
     }
     
 }

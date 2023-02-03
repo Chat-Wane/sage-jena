@@ -30,15 +30,28 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import fr.gdd.server.Sage_QueryDataset;
 
 
 
-// <https://github.com/apache/jena/blob/main/jena-fuseki2/jena-fuseki-main/src/main/java/org/apache/jena/fuseki/main/sys/FusekiModule.java>
+/**
+ * Module in charge of replacing fuseki's normal behavior for `query`
+ * by one that enables preemptive evaluation of queries, i.e. one that
+ * enables pausing/resuming of query execution on demand, depending on
+ * arguments in http headers.
+ * 
+ * The module simply sets the processor of `Operation.QUERY` to ours,
+ * for every dataset and endpoint.
+ *
+ * For this to work, either set full class name in a
+ * `META-INF/…/…FusekiModule` file as per say in documentation, or
+ * work with `addModule`.
+ */
 public class SageModule implements FusekiModule {
-
-    public static boolean first = true;
+    Logger logger = LoggerFactory.getLogger(SageModule.class);
     
     public SageModule() {}
     
@@ -49,59 +62,7 @@ public class SageModule implements FusekiModule {
     
     @Override
     public void start() {
-        System.out.println("SAGE MODULE START");
-    }
-
-    @Override
-    public void prepare(Builder builder, Set<String> datasetNames, Model configModel) {
-        System.out.println("SAGE ADD SERVLET PREPARE");
-        HttpServlet servlet = new HttpServlet() {
-            @Override
-            public void service(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-                if (req.getMethod().equalsIgnoreCase("GET") | req.getMethod().equalsIgnoreCase("POST")) {
-                    doPatch(req, res);
-                    return;
-                }
-                super.service(req, res);
-            }
-
-            private void doPatch(HttpServletRequest req, HttpServletResponse res) throws IOException {
-                // String x = IO.readWholeFileAsUTF8(req.getInputStream());
-                System.out.println("HTTP PATCH: ");
-                res.setStatus(HttpSC.OK_200);
-            }
-        };
-        
-        for (String datasetName : datasetNames) {
-            System.out.printf("Dataset %s\n", datasetName);
-            
-            // builder.addServlet(datasetName+"/sparql", servlet);
-            // builder.addServlet(datasetName+"/query", servlet);
-        }
-        
-        builder.addServlet("/extra", servlet);
-    }
-
-    @Override
-    public void configured(Builder serverBuilder, DataAccessPointRegistry dapRegistry, Model configModel) {
-        System.out.println("SAGE CONFIGURED");
-        dapRegistry.accessPoints().forEach(accessPoint->configDataAccessPoint(accessPoint, configModel));
-        // FusekiModule.super.configured(serverBuilder, dapRegistry, configModel);
-    }
-
-    @Override
-    public void configDataAccessPoint(DataAccessPoint dap, Model configModel) {
-        System.out.println("SAGE CONFIG DATA ACCESS POINT");
-        System.out.printf("DATA ACCESS POINT %s\n", dap.getName());
-    }
-
-    /**
-     * Built, not started, about to be returned to the builder caller.
-     */
-    @Override
-    public void server(FusekiServer server) {
-        System.out.println("SAGE SERVER");
-        FusekiModule.super.server(server);
+        logger.info("start !");
     }
 
     /**
@@ -109,10 +70,8 @@ public class SageModule implements FusekiModule {
      */
     @Override
     public void serverBeforeStarting(FusekiServer server) {
-        System.out.println("SAGE BEFORE STARTING");
-
+        logger.info("Patching the processor for query operations…");
         
-
         var dapr = server.getDataAccessPointRegistry();
         for (var dap : dapr.accessPoints()) {
 
@@ -130,54 +89,22 @@ public class SageModule implements FusekiModule {
             for (Endpoint ep : dap.getDataService().getEndpoints(Operation.Query)) {
                    ep.setProcessor(server.getOperationRegistry().findHandler(ep.getOperation()));
             }
-        }
-
-
-        System.out.println("---------");
-
-        
-        
-        var meowPoint = server.getDataAccessPointRegistry().accessPoints().get(0);
-        
-        Handler handler = server.getJettyServer().getHandler();
-        ServletContextHandler sch =  (ServletContextHandler)handler;
-        ServletHandler servletHander = sch.getServletHandler() ;
-
-        ServletHolder[] holder = servletHander.getServlets();
-        for (int i = 0; i < holder.length; ++i) {
-            System.out.printf("name:  %s \n", holder[i].getName());
-        }
-        
-        for (var mapping : servletHander.getServletMappings()) {
-            System.out.printf("MAPPING : %s\n",  mapping.toString());
-        }
-        
+        }        
     }
-
-    /**
-     * Server started - called just after server.start happens, and before server
-     * .start() returns to the application.
-     */
-    @Override
-    public void serverAfterStarting(FusekiServer server) {
-        System.out.println("SAGE AFTER STARTING");
-    }
-
+    
     @Override
     public void serverStopped(FusekiServer server) {
-        System.out.println("SAGE STOPPED");
-            FusekiModule.super.serverStopped(server);
+        // (TODO) maybe put back the default behavior        
     }
 
     @Override
     public void stop() {
-        System.out.println("SAGE STOP");
-        FusekiModule.super.stop();
+        logger.info("Stop! Have a good day!");
     }
 
     @Override
     public int level() {
-        System.out.println("SAGE LEVEL");
+        // (TODO) find out the proper level for this module.
         return 999999;
     }
 }
