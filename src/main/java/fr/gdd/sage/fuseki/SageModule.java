@@ -1,4 +1,4 @@
-package fr.gdd.server;
+package fr.gdd.sage.fuseki;
 
 import java.io.IOException;
 import java.util.Set;
@@ -32,8 +32,6 @@ import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import fr.gdd.server.Sage_QueryDataset;
 
 
 

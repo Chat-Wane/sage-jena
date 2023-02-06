@@ -1,4 +1,4 @@
-package fr.gdd.volcano;
+package fr.gdd.sage.arq;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -11,9 +11,9 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
-import fr.gdd.common.BackendIterator;
-import fr.gdd.common.SPOC;
-import fr.gdd.common.SageOutput;
+import fr.gdd.sage.interfaces.BackendIterator;
+import fr.gdd.sage.interfaces.SPOC;
+import fr.gdd.sage.interfaces.SageOutput;
 
 
 

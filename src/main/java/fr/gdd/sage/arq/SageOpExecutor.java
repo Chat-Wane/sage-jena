@@ -1,4 +1,4 @@
-package fr.gdd.volcano;
+package fr.gdd.sage.arq;
 
 import org.apache.jena.query.ARQ;
 import org.apache.jena.sparql.ARQConstants;
@@ -16,7 +16,7 @@ import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.util.Symbol;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
-import fr.gdd.common.SageOutput;
+import fr.gdd.sage.interfaces.SageOutput;
 
 
 

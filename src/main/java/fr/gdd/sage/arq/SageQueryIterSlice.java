@@ -1,4 +1,4 @@
-package fr.gdd.volcano;
+package fr.gdd.sage.arq;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -11,7 +11,7 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.QueryIter1;
 
-import fr.gdd.common.SageOutput;
+import fr.gdd.sage.interfaces.SageOutput;
 
 
 

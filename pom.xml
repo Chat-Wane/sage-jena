@@ -9,6 +9,12 @@
   <url>http://maven.apache.org</url>
 
   <dependencies>
+    <dependency> <!-- makes use of already implem'd for compilation targeting jena -->
+      <groupId>fr.gdd.sage</groupId>
+      <artifactId>jena</artifactId>
+      <version>0.0.1</version>
+    </dependency>
+    
     <dependency><!--security and access-->
       <groupId>org.apache.shiro</groupId> 
       <artifactId>shiro-core</artifactId>
@@ -156,7 +162,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>fr.gdd.VolcanoApp</mainClass>
+              <mainClass>fr.gdd.sage.VolcanoApp</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -166,9 +172,9 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <mainClass>fr.gdd.FusekiApp</mainClass>
-          <!--<mainClass>fr.gdd.VolcanoApp</mainClass>-->
-          <!--<mainClass>fr.gdd.HelloBlazegraph</mainClass>-->
+          <mainClass>fr.gdd.sage.FusekiApp</mainClass>
+          <!--<mainClass>fr.gdd.sage.VolcanoApp</mainClass>-->
+          <!--<mainClass>fr.gdd.sage.HelloBlazegraph</mainClass>-->
         </configuration>
       </plugin>
     </plugins>

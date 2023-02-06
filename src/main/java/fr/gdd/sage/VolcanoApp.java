@@ -1,4 +1,4 @@
-package fr.gdd;
+package fr.gdd.sage;
 
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.fuseki.main.FusekiServer;
@@ -23,11 +23,11 @@ import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.sys.TDBInternal;
 
-import fr.gdd.common.SageInput;
-import fr.gdd.common.SageOutput;
-import fr.gdd.jena.JenaBackend;
-import fr.gdd.volcano.SageOpExecutorFactory;
-import fr.gdd.volcano.SageStageGenerator;
+import fr.gdd.sage.interfaces.SageInput;
+import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageStageGenerator;
 
 
 

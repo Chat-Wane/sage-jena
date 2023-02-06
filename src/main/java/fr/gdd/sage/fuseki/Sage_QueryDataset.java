@@ -1,4 +1,4 @@
-package fr.gdd.server;
+package fr.gdd.sage.fuseki;
 
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
@@ -20,8 +20,8 @@ import org.apache.jena.sparql.engine.main.solver.StageMatchTriple;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.ContextAccumulator;
 
-import fr.gdd.volcano.SageOpExecutorFactory;
-import fr.gdd.volcano.SageStageGenerator;
+import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageStageGenerator;
 
 
 

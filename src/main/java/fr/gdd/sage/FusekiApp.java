@@ -1,5 +1,4 @@
-package fr.gdd;
-
+package fr.gdd.sage;
 
 import java.io.IOException;
 
@@ -54,9 +53,9 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import fr.gdd.jena.JenaBackend;
-import fr.gdd.volcano.SageOpExecutorFactory;
-import fr.gdd.volcano.SageStageGenerator;
+import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageStageGenerator;
 
 
 

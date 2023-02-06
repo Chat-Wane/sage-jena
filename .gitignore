@@ -4,6 +4,7 @@
 .settings/
 target/
 .factorypath
+.project
 
 # datasets
 watdiv10M/

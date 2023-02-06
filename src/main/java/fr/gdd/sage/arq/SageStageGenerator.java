@@ -1,4 +1,4 @@
-package fr.gdd.volcano;
+package fr.gdd.sage.arq;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
-
-import com.github.andrewoma.dexx.collection.HashMap;
 
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -44,10 +42,10 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
-import fr.gdd.common.ReflectionUtils;
-import fr.gdd.common.SageInput;
-import fr.gdd.common.SageOutput;
-import fr.gdd.jena.JenaBackend;
+import fr.gdd.sage.ReflectionUtils;
+import fr.gdd.sage.interfaces.SageInput;
+import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.jena.JenaBackend;
 
 
 
@@ -97,7 +95,7 @@ public class SageStageGenerator implements StageGenerator {
                                                                   "convFromBinding",
                                                                   NodeTable.class);
         var conv = (Function<Binding, BindingNodeId>) ReflectionUtils._callMethod(convFromBindingMethod,
-                                                                                  null, null, backend.node_table);
+                                                                                  null, null, backend.getNodeTable());
         Iterator<BindingNodeId> chain = Iter.map(input, conv);
         List<Abortable> killList = new ArrayList<>();
 
@@ -110,7 +108,7 @@ public class SageStageGenerator implements StageGenerator {
             // create the function that will be called everytime a
             // scan iterator is created.
             Function<BindingNodeId, Iterator<BindingNodeId>> step =
-                bnid -> find(bnid, backend.node_triple_tuple_table, null, triple, false, filter, execCxt, scanId);
+                bnid -> find(bnid, backend.getNodeTripleTupleTable(), null, triple, false, filter, execCxt, scanId);
             
             chain = Iter.flatMap(chain, step);
             chain = SolverLib.makeAbortable(chain, killList);
@@ -123,7 +121,7 @@ public class SageStageGenerator implements StageGenerator {
                                                                  Iterator.class,
                                                                  NodeTable.class);
         var iterBinding = (Iterator<Binding>) ReflectionUtils._callMethod(convertToNodesMethod,
-                                                                          null, null, chain, backend.node_table);
+                                                                          null, null, chain, backend.getNodeTable());
 
         QueryIterAbortable abortable = new QueryIterAbortable(iterBinding, killList, input, execCxt);
         return abortable;
@@ -185,7 +183,7 @@ public class SageStageGenerator implements StageGenerator {
                                                                               nodeTable.getNodeIdForNode(p),
                                                                               nodeTable.getNodeIdForNode(o)),
                                                                // (TODO) Graph
-                                                               backend.node_table,
+                                                               backend.getNodeTable(),
                                                                deadline,
                                                                this.iterators_map,
                                                                output,

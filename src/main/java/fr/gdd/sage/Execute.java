@@ -1,4 +1,4 @@
-package fr.gdd;
+package fr.gdd.sage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,13 +7,13 @@ import org.apache.jena.atlas.lib.Pair;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.tdb2.store.NodeId;
 
-import fr.gdd.common.BackendIterator;
-import fr.gdd.common.RandomIterator;
-import fr.gdd.common.SPOC;
-import fr.gdd.common.SageInput;
-import fr.gdd.common.SageOutput;
-import fr.gdd.jena.JenaBackend;
-import fr.gdd.jena.JenaIterator;
+import fr.gdd.sage.interfaces.BackendIterator;
+import fr.gdd.sage.interfaces.RandomIterator;
+import fr.gdd.sage.interfaces.SPOC;
+import fr.gdd.sage.interfaces.SageInput;
+import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.jena.JenaIterator;
 
 
 

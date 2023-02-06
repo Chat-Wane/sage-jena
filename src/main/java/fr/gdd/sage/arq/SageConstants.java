@@ -1,4 +1,4 @@
-package fr.gdd.volcano;
+package fr.gdd.sage.arq;
 
 import org.apache.jena.sparql.util.Symbol;
 
