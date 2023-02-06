@@ -85,6 +85,7 @@ public class SageQueryIterSlice extends QueryIter1 {
                 var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
                 this.output.addState(toSave);
             }
+            System.out.println("SAVING IN SAGE SLICE");
             
             return false;
         }

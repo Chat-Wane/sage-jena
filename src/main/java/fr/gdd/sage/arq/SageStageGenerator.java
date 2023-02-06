@@ -49,48 +49,37 @@ import fr.gdd.sage.jena.JenaBackend;
 
 
 
+/**
+ * Class in charge of creating preemptable basic graph patterns
+ * (BGPs).
+ */
 public class SageStageGenerator implements StageGenerator {
     StageGenerator parent;
-    JenaBackend backend;
-
-    SageInput sageInput;
-
-    static public Symbol deadline = Symbol.create("sageDeadline");
-    static public Symbol output   = Symbol.create("sageOutput");
-    static public Symbol input    = Symbol.create("sageInput");
-
-    /**
-     * Registers the preemptables iterators for later.
-     */
-    List<VolcanoIterator> iterators = new ArrayList<>();
-    public Map<Integer, VolcanoIterator> iterators_map = new TreeMap<>();
-
-    // (TODO) add sage input here ?  or in `execute` ?  
-    public SageStageGenerator(StageGenerator parent, JenaBackend backend) {
+    
+    public SageStageGenerator(StageGenerator parent) {
         this.parent = parent;
-        this.backend = backend;
-        System.out.println("SAGE STAGE INIT");
     }
-
-    public void setSageInput(SageInput sageInput) {
-        // (TODO) cleaner 
-        this.iterators_map = new TreeMap<>();
-        this.sageInput = sageInput;
-    }
-
+    
     @Override
     public QueryIterator execute(BasicPattern pattern, QueryIterator input, ExecutionContext execCxt) {
-        System.out.printf("SAGE STAGE GENERATOR \n");
-        
-        Explain.explain(pattern, execCxt.getContext());
-        this.iterators_map = new TreeMap<>();
-        this.sageInput = execCxt.getContext().get(SageStageGenerator.input);
-        System.out.printf("SAGE INPUT %s \n", sageInput);
-
         if (!(execCxt.getActiveGraph() instanceof GraphViewSwitchable)) {
             return parent.execute(pattern, input, execCxt);
         }
+        
+        return executeTriplePattern(pattern, input, execCxt);
+    }
 
+
+    /**
+     * The actual `execute()` standalone function that is meant to be
+     * called from other classes when need be.
+     */
+    public static QueryIterator executeTriplePattern(BasicPattern pattern,
+                                                     QueryIterator input,
+                                                     ExecutionContext execCxt) {
+        SageInput sageInput = execCxt.getContext().get(SageConstants.input);
+        JenaBackend backend = (JenaBackend) sageInput.getBackend();
+        
         Method convFromBindingMethod = ReflectionUtils._getMethod(SolverLibTDB.class,
                                                                   "convFromBinding",
                                                                   NodeTable.class);
@@ -126,8 +115,7 @@ public class SageStageGenerator implements StageGenerator {
         QueryIterAbortable abortable = new QueryIterAbortable(iterBinding, killList, input, execCxt);
         return abortable;
     }
-
-
+    
 
 
     // This function is called every time an iterator is created but
@@ -135,10 +123,10 @@ public class SageStageGenerator implements StageGenerator {
     // that may be injected in the current iterator.
     // 
     // from <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L78>
-    private Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
-                                         Node xGraphNode, Triple xPattern,
-                                         boolean anyGraph, Predicate<Tuple<NodeId>> filter,
-                                         ExecutionContext execCxt, Integer id) {
+    private static Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
+                                                Node xGraphNode, Triple xPattern,
+                                                boolean anyGraph, Predicate<Tuple<NodeId>> filter,
+                                                ExecutionContext execCxt, Integer id) {
         // (TODO) maybe add preempt metadata in execution context.
         // for (Symbol s : execCxt.getContext().keys()) {
         // System.out.printf("Symbol %s =>> %s \n" ,s.toString() , execCxt.getContext().getAsString(s));
@@ -176,25 +164,29 @@ public class SageStageGenerator implements StageGenerator {
         // Iterator<Quad> dsgIter = (Iterator<Quad>) ReflectionUtils._callMethod(accessDataMethod, null, null,
         //                                                                       patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
 
-        long deadline = execCxt.getContext().get(SageStageGenerator.deadline);
-        SageOutput output = (SageOutput) execCxt.getContext().get(SageStageGenerator.output);
+        long deadline = execCxt.getContext().get(SageConstants.deadline);
+        SageOutput output = execCxt.getContext().get(SageConstants.output);
 
+
+        Map<Integer, VolcanoIterator> iterators = execCxt.getContext().get(SageConstants.iterators);
+        SageInput sageInput = execCxt.getContext().get(SageConstants.input);
+        JenaBackend backend = (JenaBackend) sageInput.getBackend();
+        
         VolcanoIterator volcanoIterator =  new VolcanoIterator(backend.search(nodeTable.getNodeIdForNode(s),
                                                                               nodeTable.getNodeIdForNode(p),
                                                                               nodeTable.getNodeIdForNode(o)),
                                                                // (TODO) Graph
                                                                backend.getNodeTable(),
                                                                deadline,
-                                                               this.iterators_map,
+                                                               iterators,
                                                                output,
                                                                id);
-        if (!iterators_map.containsKey(id)) {
+        if (!iterators.containsKey(id)) {
             if (sageInput != null && sageInput.getState() != null) {
                 volcanoIterator.skip((Record) sageInput.getState(id));
             }
         }
-        this.iterators_map.put(id, volcanoIterator); // register and/or erase previous iterator
-        this.iterators.add(volcanoIterator);
+        iterators.put(id, volcanoIterator); // register and/or erase previous iterator
         Iterator<Quad> dsgIter = (Iterator<Quad>) volcanoIterator;
         
         Iterator<Binding> matched = Iter.iter(dsgIter)
@@ -205,11 +197,10 @@ public class SageStageGenerator implements StageGenerator {
         Method convFromBindingMethod = ReflectionUtils._getMethod(SolverLibTDB.class,
                                                                   "convFromBinding",
                                                                   NodeTable.class);
-        var conv = (Function<Binding, BindingNodeId>) ReflectionUtils._callMethod(convFromBindingMethod, null, null,
+        var conv = (Function<Binding, BindingNodeId>) ReflectionUtils._callMethod(convFromBindingMethod,
+                                                                                  null, null,
                                                                                   nodeTable);
-        var meow = Iter.map(matched, conv);
-
-        return meow;
+        return Iter.map(matched, conv);
     }
 
     

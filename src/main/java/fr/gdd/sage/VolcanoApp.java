@@ -26,6 +26,7 @@ import org.apache.jena.tdb2.sys.TDBInternal;
 import fr.gdd.sage.interfaces.SageInput;
 import fr.gdd.sage.interfaces.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.SageOpExecutorFactory;
 import fr.gdd.sage.arq.SageStageGenerator;
 
@@ -45,7 +46,7 @@ public class VolcanoApp {
         JenaBackend backend = new JenaBackend("/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M");
         
         StageGenerator parent = (StageGenerator)ARQ.getContext().get(ARQ.stageGenerator) ;
-        SageStageGenerator sageStageGenerator = new SageStageGenerator(parent, backend);
+        SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
         
         StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
         // QC.setFactory(ARQ.getContext(), SageOpExecutor.factory) ;
@@ -86,9 +87,9 @@ public class VolcanoApp {
             // queryExecution, double check
             System.out.println("RESTARTING NEW EXECUTION");
             QueryExecution qe = QueryExecutionFactory.create(query, dataset.getDefaultModel());
-            qe.getContext().put(SageStageGenerator.input, input);
-            qe.getContext().put(SageStageGenerator.deadline, System.currentTimeMillis() + timeout);
-            qe.getContext().put(SageStageGenerator.output, new SageOutput<>());
+            qe.getContext().put(SageConstants.input, input);
+            qe.getContext().put(SageConstants.deadline, System.currentTimeMillis() + timeout);
+            qe.getContext().put(SageConstants.output, new SageOutput<>());
             QC.setFactory(qe.getContext(), sageFactory);
 
             // for (var key : qe.getContext().keys()) {
@@ -107,7 +108,7 @@ public class VolcanoApp {
 
 
             
-            results = qe.getContext().get(SageStageGenerator.output);
+            results = qe.getContext().get(SageConstants.output);
             input.setState(results.getState());
             //sageStageGenerator.setSageInput(input.setState(results.getState()));
             System.out.println();

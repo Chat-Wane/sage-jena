@@ -2,9 +2,15 @@ package fr.gdd.sage.fuseki;
 
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
+
+import java.util.Iterator;
+
 import org.apache.jena.atlas.lib.Pair;
+import org.apache.jena.fuseki.servlets.ActionLib;
 import org.apache.jena.fuseki.servlets.HttpAction;
+import org.apache.jena.fuseki.servlets.ResponseResultSet;
 import org.apache.jena.fuseki.servlets.SPARQL_QueryDataset;
+import org.apache.jena.fuseki.servlets.ServletOps;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
@@ -12,19 +18,30 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryEngineFactoryWrapper;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.engine.main.solver.StageMatchTriple;
+import org.apache.jena.sparql.resultset.SPARQLResult;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.sparql.util.ContextAccumulator;
 
+import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.SageOpExecutorFactory;
 import fr.gdd.sage.arq.SageStageGenerator;
+import fr.gdd.sage.interfaces.SageInput;
+import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.jena.JenaBackend;
 
 
 
+/**
+ * The processor meant to replace the actual query of dataset. Does
+ * the same job but reads and writes http header to enable
+ * pausing/resuming query execution.
+ */
 public class Sage_QueryDataset extends SPARQL_QueryDataset {
 
     public Sage_QueryDataset() {}
@@ -39,71 +56,51 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
     @Override
     protected void execute(String queryString, HttpAction action) {
         var req = action.getRequest();
-        System.out.printf("REQ  : %s \n", req.getHeaderNames());
 
-        Query query = QueryFactory.create(queryString);
-
-        System.out.printf("QUERY %s \n", query.toString());
-        
-        Pair<DatasetGraph, Query> p = decideDataset(action, query, query.toString());
-        DatasetGraph dataset = p.getLeft();
-        Query q = p.getRight();
-
-        // System.out.printf("DATASET CHOSEN %s \n", dataset.getClass().getName());
-
-
-        ContextAccumulator contextAcc =
-            ContextAccumulator.newBuilder(()->ARQ.getContext(), ()->Context.fromDataset(dataset));
-        QueryEngineFactory qef = QueryEngineRegistry.findFactory(query, dataset, contextAcc.context());
-        System.out.printf("FACTORY CHOSEN : %s\n", qef.getClass().getName());
-
-        Context c = contextAcc.context();
-        for (var key : c.keys()) {
-            System.out.printf("CONTEXT %s : %s\n", key, c.get(key));
+        // (TODO) add headers of request to Action's context
+        Iterator<String> headers_it = req.getHeaderNames().asIterator();        
+        while (headers_it.hasNext()) {
+            var name = headers_it.next();
+            System.out.printf("REQUEST HEADER: %s \n", name);
         }
 
+        // Prepare sage parameters
+        SageInput sageInput = new SageInput<>();
+        JenaBackend backend = action.getContext().get(SageConstants.backend);
+        sageInput.setBackend(backend);
+        action.getContext().set(SageConstants.input, sageInput);
+
+
+        action.getContext().set(SageConstants.deadline, System.currentTimeMillis() + 100000);
+        
+        
+        for (var key : action.getContext().keys()) {
+            System.out.printf("ACTION CONTEXT %s : %s\n", key, action.getContext().get(key));
+        }
+        
         super.execute(queryString, action);
     }
 
     @Override
-    protected QueryExecution createQueryExecution(HttpAction action, Query query, DatasetGraph dataset) {
-        System.out.println("SAGE QUERY EXECUTION CREATE");
-        System.out.printf("DATASET : %s\n", dataset.toString());
+    protected void sendResults(HttpAction action, SPARQLResult result, Prologue qPrologue) {
+        for (var key : action.getContext().keys()) {
+            System.out.printf("AFTER EXECUTION CONTEXT %s : %s\n", key, action.getContext().get(key));
+        }
 
-        SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
-        // QueryEngineRegistry.addFactory(sageFactory);
-        
-        var qe = QueryExecutionFactory.create(query, dataset);
-        QC.setFactory(qe.getContext(), sageFactory);
-        
-        QueryEngineFactory qeFactory = QueryEngineRegistry.findFactory(query, dataset, ARQ.getContext());
-        System.out.printf("THEN FACTORY CHOSEN : %s\n", qeFactory.getClass().getName());
-
-        System.out.printf("STAGE BUILDER %s\n", StageBuilder.getGenerator().getClass().getName());
-
-        // for (var key : qe.getContext().keys()) {
-        //     System.out.printf("QE CONTEXT %s : %s\n", key, qe.getContext().get(key));
+        SageOutput sageOutput = action.getContext().get(SageConstants.output);
+        // for (var key : sageOutput.getState().keySet()) {
+        //     System.out.printf("SAGE OUTPUT %s => %s \n", key, sageOutput.getState().get(key));
         // }
 
-        // ResultSet result_set = qe.execSelect();
+        if ( result.isResultSet() ) {
+            SageResponseResultSet.doResponseResultSet(action, result.getResultSet(), qPrologue);
+        } else {
+            ServletOps.errorOccurred("Unknown or invalid result type");
+        }
         
-        // while (result_set.hasNext() ) {
-        //     var solution = result_set.next();
-        //     System.out.printf("SOLUTION = %s \n", solution.toString());
-        // }
-
-        // for (var key : qe.getContext().keys()) {
-        //     System.out.printf("QE AFTER CONTEXT %s : %s\n", key, qe.getContext().get(key));
-        // }
-
-
-        qe = QueryExecutionFactory.create(query, dataset);
-        QC.setFactory(qe.getContext(), sageFactory);
-        
-        return qe;
-
-        // return super.createQueryExecution(action, query, dataset);
+        action.setResponseHeader("TEST", "WORKS");
     }
+    
 
     @Override
     public void execPost(HttpAction action) {

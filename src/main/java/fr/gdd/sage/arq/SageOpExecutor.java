@@ -1,5 +1,8 @@
 package fr.gdd.sage.arq;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.apache.jena.query.ARQ;
 import org.apache.jena.sparql.ARQConstants;
 import org.apache.jena.sparql.algebra.Op;
@@ -8,6 +11,7 @@ import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpQuadPattern;
 import org.apache.jena.sparql.algebra.op.OpSlice;
 import org.apache.jena.sparql.algebra.op.OpTriple;
+import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.iterator.QueryIterSlice;
@@ -25,15 +29,15 @@ import fr.gdd.sage.interfaces.SageOutput;
  */
 public class SageOpExecutor extends OpExecutorTDB2 {
 
-    SageStageGenerator generator; // contains the map of all iterators.
     SageOutput output; // where pausing state is saved when need be.
-    ExecutionContext context;
+    public Map<Integer, VolcanoIterator> iterators; // all iterators that may need saving
     
     public SageOpExecutor(ExecutionContext context) {
         super(context);
-        this.context = context;
-        this.output = execCxt.getContext().get(SageStageGenerator.output);
-        // this.generator = execCxt.getContext().get(ARQ.stageGenerator);
+        this.output = new SageOutput<>();
+        execCxt.getContext().set(SageConstants.output, output);
+        this.iterators = new TreeMap<Integer, VolcanoIterator>();
+        execCxt.getContext().set(SageConstants.iterators, iterators);
     }
 
     @Override
@@ -41,37 +45,27 @@ public class SageOpExecutor extends OpExecutorTDB2 {
         System.out.println("BGPBGPBGP");
         return super.execute(opBGP, input);
     }
-
-    @Override
-    public QueryIterator executeOp(Op op, QueryIterator input) {
-        System.out.printf("OP EXECUTE %s \n", op.toString());
-        return super.executeOp(op, input);
-    }
-
+    
     @Override
     protected QueryIterator execute(OpTriple opTriple, QueryIterator input) {
         System.out.printf("TRIPLE\n");
         return super.execute(opTriple, input);
     }
-
-    @Override
-    protected QueryIterator execute(OpJoin opJoin, QueryIterator input) {
-        System.out.printf("JOIN\n");
-        return super.execute(opJoin, input);
-    }
-
+    
     @Override
     protected QueryIterator execute(OpQuadPattern quadPattern, QueryIterator input) {
-        System.out.printf("QUAD\n");
-        return super.execute(quadPattern, input);
+        System.out.printf("QUAD %s\n", quadPattern.toString());
+        BasicPattern bgp = quadPattern.getBasicPattern();
+        return SageStageGenerator.executeTriplePattern(bgp, input, execCxt);
     }
 
     
     @Override
     public QueryIterator execute(OpSlice opSlice, QueryIterator input) {
+        System.out.printf("SLICE\n");
         QueryIterator qIter = exec(opSlice.getSubOp(), input);
         qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
-                                       this.generator.iterators_map, this.output);
+                                       this.iterators, this.output);
         return qIter;
     }
     

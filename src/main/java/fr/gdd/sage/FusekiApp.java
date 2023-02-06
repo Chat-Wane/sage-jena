@@ -62,31 +62,18 @@ import fr.gdd.sage.arq.SageStageGenerator;
 public class FusekiApp {
 
     public static void main( String[] args ) {
-        System.out.println("HELLO WORLD");
         ARQ.setExecutionLogging(InfoLevel.ALL);
         
-        String ui = "/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/webapp";
-        // "/Users/nedelec-b-2/Desktop/Projects/jena/jena-fuseki2/jena-fuseki-ui/target/webapp";
-        
+        String uiPath = "/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/webapp";
         String datasetPath = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
         Dataset dataset = TDB2Factory.connectDataset(datasetPath);
-        // dataset.begin() in backend 
-        JenaBackend backend = new JenaBackend(datasetPath);
         
         // already in META-INF/services/…FusekiModule so starts from there
         // FusekiModules.add(new SageModule());
 
-        
-        // StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
-        // SageStageGenerator sageStageGenerator = new SageStageGenerator(parent, backend);
-        // StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
-        
-        SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
-        QC.setFactory(ARQ.getContext(), sageFactory);
-
         FusekiServer server = FusekiServer.create()
             // .parseConfigFile("/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/run/config.ttl")
-            .staticFileBase(ui)
+            .staticFileBase(uiPath)
             .enablePing(true)
             .enableCompact(true)
             // .enableCors(true)

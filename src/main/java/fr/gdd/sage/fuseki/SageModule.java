@@ -1,37 +1,27 @@
 package fr.gdd.sage.fuseki;
 
-import java.io.IOException;
-import java.util.Set;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.jena.cmd.ArgModuleGeneral;
-import org.apache.jena.fuseki.build.FusekiExt;
 import org.apache.jena.fuseki.main.FusekiServer;
-import org.apache.jena.fuseki.main.FusekiServer.Builder;
-import org.apache.jena.fuseki.main.cmds.FusekiMain;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
-import org.apache.jena.fuseki.main.sys.FusekiModuleStep;
-import org.apache.jena.fuseki.main.sys.FusekiModules;
-import org.apache.jena.fuseki.server.DataAccessPoint;
-import org.apache.jena.fuseki.server.DataAccessPointRegistry;
 import org.apache.jena.fuseki.server.Endpoint;
 import org.apache.jena.fuseki.server.Operation;
-import org.apache.jena.fuseki.server.OperationRegistry;
 import org.apache.jena.fuseki.servlets.ActionService;
-import org.apache.jena.fuseki.system.FusekiLogging;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.sys.JenaSubsystemLifecycle;
-import org.apache.jena.web.HttpSC;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.apache.jena.query.ARQ;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.main.StageBuilder;
+import org.apache.jena.sparql.engine.main.StageGenerator;
+import org.apache.jena.tdb2.DatabaseMgr;
+import org.apache.jena.tdb2.TDB2;
+import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageStageGenerator;
+import fr.gdd.sage.jena.JenaBackend;
 
 
 
@@ -50,6 +40,8 @@ import org.slf4j.LoggerFactory;
  */
 public class SageModule implements FusekiModule {
     Logger logger = LoggerFactory.getLogger(SageModule.class);
+
+    SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
     
     public SageModule() {}
     
@@ -61,6 +53,10 @@ public class SageModule implements FusekiModule {
     @Override
     public void start() {
         logger.info("start !");
+        QC.setFactory(ARQ.getContext(), sageFactory);
+        StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
+        SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
+        StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
     }
 
     /**
@@ -69,23 +65,27 @@ public class SageModule implements FusekiModule {
     @Override
     public void serverBeforeStarting(FusekiServer server) {
         logger.info("Patching the processor for query operations…");
-        
+
         var dapr = server.getDataAccessPointRegistry();
+
         for (var dap : dapr.accessPoints()) {
-
+            if (DatabaseMgr.isTDB2(dap.getDataService().getDataset())) {
+                // register the new executors for every dataset that is TDB2
+                Dataset ds =  DatasetFactory.wrap(dap.getDataService().getDataset());
+                SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
+                QC.setFactory(ds.getContext(), sageFactory);
+                StageGenerator parent = (StageGenerator) ds.getContext().get(ARQ.stageGenerator) ;
+                SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
+                StageBuilder.setGenerator(ds.getContext(), sageStageGenerator);
+                // to conveniently get interface changes already implemented
+                JenaBackend backend = new JenaBackend(ds);
+                ds.getContext().set(SageConstants.backend, backend);
+            };
             
-            for (var op : dap.getDataService().getOperations()) {
-                System.out.printf("op %s \n", op.getDescription());
-            }
-            
-            ActionService as =  server.getOperationRegistry().findHandler(Operation.Query);
-            System.out.printf("AS QUERY  : %s\n", as.toString());
+            // replacing the operation registry and the processor
             server.getOperationRegistry().register(Operation.Query, new Sage_QueryDataset());
-            ActionService as2 =  server.getOperationRegistry().findHandler(Operation.Query);
-            System.out.printf("AS2 QUERY : %s\n", as2.toString());
-
             for (Endpoint ep : dap.getDataService().getEndpoints(Operation.Query)) {
-                   ep.setProcessor(server.getOperationRegistry().findHandler(ep.getOperation()));
+                ep.setProcessor(server.getOperationRegistry().findHandler(ep.getOperation()));
             }
         }        
     }

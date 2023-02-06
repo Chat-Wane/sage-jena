@@ -52,7 +52,7 @@ public class VolcanoIterator implements Iterator<Quad> {
                 this.output.addState(toSave);
             }
             
-            // System.out.printf("VolcanoIterator n°%s deadline, nb iterators %s\n", id, iterators_map.size());
+            System.out.printf("VolcanoIterator n°%s deadline, nb iterators %s\n", id, iterators_map.size());
             // for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
             //     if (e.getKey() < id) {
             //         var toSave = new Pair(e.getKey(), e.getValue().wrapped.previous());
