@@ -29,6 +29,8 @@ import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.WebContent;
 import org.apache.jena.riot.resultset.ResultSetWriterRegistry;
+import org.apache.jena.riot.rowset.RowSetWriterFactory;
+import org.apache.jena.riot.rowset.RowSetWriterRegistry;
 import org.apache.jena.riot.rowset.rw.RowSetWriterXML;
 import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.resultset.ResultsWriter;
@@ -219,8 +221,12 @@ public class SageResponseResultSet
                 out.write(StrUtils.asUTF8bytes(callbackFunction));
                 out.write('('); out.write('\n');
             }
-            if ( resultSet != null )
+            if ( resultSet != null ) {
                 rw.write(out, resultSet);
+                System.out.println("WRITE");
+                RowSetWriterFactory factory = RowSetWriterRegistry.getFactory(rsLang);
+                System.out.printf("ROWSET FACTORY %s WITH LANG %s\n", factory, rsLang);
+            }
             if ( booleanResult != null )
                 rw.write(out, booleanResult.booleanValue());
             if ( callback != null ) {

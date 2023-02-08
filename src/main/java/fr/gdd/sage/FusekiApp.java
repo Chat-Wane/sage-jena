@@ -29,6 +29,12 @@ import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.AnonId;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.LangBuilder;
+import org.apache.jena.riot.WebContent;
+import org.apache.jena.riot.resultset.ResultSetLang;
+import org.apache.jena.riot.rowset.RowSetWriterFactory;
+import org.apache.jena.riot.rowset.RowSetWriterRegistry;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
@@ -54,6 +60,7 @@ import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.writers.SageRowSetWriterJSON;
 import fr.gdd.sage.arq.SageOpExecutorFactory;
 import fr.gdd.sage.arq.SageStageGenerator;
 
@@ -71,6 +78,9 @@ public class FusekiApp {
         // already in META-INF/services/…FusekiModule so starts from there
         // FusekiModules.add(new SageModule());
 
+        RowSetWriterRegistry.register(ResultSetLang.RS_JSON, SageRowSetWriterJSON.factory);
+
+        
         FusekiServer server = FusekiServer.create()
             // .parseConfigFile("/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/run/config.ttl")
             .staticFileBase(uiPath)
