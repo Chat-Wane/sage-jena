@@ -27,7 +27,7 @@ import fr.gdd.sage.interfaces.SageInput;
 import fr.gdd.sage.interfaces.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageOpExecutor;
 import fr.gdd.sage.arq.SageStageGenerator;
 
 
@@ -71,9 +71,6 @@ public class VolcanoApp {
 
         Query query = QueryFactory.create(query_as_str);
 
-        SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
-        // sageStageGenerator.setSageInput(new SageInput<Record>(10));
-        
         long nbPreempt = 0;
         long sum = 0;
         SageOutput<Record> results = null;
@@ -90,7 +87,7 @@ public class VolcanoApp {
             qe.getContext().put(SageConstants.input, input);
             qe.getContext().put(SageConstants.deadline, System.currentTimeMillis() + timeout);
             qe.getContext().put(SageConstants.output, new SageOutput<>());
-            QC.setFactory(qe.getContext(), sageFactory);
+            QC.setFactory(qe.getContext(), SageOpExecutor.factory);
 
             // for (var key : qe.getContext().keys()) {
             //     System.out.printf("%s  => %s \n", key, qe.getContext().get(key));

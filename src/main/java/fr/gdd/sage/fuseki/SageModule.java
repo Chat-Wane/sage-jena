@@ -8,6 +8,9 @@ import org.apache.jena.fuseki.servlets.ActionService;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.riot.resultset.ResultSetLang;
+import org.apache.jena.riot.rowset.RowSetWriterRegistry;
+import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
@@ -19,9 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageOpExecutor;
 import fr.gdd.sage.arq.SageStageGenerator;
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.writers.SageRowSetWriterJSON;
 
 
 
@@ -41,8 +45,6 @@ import fr.gdd.sage.jena.JenaBackend;
 public class SageModule implements FusekiModule {
     Logger logger = LoggerFactory.getLogger(SageModule.class);
 
-    SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
-    
     public SageModule() {}
     
     @Override
@@ -53,10 +55,16 @@ public class SageModule implements FusekiModule {
     @Override
     public void start() {
         logger.info("start !");
-        QC.setFactory(ARQ.getContext(), sageFactory);
+        // replace the default engine behavior by ours.
+        QC.setFactory(ARQ.getContext(), SageOpExecutor.factory);
         StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
         SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
         StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
+
+        // replace the output by ours to include the saved state.
+        // all writers are here : <https://github.com/apache/jena/tree/main/jena-arq/src/main/java/org/apache/jena/riot/rowset/rw>
+        // (TODO) get them all
+        RowSetWriterRegistry.register(ResultSetLang.RS_JSON, SageRowSetWriterJSON.factory);
     }
 
     /**
@@ -72,8 +80,7 @@ public class SageModule implements FusekiModule {
             if (DatabaseMgr.isTDB2(dap.getDataService().getDataset())) {
                 // register the new executors for every dataset that is TDB2
                 Dataset ds =  DatasetFactory.wrap(dap.getDataService().getDataset());
-                SageOpExecutorFactory sageFactory = new SageOpExecutorFactory();
-                QC.setFactory(ds.getContext(), sageFactory);
+                QC.setFactory(ds.getContext(), SageOpExecutor.factory);
                 StageGenerator parent = (StageGenerator) ds.getContext().get(ARQ.stageGenerator) ;
                 SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
                 StageBuilder.setGenerator(ds.getContext(), sageStageGenerator);

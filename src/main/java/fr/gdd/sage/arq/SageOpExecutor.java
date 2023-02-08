@@ -29,6 +29,19 @@ import fr.gdd.sage.interfaces.SageOutput;
  */
 public class SageOpExecutor extends OpExecutorTDB2 {
 
+    /**
+     * Factory to be registered in Jena ARQ. It creates an OpExecutor for
+     * Sage in charge of operations customized for pausing/resuming
+     * queries.
+     */
+    public static OpExecutorFactory factory = new OpExecutorFactory() {
+            @Override
+            public OpExecutor create(ExecutionContext execCxt) {
+                return new SageOpExecutor(execCxt);
+            }
+        };
+
+    
     SageOutput output; // where pausing state is saved when need be.
     public Map<Integer, VolcanoIterator> iterators; // all iterators that may need saving
     
