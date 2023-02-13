@@ -3,21 +3,15 @@ package fr.gdd.sage.arq;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.jena.query.ARQ;
-import org.apache.jena.sparql.ARQConstants;
-import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpQuadPattern;
 import org.apache.jena.sparql.algebra.op.OpSlice;
 import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.iterator.QueryIterSlice;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
-import org.apache.jena.sparql.util.Symbol;
+import org.apache.jena.tdb2.solver.PatternMatchSage;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
 import fr.gdd.sage.interfaces.SageOutput;
@@ -68,8 +62,8 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     @Override
     protected QueryIterator execute(OpQuadPattern quadPattern, QueryIterator input) {
         System.out.printf("QUAD %s\n", quadPattern.toString());
-        BasicPattern bgp = quadPattern.getBasicPattern();
-        return SageStageGenerator.executeTriplePattern(bgp, input, execCxt);
+        // BasicPattern bgp = quadPattern.getBasicPattern();
+        return PatternMatchSage.matchQuadPattern(quadPattern.getBasicPattern(), input, execCxt);
     }
 
     
