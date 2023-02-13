@@ -9,7 +9,9 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
+import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.interfaces.BackendIterator;
+import fr.gdd.sage.jena.JenaIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.interfaces.SageOutput;
 
@@ -70,6 +72,13 @@ public class VolcanoIterator implements Iterator<Quad> {
         Node sx = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.SUBJECT));
         Node px = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.PREDICATE));
         Node ox = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.OBJECT));
+
+        // ugly fix ? 
+        JenaIterator it = (JenaIterator) ((LazyIterator) wrapped).iterator;
+        if (it.goRandom && id==0) {
+            it.finished = false;
+        }
+        
         return Quad.create(gx, sx, px, ox);
     }
 

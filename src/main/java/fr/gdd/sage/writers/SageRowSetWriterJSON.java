@@ -146,8 +146,16 @@ public class SageRowSetWriterJSON implements RowSetWriter {
             println(out, "}");      // top level {}
         }
 
+        // newly added part to send the saved state in order
+        // to resume the query execution later on.
         private void writeSaveState(SageOutput<Record> output) {
             println(out, quoteName("state") , " : {");
+            
+            if (output == null || output.getState()==null) {
+                println(out, " }");
+                return;
+            }
+
             int nb_keys = output.getState().size();
             for (Integer key : output.getState().keySet()) {
                 Record val = output.getState().get(key);

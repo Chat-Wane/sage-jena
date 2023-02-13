@@ -23,9 +23,12 @@ public class VolcanoIteratorFactory {
     
     SageInput<?> input;
     SageOutput<?> output;
-    boolean shouldRandom = false;
     long deadline;
 
+    // do scans provide random bindings in their respective allowed
+    // range ?
+    boolean shouldRandom = true;
+    
 
     
     public VolcanoIteratorFactory(SageInput<?> input, SageOutput<?> output) {
