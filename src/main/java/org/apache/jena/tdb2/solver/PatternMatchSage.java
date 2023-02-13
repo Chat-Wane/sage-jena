@@ -16,6 +16,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.QuadPattern;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -25,12 +26,16 @@ import org.apache.jena.sparql.engine.iterator.Abortable;
 import org.apache.jena.sparql.engine.iterator.QueryIterAbortable;
 import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
+import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.VolcanoIterator;
+import fr.gdd.sage.arq.VolcanoIteratorFactory;
+import fr.gdd.sage.interfaces.Backend;
+import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SageInput;
 import fr.gdd.sage.interfaces.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
@@ -55,37 +60,49 @@ public class PatternMatchSage {
     /**
      * Creates the build for quad patterns.
      */
-    public static QueryIterator matchQuadPattern(BasicPattern pattern, QueryIterator input, ExecutionContext context) {
-        return match(pattern, input, context);
+    public static QueryIterator matchQuadPattern(BasicPattern pattern, Node graphNode, QueryIterator input, ExecutionContext context) {
+        return match(pattern, input, context, graphNode);
     }
 
     /**
      * Used by triple and quad pattern to create the builder of scans.
      */
-    protected static QueryIterator match(BasicPattern pattern, QueryIterator input, ExecutionContext context) {
+    static QueryIterator match(BasicPattern pattern, QueryIterator input, ExecutionContext context, Node... graphNode) {
+        if (graphNode.length > 0) {
+            if ( Quad.isUnionGraph(graphNode[0]))
+                graphNode[0] = Node.ANY;
+            if ( Quad.isDefaultGraph(graphNode[0]))
+                graphNode = null;
+        }
+        boolean anyGraph = (graphNode == null ? false : (Node.ANY.equals(graphNode)));
+        var graph = graphNode == null ? null : graphNode[0];
+        
+        // for the sake of simplicity, we get the backend interface from the
+        // context, that will enable creating iterators easily.
         SageInput<?> sageInput = context.getContext().get(SageConstants.input);
+        long deadline = context.getContext().get(SageConstants.deadline);
+        SageOutput<?> sageOutput = context.getContext().get(SageConstants.output);
         JenaBackend backend = (JenaBackend) sageInput.getBackend();
+        Predicate<Tuple<NodeId>> filter = QC2.getFilter(context.getContext());
 
         var conv = SolverLibTDB.convFromBinding(backend.getNodeTable());
         Iterator<BindingNodeId> chain = Iter.map(input, conv);
-        List<Abortable> killList = new ArrayList<>();
 
-        int sumId = 0;
+        List<Abortable> killList = new ArrayList<>();
+        int numberOfScans = 0;
         for (Triple triple: pattern.getList()) {
-            // From <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L73>
-            // anygraph false => null , ie. search default graph for triples
-            Predicate<Tuple<NodeId>> filter = QC2.getFilter(context.getContext());
-            Integer scanId = new Integer(sumId);
             // create the function that will be called everytime a
             // scan iterator is created.
+            final int scanId = numberOfScans;
             Function<BindingNodeId, Iterator<BindingNodeId>> step =
-                bnid -> find(bnid, backend.getNodeTripleTupleTable(), null, triple, false, filter, context, scanId);
+                bnid -> find(bnid, backend.getNodeTripleTupleTable(), graph, triple, anyGraph, filter, context,
+                             scanId, deadline, backend, sageInput, sageOutput);
             
             chain = Iter.flatMap(chain, step);
             chain = SolverLib.makeAbortable(chain, killList);
-            sumId += 1;
+            numberOfScans += 1;
         }
-
+        
         Iterator<Binding> iterBinding = SolverLibTDB.convertToNodes(chain, backend.getNodeTable());
         QueryIterAbortable abortable = new QueryIterAbortable(iterBinding, killList, input, context);
         return abortable;
@@ -99,10 +116,11 @@ public class PatternMatchSage {
     // from <https://github.com/apache/jena/blob/ebc10c4131726e25f6ffd398b9d7a0708aac8066/jena-tdb1/src/main/java/org/apache/jena/tdb/solver/SolverRX.java#L78>
     private static Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
                                                 Node xGraphNode, Triple xPattern,
-                                                boolean anyGraph, Predicate<Tuple<NodeId>> filter,
-                                                ExecutionContext execCxt, Integer id) {
-        System.out.printf("CREATE SCAN n°%s bnid %s\n", id, bnid.toString());
-        
+                                                boolean anyGraph,
+                                                Predicate<Tuple<NodeId>> filter,
+                                                ExecutionContext context,
+                                                int id, long deadline, JenaBackend backend,
+                                                SageInput<?> sageInput, SageOutput<?> sageOutput) {
         // (TODO) add filter when on NodeId
         // System.out.printf("filter %s \n", filter.toString());
         
@@ -122,41 +140,35 @@ public class PatternMatchSage {
         Tuple<Node> patternTuple = ( g == null )
                 ? TupleFactory.create3(s,p,o)
                 : TupleFactory.create4(g,s,p,o);
-
+        Tuple<NodeId> patternTupleId = TupleLib.tupleNodeIds(nodeTable, patternTuple);
 
         // (TODO) replasce dsgIter by our preemptable iterator.
         // Iterator<Quad> dsgIter = SolverRX.accessData(patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
 
-        long deadline = execCxt.getContext().get(SageConstants.deadline);
-        SageOutput<?> output = execCxt.getContext().get(SageConstants.output);
 
-
-        Map<Integer, VolcanoIterator> iterators = execCxt.getContext().get(SageConstants.iterators);
-        SageInput<?> sageInput = execCxt.getContext().get(SageConstants.input);
-        JenaBackend backend = (JenaBackend) sageInput.getBackend();
+        Map<Integer, VolcanoIterator> iterators = context.getContext().get(SageConstants.iterators);
         
-        VolcanoIterator volcanoIterator =  new VolcanoIterator(backend.search(nodeTable.getNodeIdForNode(s),
-                                                                              nodeTable.getNodeIdForNode(p),
-                                                                              nodeTable.getNodeIdForNode(o)),
-                                                               // (TODO) Graph
-                                                               backend.getNodeTable(),
-                                                               deadline,
-                                                               iterators,
-                                                               output,
-                                                               id);
+        BackendIterator<NodeId, Record> wrapped = null;
+        if (g == null) {
+            wrapped = backend.search(patternTupleId.get(0), patternTupleId.get(1), patternTupleId.get(2));
+        } else {
+            wrapped = backend.search(patternTupleId.get(1), patternTupleId.get(2), patternTupleId.get(3), patternTupleId.get(0));
+        }
+
+        VolcanoIteratorFactory factory = context.getContext().get(SageConstants.scanFactory);        
+        VolcanoIterator volcanoIterator = factory.getScan(patternTupleId, id);
+        
         if (!iterators.containsKey(id)) {
             if (sageInput != null && sageInput.getState() != null) {
                 volcanoIterator.skip((Record) sageInput.getState(id));
             }
         }
         iterators.put(id, volcanoIterator); // register and/or erase previous iterator
-        Iterator<Quad> dsgIter = (Iterator<Quad>) volcanoIterator;
-        
-        Iterator<Binding> matched = Iter.iter(dsgIter)
-            .map(dQuad->SolverRX4.matchQuad(input, dQuad, tGraphNode, tPattern)).removeNulls();
-        
-        var conv = SolverLibTDB.convFromBinding(nodeTable);
-        return Iter.map(matched, conv);
+
+        Iterator<Binding> matched = Iter.iter(volcanoIterator)
+            .map(dQuad->SolverRX4.matchQuad(input, dQuad, tGraphNode, tPattern))
+            .removeNulls();
+        return SolverLibTDB.convFromBinding(matched, nodeTable);
     }
 }
 

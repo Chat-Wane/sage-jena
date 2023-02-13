@@ -11,7 +11,8 @@ public class SageConstants {
 
     static public Symbol backend = allocConstantSymbol("Backend");
     static public Symbol timeout = allocConstantSymbol("Timeout");
-    
+
+    static public Symbol scanFactory = allocVariableSymbol("ScanFactory");
     static public Symbol deadline = allocVariableSymbol("Deadline");
     static public Symbol output   = allocVariableSymbol("Output");
     static public Symbol input    = allocVariableSymbol("Input");

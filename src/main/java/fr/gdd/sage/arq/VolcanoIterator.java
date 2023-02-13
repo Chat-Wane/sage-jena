@@ -1,8 +1,6 @@
 package fr.gdd.sage.arq;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.jena.atlas.lib.Pair;
 import org.apache.jena.dboe.base.record.Record;
@@ -17,6 +15,13 @@ import fr.gdd.sage.interfaces.SageOutput;
 
 
 
+/**
+ * Volcano iterator that wraps a backend iterator meant for compiled
+ * query execution. Among others, `next()` returns {@link Quad} which
+ * contains four {@link Node}; and the `hasNext()` checks if it
+ * reached the timeout before saving into the shared
+ * {@link SageOutput}.
+ */
 public class VolcanoIterator implements Iterator<Quad> {
 
     public BackendIterator<NodeId, Record> wrapped;
@@ -25,19 +30,18 @@ public class VolcanoIterator implements Iterator<Quad> {
 
     SageOutput output;
     Integer id;
-    Map<Integer, VolcanoIterator> iterators_map;
-    
+
+    // Cannot pause at first execution of the `hasNext()`.
     boolean first = false;
 
 
     
     public VolcanoIterator (BackendIterator<NodeId, Record> iterator, NodeTable nodeTable, long deadline,
-                            Map<Integer, VolcanoIterator> iterators, SageOutput output, Integer id) {
+                            SageOutput output, Integer id) {
         this.wrapped = iterator;
         this.nodeTable = nodeTable;
         this.deadline = deadline;
         this.output = output;
-        this.iterators_map = iterators;
         this.id = id;
     }
     
@@ -51,15 +55,7 @@ public class VolcanoIterator implements Iterator<Quad> {
                 var toSave = new Pair(id, this.wrapped.previous());
                 this.output.addState(toSave);
             }
-            
-            System.out.printf("VolcanoIterator n°%s deadline, nb iterators %s\n", id, iterators_map.size());
-            // for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
-            //     if (e.getKey() < id) {
-            //         var toSave = new Pair(e.getKey(), e.getValue().wrapped.previous());
-            //         this.output.addState(toSave);
-            //     }
-            // }
-            
+                        
             return false;
         }
         first = false;

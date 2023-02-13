@@ -14,6 +14,7 @@ import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.tdb2.solver.PatternMatchSage;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
+import fr.gdd.sage.interfaces.SageInput;
 import fr.gdd.sage.interfaces.SageOutput;
 
 
@@ -45,6 +46,8 @@ public class SageOpExecutor extends OpExecutorTDB2 {
         execCxt.getContext().set(SageConstants.output, output);
         this.iterators = new TreeMap<Integer, VolcanoIterator>();
         execCxt.getContext().set(SageConstants.iterators, iterators);
+        SageInput<?> input = execCxt.getContext().get(SageConstants.input);
+        execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(input, output));
     }
 
     @Override
@@ -62,8 +65,7 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     @Override
     protected QueryIterator execute(OpQuadPattern quadPattern, QueryIterator input) {
         System.out.printf("QUAD %s\n", quadPattern.toString());
-        // BasicPattern bgp = quadPattern.getBasicPattern();
-        return PatternMatchSage.matchQuadPattern(quadPattern.getBasicPattern(), input, execCxt);
+        return PatternMatchSage.matchQuadPattern(quadPattern.getBasicPattern(), quadPattern.getGraphNode(), input, execCxt);
     }
 
     
