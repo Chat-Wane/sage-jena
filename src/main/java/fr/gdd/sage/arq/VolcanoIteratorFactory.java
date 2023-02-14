@@ -3,12 +3,12 @@ package fr.gdd.sage.arq;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.RandomIterator;
 import fr.gdd.sage.interfaces.SageInput;
 import fr.gdd.sage.interfaces.SageOutput;
-import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.jena.PreemptableTupleTable;
 
 import org.apache.jena.dboe.base.record.Record;
@@ -29,20 +29,25 @@ public class VolcanoIteratorFactory {
     // do scans provide random bindings in their respective allowed
     // range ?
     boolean shouldRandom = true;
-    
+
+    private NodeTable quadNodeTable;
+    private NodeTable tripleNodeTable;
     private PreemptableTupleTable preemptableQuadTupleTable;
     private PreemptableTupleTable preemptableTripleTupleTable;
     
 
     
-    public VolcanoIteratorFactory(SageInput<?> input, SageOutput<?> output, ExecutionContext context) {
-        this.input = input;
-        this.output = output;
+    public VolcanoIteratorFactory(ExecutionContext context) {
+        this.output = context.getContext().get(SageConstants.output);
+        this.input  = context.getContext().get(SageConstants.input);
         this.deadline = System.currentTimeMillis() + input.getTimeout();
+        this.deadline = System.currentTimeMillis() + 1000;
 
         var graph = (DatasetGraphTDB) context.getDataset();
         var nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
         var nodeTripleTupleTable = graph.getTripleTable().getNodeTupleTable();
+        quadNodeTable = graph.getQuadTable().getNodeTupleTable().getNodeTable();
+        tripleNodeTable = graph.getTripleTable().getNodeTupleTable().getNodeTable();
         preemptableTripleTupleTable = new PreemptableTupleTable(nodeTripleTupleTable.getTupleTable());
         preemptableQuadTupleTable   = new PreemptableTupleTable(nodeQuadTupleTable.getTupleTable());
 
@@ -60,19 +65,21 @@ public class VolcanoIteratorFactory {
     
     public VolcanoIterator getScan(Tuple<NodeId> pattern, Integer id) {
         BackendIterator<NodeId, Record> wrapped = null;
-        JenaBackend backend = (JenaBackend) input.getBackend();
-        // if (pattern.len() < 4) {
-        wrapped = // backend.search(pattern.get(0), pattern.get(1), pattern.get(2));
-            preemptableTripleTupleTable.preemptable_find(pattern);
-        //} else {
-        //            wrapped = backend.search(pattern.get(1), pattern.get(2), pattern.get(3), pattern.get(0));
-        // }
-
+        if (pattern.len() < 4) {
+            wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
+        } else {
+            wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
+        }
+        
         if (shouldRandom) {
             ((RandomIterator) wrapped).random();
         }
         
-        return new VolcanoIterator(wrapped, backend.getNodeTable(), deadline, output, id);
+        if (pattern.len() < 4) {
+            return new VolcanoIterator(wrapped, tripleNodeTable, deadline, output, id);
+        } else {
+            return new VolcanoIterator(wrapped, quadNodeTable, deadline, output, id);
+        }
     }
-
+    
 }

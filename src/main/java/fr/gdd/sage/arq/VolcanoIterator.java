@@ -9,11 +9,10 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
-import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.jena.JenaIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.interfaces.SageOutput;
+import org.apache.jena.dboe.trans.bplustree.JenaIterator;
 
 
 
