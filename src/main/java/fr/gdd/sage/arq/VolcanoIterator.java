@@ -38,8 +38,8 @@ public class VolcanoIterator implements Iterator<Quad> {
 
 
     
-    public VolcanoIterator (BackendIterator<NodeId, Record> iterator, NodeTable nodeTable, long deadline,
-                            SageOutput output, Integer id) {
+    public VolcanoIterator (BackendIterator<NodeId, Record> iterator, NodeTable nodeTable,
+                            long deadline, SageOutput output, Integer id) {
         this.wrapped = iterator;
         this.nodeTable = nodeTable;
         this.deadline = deadline;
@@ -57,7 +57,7 @@ public class VolcanoIterator implements Iterator<Quad> {
                 var toSave = new Pair(id, this.wrapped.previous());
                 this.output.addState(toSave);
             }
-                        
+            
             return false;
         }
         first = false;
@@ -73,8 +73,8 @@ public class VolcanoIterator implements Iterator<Quad> {
         Node px = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.PREDICATE));
         Node ox = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.OBJECT));
 
-        // ugly fix ? 
-        JenaIterator it = (JenaIterator) ((LazyIterator) wrapped).iterator;
+        // (TODO) ugly fix. How to make a better handling of scans?
+        JenaIterator it = (JenaIterator) wrapped;
         if (it.goRandom && id==0) {
             it.finished = false;
         }

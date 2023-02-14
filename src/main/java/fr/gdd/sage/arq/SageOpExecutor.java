@@ -47,7 +47,7 @@ public class SageOpExecutor extends OpExecutorTDB2 {
         this.iterators = new TreeMap<Integer, VolcanoIterator>();
         execCxt.getContext().set(SageConstants.iterators, iterators);
         SageInput<?> input = execCxt.getContext().get(SageConstants.input);
-        execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(input, output));
+        execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(input, output, context));
     }
 
     @Override
