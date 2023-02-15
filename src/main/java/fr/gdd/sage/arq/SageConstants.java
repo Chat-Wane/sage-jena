@@ -17,7 +17,7 @@ public class SageConstants {
     static public Symbol output   = allocVariableSymbol("Output");
     static public Symbol input    = allocVariableSymbol("Input");
 
-    static public Symbol iterators = allocVariableSymbol("iterators");
+    static public Symbol iterators = allocVariableSymbol("Iterators");
 
 
     

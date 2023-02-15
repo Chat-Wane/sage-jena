@@ -40,6 +40,7 @@ public class VolcanoIteratorFactory {
     public VolcanoIteratorFactory(ExecutionContext context) {
         this.output = context.getContext().get(SageConstants.output);
         this.input  = context.getContext().get(SageConstants.input);
+        // (TODO) change this 
         this.deadline = System.currentTimeMillis() + input.getTimeout();
         this.deadline = System.currentTimeMillis() + 1000;
 

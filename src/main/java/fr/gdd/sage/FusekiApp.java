@@ -25,6 +25,7 @@ public class FusekiApp {
         
         FusekiServer server = FusekiServer.create()
             // .parseConfigFile("/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/run/config.ttl")
+            // .parseConfigFile("configurations/sage.ttl")
             .staticFileBase(uiPath)
             .enablePing(true)
             .enableCompact(true)
