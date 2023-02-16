@@ -11,7 +11,7 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.QueryIter1;
 
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageOutput;
 
 
 
@@ -25,10 +25,10 @@ public class SageQueryIterSlice extends QueryIter1 {
     long offset;
     
     Map<Integer, VolcanoIterator> iterators_map;
-    SageOutput<Record> output;
+    SageOutput<?> output;
 
     public SageQueryIterSlice(QueryIterator cIter, long startPosition, long numItems, ExecutionContext context,
-                              Map<Integer, VolcanoIterator> iterators, SageOutput<Record> output) {
+                              Map<Integer, VolcanoIterator> iterators, SageOutput<?> output) {
         super(cIter, context);
         this.iterators_map = iterators;
         this.output = output;

@@ -1,5 +1,6 @@
 package fr.gdd.sage.arq;
 
+import java.io.Serializable;
 import java.util.Iterator;
 
 import org.apache.jena.atlas.lib.Pair;
@@ -11,7 +12,9 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageOutput;
+import fr.gdd.sage.jena.SerializableRecord;
+
 import org.apache.jena.dboe.trans.bplustree.JenaIterator;
 
 
@@ -25,11 +28,11 @@ import org.apache.jena.dboe.trans.bplustree.JenaIterator;
  */
 public class VolcanoIterator implements Iterator<Quad> {
 
-    public BackendIterator<NodeId, Record> wrapped;
+    public BackendIterator<NodeId, SerializableRecord> wrapped;
     NodeTable nodeTable;
     long deadline;
 
-    SageOutput output;
+    SageOutput<?> output;
     Integer id;
 
     // Cannot pause at first execution of the `hasNext()`.
@@ -37,8 +40,8 @@ public class VolcanoIterator implements Iterator<Quad> {
 
 
     
-    public VolcanoIterator (BackendIterator<NodeId, Record> iterator, NodeTable nodeTable,
-                            long deadline, SageOutput output, Integer id) {
+    public VolcanoIterator (BackendIterator<NodeId, SerializableRecord> iterator, NodeTable nodeTable,
+                            long deadline, SageOutput<?> output, Integer id) {
         this.wrapped = iterator;
         this.nodeTable = nodeTable;
         this.deadline = deadline;
@@ -81,7 +84,7 @@ public class VolcanoIterator implements Iterator<Quad> {
         return Quad.create(gx, sx, px, ox);
     }
 
-    public void skip(Record to) {
+    public void skip(SerializableRecord to) {
         first = true;
         wrapped.skip(to);
     }

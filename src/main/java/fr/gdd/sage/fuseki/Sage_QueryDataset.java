@@ -8,7 +8,7 @@ import org.apache.jena.sparql.core.Prologue;
 import org.apache.jena.sparql.resultset.SPARQLResult;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.interfaces.SageInput;
+import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.jena.JenaBackend;
 
 

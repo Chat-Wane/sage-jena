@@ -23,9 +23,10 @@ import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.sys.TDBInternal;
 
-import fr.gdd.sage.interfaces.SageInput;
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.jena.SerializableRecord;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.SageOpExecutor;
 import fr.gdd.sage.arq.SageStageGenerator;
@@ -73,9 +74,9 @@ public class VolcanoApp {
 
         long nbPreempt = 0;
         long sum = 0;
-        SageOutput<Record> results = null;
+        SageOutput<SerializableRecord> results = null;
         long timeout = 1; //ms
-        SageInput  input  = new SageInput<Record>();
+        SageInput<SerializableRecord>  input  = new SageInput<>();
         
         long startExecution = System.currentTimeMillis();
         while (results == null || (results.getState() != null && results.getState().size() > 0)) {

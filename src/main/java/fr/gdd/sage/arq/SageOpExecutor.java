@@ -16,17 +16,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageOutput;
 
 
 
 /**
  * Some operators need rewriting to enable pausing/resuming their
  * operation.
- */
+ **/
 public class SageOpExecutor extends OpExecutorTDB2 {
     static Logger log = LoggerFactory.getLogger(SageOpExecutor.class);
-    SageOutput output; // where pausing state is saved when need be.
+    SageOutput<?> output; // where pausing state is saved when need be.
     public Map<Integer, VolcanoIterator> iterators; // all iterators that may need saving
     
     /**

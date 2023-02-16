@@ -1,26 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package fr.gdd.sage.writers;
 
 import static org.apache.jena.riot.rowset.rw.JSONResultsKW.*;
 
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.io.Writer;
 import java.util.Iterator;
 import java.util.Objects;
@@ -47,12 +30,13 @@ import org.apache.jena.sparql.resultset.ResultSetException;
 import org.apache.jena.sparql.util.Context;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageOutput;
+import fr.gdd.sage.jena.SerializableRecord;
 
 /** Write results in {@code application/sparql-results+json} format. */
 public class SageRowSetWriterJSON implements RowSetWriter {
 
-    public static RowSetWriterFactory factory = lang->{
+    public static RowSetWriterFactory factory = lang -> {
         if (!Objects.equals(lang, ResultSetLang.RS_JSON ) )
             throw new ResultSetException("ResultSetWriter for JSON asked for a "+lang);
         return new SageRowSetWriterJSON();
@@ -148,7 +132,7 @@ public class SageRowSetWriterJSON implements RowSetWriter {
 
         // newly added part to send the saved state in order
         // to resume the query execution later on.
-        private void writeSaveState(SageOutput<Record> output) {
+        private void writeSaveState(SageOutput<SerializableRecord> output) {
             println(out, quoteName("state") , " : {");
             
             if (output == null || output.getState()==null) {
@@ -156,9 +140,10 @@ public class SageRowSetWriterJSON implements RowSetWriter {
                 return;
             }
 
+            // (TODO) write serialized version
             int nb_keys = output.getState().size();
             for (Integer key : output.getState().keySet()) {
-                Record val = output.getState().get(key);
+                Record val = output.getState().get(key).record;
                 if (Objects.isNull(val)) {
                     print(out, String.format("%s : null", quoteName(key.toString())));
                 } else {

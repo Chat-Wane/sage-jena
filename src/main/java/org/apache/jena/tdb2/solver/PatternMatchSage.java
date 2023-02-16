@@ -36,9 +36,10 @@ import fr.gdd.sage.arq.VolcanoIterator;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
 import fr.gdd.sage.interfaces.Backend;
 import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.interfaces.SageInput;
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.jena.SerializableRecord;
 
 
 
@@ -138,29 +139,21 @@ public class PatternMatchSage {
         Node p = SolverLib.nodeTopLevel(tPattern.getPredicate());
         Node o = SolverLib.nodeTopLevel(tPattern.getObject());
         Tuple<Node> patternTuple = ( g == null )
-                ? TupleFactory.create3(s,p,o)
-                : TupleFactory.create4(g,s,p,o);
+                ? TupleFactory.create3(s, p, o)
+                : TupleFactory.create4(g, s, p, o);
         Tuple<NodeId> patternTupleId = TupleLib.tupleNodeIds(nodeTable, patternTuple);
 
         // (TODO) replasce dsgIter by our preemptable iterator.
         // Iterator<Quad> dsgIter = SolverRX.accessData(patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
-
-
+        
         Map<Integer, VolcanoIterator> iterators = context.getContext().get(SageConstants.iterators);
         
-        BackendIterator<NodeId, Record> wrapped = null;
-        if (g == null) {
-            wrapped = backend.search(patternTupleId.get(0), patternTupleId.get(1), patternTupleId.get(2));
-        } else {
-            wrapped = backend.search(patternTupleId.get(1), patternTupleId.get(2), patternTupleId.get(3), patternTupleId.get(0));
-        }
-
         VolcanoIteratorFactory factory = context.getContext().get(SageConstants.scanFactory);        
         VolcanoIterator volcanoIterator = factory.getScan(patternTupleId, id);
         
         if (!iterators.containsKey(id)) {
             if (sageInput != null && sageInput.getState() != null) {
-                volcanoIterator.skip((Record) sageInput.getState(id));
+                volcanoIterator.skip((SerializableRecord) sageInput.getState(id));
             }
         }
         iterators.put(id, volcanoIterator); // register and/or erase previous iterator

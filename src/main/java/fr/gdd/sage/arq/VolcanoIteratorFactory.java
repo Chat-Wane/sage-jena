@@ -7,11 +7,11 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.RandomIterator;
-import fr.gdd.sage.interfaces.SageInput;
-import fr.gdd.sage.interfaces.SageOutput;
+import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.PreemptableTupleTable;
+import fr.gdd.sage.jena.SerializableRecord;
 
-import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.sparql.engine.ExecutionContext;
 
 
@@ -28,7 +28,7 @@ public class VolcanoIteratorFactory {
 
     // do scans provide random bindings in their respective allowed
     // range ?
-    boolean shouldRandom = true;
+    boolean shouldRandom = false;
 
     private NodeTable quadNodeTable;
     private NodeTable tripleNodeTable;
@@ -65,7 +65,7 @@ public class VolcanoIteratorFactory {
     }
     
     public VolcanoIterator getScan(Tuple<NodeId> pattern, Integer id) {
-        BackendIterator<NodeId, Record> wrapped = null;
+        BackendIterator<NodeId, SerializableRecord> wrapped = null;
         if (pattern.len() < 4) {
             wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
         } else {
