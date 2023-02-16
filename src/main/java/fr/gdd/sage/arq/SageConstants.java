@@ -10,7 +10,9 @@ public class SageConstants {
     public static final String sageSymbolPrefix = "sage";
 
     static public Symbol backend = allocConstantSymbol("Backend");
+    
     static public Symbol timeout = allocConstantSymbol("Timeout");
+    static public Symbol limit   = allocConstantSymbol("Limit");
 
     static public Symbol scanFactory = allocVariableSymbol("ScanFactory");
     static public Symbol deadline = allocVariableSymbol("Deadline");

@@ -11,14 +11,19 @@ import org.apache.jena.tdb2.TDB2Factory;
 
 
 
+/**
+ * Usage example of {@link fr.gdd.sage.fuseki.SageModule} within
+ * an embedded Fuseki server.
+ **/
 public class FusekiApp {
 
     public static void main( String[] args ) {
         ARQ.setExecutionLogging(InfoLevel.ALL);
         
         String uiPath = "/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/webapp";
-        String datasetPath = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
+        String datasetPath = "watdiv10M";
         Dataset dataset = TDB2Factory.connectDataset(datasetPath);
+        Dataset dataset2 = TDB2Factory.connectDataset("watdiv42M");
         
         // already in META-INF/services/…FusekiModule so starts from there
         // FusekiModules.add(new SageModule());
@@ -38,9 +43,10 @@ public class FusekiApp {
             .serverAuthPolicy(Auth.ANY_ANON)
             .addProcessor("/$/server", new ActionServerStatus())
             //.addProcessor("/$/datasets/*", new ActionDatasets())
-            .add("meow", dataset)
+            .add("watdiv10M", dataset)
+            .add("watdiv42M", dataset)
             // .auth(AuthScheme.BASIC)
-            .addEndpoint("meow", "/woof", Operation.Query, Auth.ANY_ANON)
+            .addEndpoint("watdiv10M", "/watdiv10M", Operation.Query, Auth.ANY_ANON)
             .build();
 
         server.start();

@@ -1,10 +1,8 @@
 package fr.gdd.sage.arq;
 
-import java.io.Serializable;
 import java.util.Iterator;
 
 import org.apache.jena.atlas.lib.Pair;
-import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
@@ -88,5 +86,4 @@ public class VolcanoIterator implements Iterator<Quad> {
         first = true;
         wrapped.skip(to);
     }
-
 }

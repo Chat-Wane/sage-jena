@@ -10,6 +10,8 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.QueryIter1;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import fr.gdd.sage.io.SageOutput;
 
@@ -20,6 +22,8 @@ import fr.gdd.sage.io.SageOutput;
  * <https://github.com/apache/jena/blob/main/jena-arq/src/main/java/org/apache/jena/sparql/engine/iterator/QueryIterSlice.java>
  */
 public class SageQueryIterSlice extends QueryIter1 {
+    Logger logger = LoggerFactory.getLogger(SageQueryIterSlice.class);
+    
     long count = 0;
     long limit;
     long offset;
@@ -27,6 +31,8 @@ public class SageQueryIterSlice extends QueryIter1 {
     Map<Integer, VolcanoIterator> iterators_map;
     SageOutput<?> output;
 
+
+    
     public SageQueryIterSlice(QueryIterator cIter, long startPosition, long numItems, ExecutionContext context,
                               Map<Integer, VolcanoIterator> iterators, SageOutput<?> output) {
         super(cIter, context);
@@ -69,9 +75,11 @@ public class SageQueryIterSlice extends QueryIter1 {
         
         if ( count >= limit ) {
             Entry<Integer, VolcanoIterator> lastKey = null;
+            // (TODO) Double check not necessarily .current() or .previous()
+            // with volcano model.
             for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
                 lastKey = e;
-                // (TODO) not necessarily .current()
+
                 var toSave = new Pair(e.getKey(), e.getValue().wrapped.previous());
                 this.output.addState(toSave);
             }
@@ -85,7 +93,7 @@ public class SageQueryIterSlice extends QueryIter1 {
                 var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
                 this.output.addState(toSave);
             }
-            System.out.println("SAVING IN SAGE SLICE");
+            logger.info("Pausing query execution in slice operator.");
             
             return false;
         }

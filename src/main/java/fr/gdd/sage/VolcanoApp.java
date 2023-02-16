@@ -29,6 +29,7 @@ import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.jena.SerializableRecord;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.SageOpExecutor;
+import fr.gdd.sage.arq.SageOpExecutorFactory;
 import fr.gdd.sage.arq.SageStageGenerator;
 
 
@@ -88,7 +89,9 @@ public class VolcanoApp {
             qe.getContext().put(SageConstants.input, input);
             qe.getContext().put(SageConstants.deadline, System.currentTimeMillis() + timeout);
             qe.getContext().put(SageConstants.output, new SageOutput<>());
-            QC.setFactory(qe.getContext(), SageOpExecutor.factory);
+            
+            
+            QC.setFactory(qe.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
 
             // for (var key : qe.getContext().keys()) {
             //     System.out.printf("%s  => %s \n", key, qe.getContext().get(key));

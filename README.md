@@ -12,13 +12,16 @@ it.
 This project provides the few additional components that enable Sage
 on top of Jena. 
 
-- Data storage *TDB2* uses balanced plus tree that enables range
-  queries. This project enhances it with the possiblity to skip a
+- [X] Data storage *TDB2* uses balanced plus tree that enables range
+  queries. This project enhances it with the possibility to skip a
   range of values. 
 
-- Sage *FusekiModule* that intercepts the endpoint `query` operations
+- [X] Sage *FusekiModule* that intercepts the endpoint `query` operations
   to execute using enhanced operations, returning the results plus
   additional metadata that could be used to continue the execution
   later on.
 
-  
+- [ ] Modified *Jena Fuseki UI* that slightly changes end users' UI so
+  they can configure their query executions, `id est`, whether they
+  want an automatic re-execution of their query up till termination,
+  whether they want random samples, etc.
