@@ -11,12 +11,10 @@ import java.util.function.Predicate;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
-import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.QuadPattern;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -26,7 +24,9 @@ import org.apache.jena.sparql.engine.iterator.Abortable;
 import org.apache.jena.sparql.engine.iterator.QueryIterAbortable;
 import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
+import org.apache.jena.tdb2.sys.TDBInternal;
 import org.apache.jena.tdb2.lib.TupleLib;
+import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
@@ -34,11 +34,8 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.VolcanoIterator;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
-import fr.gdd.sage.interfaces.Backend;
-import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
-import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.jena.SerializableRecord;
 
 
@@ -78,15 +75,18 @@ public class PatternMatchSage {
         boolean anyGraph = (graphNode == null ? false : (Node.ANY.equals(graphNode)));
         var graph = graphNode == null ? null : graphNode[0];
         
-        // for the sake of simplicity, we get the backend interface from the
-        // context, that will enable creating iterators easily.
         SageInput<?> sageInput = context.getContext().get(SageConstants.input);
-        long deadline = context.getContext().get(SageConstants.deadline);
+        long deadline = sageInput.getDeadline();
         SageOutput<?> sageOutput = context.getContext().get(SageConstants.output);
-        JenaBackend backend = (JenaBackend) sageInput.getBackend();
-        Predicate<Tuple<NodeId>> filter = QC2.getFilter(context.getContext());
 
-        var conv = SolverLibTDB.convFromBinding(backend.getNodeTable());
+        DatasetGraphTDB activeGraph = TDBInternal.getDatasetGraphTDB(context.getDataset());
+        NodeTupleTable nodeTupleTable = (graph == null) ?
+            activeGraph.getTripleTable().getNodeTupleTable() : 
+            activeGraph.getQuadTable().getNodeTupleTable();
+        
+        Predicate<Tuple<NodeId>> filter = QC2.getFilter(context.getContext());
+        
+        var conv = SolverLibTDB.convFromBinding(nodeTupleTable.getNodeTable());
         Iterator<BindingNodeId> chain = Iter.map(input, conv);
 
         List<Abortable> killList = new ArrayList<>();
@@ -96,15 +96,15 @@ public class PatternMatchSage {
             // scan iterator is created.
             final int scanId = numberOfScans;
             Function<BindingNodeId, Iterator<BindingNodeId>> step =
-                bnid -> find(bnid, backend.getNodeTripleTupleTable(), graph, triple, anyGraph, filter, context,
-                             scanId, deadline, backend, sageInput, sageOutput);
+                bnid -> find(bnid, nodeTupleTable, graph, triple, anyGraph, filter, context,
+                             scanId, deadline, sageInput, sageOutput);
             
             chain = Iter.flatMap(chain, step);
             chain = SolverLib.makeAbortable(chain, killList);
             numberOfScans += 1;
         }
         
-        Iterator<Binding> iterBinding = SolverLibTDB.convertToNodes(chain, backend.getNodeTable());
+        Iterator<Binding> iterBinding = SolverLibTDB.convertToNodes(chain, nodeTupleTable.getNodeTable());
         QueryIterAbortable abortable = new QueryIterAbortable(iterBinding, killList, input, context);
         return abortable;
     }
@@ -120,7 +120,7 @@ public class PatternMatchSage {
                                                 boolean anyGraph,
                                                 Predicate<Tuple<NodeId>> filter,
                                                 ExecutionContext context,
-                                                int id, long deadline, JenaBackend backend,
+                                                int id, long deadline,
                                                 SageInput<?> sageInput, SageOutput<?> sageOutput) {
         // (TODO) add filter when on NodeId
         // System.out.printf("filter %s \n", filter.toString());

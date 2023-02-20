@@ -14,7 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
+import fr.gdd.sage.configuration.SageInputBuilder;
 import fr.gdd.sage.configuration.SageServerConfiguration;
+import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 
 
@@ -28,42 +30,43 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     
     SageOutput<?> output; // where pausing state is saved when need be.
     public Map<Integer, VolcanoIterator> iterators; // all iterators that may need saving
-    SageServerConfiguration configuration;
 
 
     
     SageOpExecutor(ExecutionContext context, SageServerConfiguration configuration) {
         super(context);
-        this.configuration = configuration;
+        
+        SageInput<?> input = new SageInputBuilder()
+            .globalConfig(configuration)
+            .localInput(context.getContext().get(SageConstants.input))
+            .build();
+
         this.output = new SageOutput<>();
-        execCxt.getContext().set(SageConstants.output, output);
         this.iterators = new TreeMap<Integer, VolcanoIterator>();
+        
+        execCxt.getContext().set(SageConstants.output, output);
+        execCxt.getContext().set(SageConstants.input, input);
         execCxt.getContext().set(SageConstants.iterators, iterators);
         execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(context));
     }
 
     @Override
     protected QueryIterator execute(OpBGP opBGP, QueryIterator input) {
-        System.out.println("BGPBGPBGP");
-        return super.execute(opBGP, input);
+        return PatternMatchSage.matchTriplePattern(opBGP.getPattern(), input, execCxt);
     }
     
     @Override
     protected QueryIterator execute(OpTriple opTriple, QueryIterator input) {
-        System.out.printf("TRIPLE\n");
         return PatternMatchSage.matchTriplePattern(opTriple.asBGP().getPattern(), input, execCxt);
     }
     
     @Override
     protected QueryIterator execute(OpQuadPattern quadPattern, QueryIterator input) {
-        System.out.printf("QUAD %s\n", quadPattern.toString());
         return PatternMatchSage.matchQuadPattern(quadPattern.getBasicPattern(), quadPattern.getGraphNode(), input, execCxt);
     }
-
     
     @Override
     public QueryIterator execute(OpSlice opSlice, QueryIterator input) {
-        System.out.printf("SLICE\n");
         QueryIterator qIter = exec(opSlice.getSubOp(), input);
         qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
                                        this.iterators, this.output);
