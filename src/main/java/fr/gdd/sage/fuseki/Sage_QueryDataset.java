@@ -1,6 +1,7 @@
 package fr.gdd.sage.fuseki;
 
 import java.util.Iterator;
+import java.util.Optional;
 
 import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.SPARQL_QueryDataset;
@@ -26,8 +27,13 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
     protected void execute(String queryString, HttpAction action) {
         var req = action.getRequest();
 
+        // #1 create a `SageInput` with the headers of the incoming
+        // request.
+        Optional<String> sageHeader = Optional.ofNullable(req.getHeader(SageConstants.input.getSymbol()));
+        
+        
         // (TODO) add headers of request to Action's context
-        Iterator<String> headers_it = req.getHeaderNames().asIterator();        
+        Iterator<String> headers_it = req.getHeaderNames().asIterator();
         while (headers_it.hasNext()) {
             var name = headers_it.next();
             System.out.printf("REQUEST HEADER: %s \n", name);

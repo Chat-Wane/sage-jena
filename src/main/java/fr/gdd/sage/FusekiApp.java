@@ -21,8 +21,7 @@ public class FusekiApp {
         ARQ.setExecutionLogging(InfoLevel.ALL);
         
         String uiPath = "/Users/nedelec-b-2/Downloads/apache-jena-fuseki-4.7.0/webapp";
-        String datasetPath = "watdiv10M";
-        Dataset dataset = TDB2Factory.connectDataset(datasetPath);
+        Dataset dataset = TDB2Factory.connectDataset("watdiv10M");
         Dataset dataset2 = TDB2Factory.connectDataset("watdiv42M");
         
         // already in META-INF/services/…FusekiModule so starts from there

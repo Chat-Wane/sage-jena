@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.SageOpExecutor;
 import fr.gdd.sage.arq.SageOpExecutorFactory;
 import fr.gdd.sage.arq.SageStageGenerator;
 import fr.gdd.sage.jena.JenaBackend;

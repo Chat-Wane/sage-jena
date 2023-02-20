@@ -20,6 +20,9 @@ public class SageInputBuilder {
     
     public SageInputBuilder() { }
 
+    // public SageInputBuilder() {
+    // }
+
     public SageInputBuilder globalConfig(SageServerConfiguration global) {
         this.global = global;
         return this;
