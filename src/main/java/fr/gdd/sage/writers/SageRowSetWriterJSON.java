@@ -3,16 +3,16 @@ package fr.gdd.sage.writers;
 import static org.apache.jena.riot.rowset.rw.JSONResultsKW.*;
 
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.io.Writer;
 import java.util.Iterator;
 import java.util.Objects;
 
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.atlas.io.IO;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.atlas.json.io.JSWriter;
 import org.apache.jena.atlas.logging.Log;
-import org.apache.jena.dboe.base.record.Record;
+import org.apache.jena.ext.xerces.impl.dv.util.Base64;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ARQ;
@@ -32,6 +32,8 @@ import org.apache.jena.sparql.util.Context;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
+
+
 
 /** Write results in {@code application/sparql-results+json} format. */
 public class SageRowSetWriterJSON implements RowSetWriter {
@@ -123,7 +125,6 @@ public class SageRowSetWriterJSON implements RowSetWriter {
             
             writeRows(rowSet);
 
-            println(out, " ,");
             writeSaveState(context.get(SageConstants.output));
             
             out.decIndent(OuterIndent);
@@ -133,28 +134,15 @@ public class SageRowSetWriterJSON implements RowSetWriter {
         // newly added part to send the saved state in order
         // to resume the query execution later on.
         private void writeSaveState(SageOutput<SerializableRecord> output) {
-            println(out, quoteName("state") , " : {");
-            
             if (output == null || output.getState()==null) {
-                println(out, " }");
                 return;
             }
-
-            // (TODO) write serialized version
-            int nb_keys = output.getState().size();
-            for (Integer key : output.getState().keySet()) {
-                Record val = output.getState().get(key).record;
-                if (Objects.isNull(val)) {
-                    print(out, String.format("%s : null", quoteName(key.toString())));
-                } else {
-                    print(out, String.format("%s : %s", quoteName(key.toString()), quoteName(output.getState().get(key).toString())));
-                }
-                nb_keys -= 1;
-                if (nb_keys > 0) {
-                    println(out, ",");
-                }
-            }
-            println(out, "}");
+            print(out, " ,");
+            println(out, quoteName("sageOutput") , " : ");
+            
+            var serialized = SerializationUtils.serialize(output);
+            var encoded = Base64.encode(serialized);
+            println(out, quoteName(encoded));
         }
 
         private void writeRows(RowSet rowSet) {

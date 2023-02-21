@@ -1,21 +1,20 @@
 package fr.gdd.sage.fuseki;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.util.Iterator;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.commons.lang3.SerializationUtils;
+import org.apache.jena.ext.xerces.impl.dv.util.Base64;
 import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.SPARQL_QueryDataset;
-import org.apache.jena.sparql.core.Prologue;
-import org.apache.jena.sparql.resultset.SPARQLResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
 
 
@@ -34,17 +33,25 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
 
         // #1 create a `SageInput` with the headers of the incoming
         // request.
-        Optional<String> sageHeader = Optional.ofNullable(req.getHeader(SageConstants.input.getSymbol()));
-
+        // #A all parameters of the execution
+        Optional<String> sageInputHeader  = Optional.ofNullable(req.getHeader(SageConstants.input.getSymbol()));
         SageInput<SerializableRecord> sageInput = new SageInput<>();
-        if (sageHeader.isPresent()) {
-            ByteArrayInputStream bais = new ByteArrayInputStream(sageHeader.get().getBytes());
+        if (sageInputHeader.isPresent()) {
+            ObjectMapper mapper = new ObjectMapper();
             try {
-                ObjectInput oi = new ObjectInputStream(bais);
-                sageInput = (SageInput<SerializableRecord>) oi.readObject();
-            } catch (IOException | ClassNotFoundException | ClassCastException e) {
-                logger.warn(e.getMessage());
+                sageInput = mapper.readValue(sageInputHeader.get(), SageInput.class);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
             }
+        };
+
+        // #B the resuming state of the query execution if present
+        Optional<String> sageOutputHeader = Optional.ofNullable(req.getHeader(SageConstants.output.getSymbol()));        
+        if (sageOutputHeader.isPresent()) {
+            SageOutput<SerializableRecord> sagePreviousOutput = new SageOutput<>();
+            byte[] decoded = Base64.decode(sageOutputHeader.get());
+            sagePreviousOutput = SerializationUtils.deserialize(decoded);
+            sageInput.setState(sagePreviousOutput.getState());
         }
 
         // #2 put the deserialized input in the execution context

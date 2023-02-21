@@ -67,6 +67,9 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     
     @Override
     public QueryIterator execute(OpSlice opSlice, QueryIterator input) {
+        // (TODO) double check if TOP would work by itself return
+        // `hasNext` false without need of `this.iterators` and
+        // `this.output`.
         QueryIterator qIter = exec(opSlice.getSubOp(), input);
         qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
                                        this.iterators, this.output);
