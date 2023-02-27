@@ -2,16 +2,16 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>fr.gdd.sage</groupId>
-  <artifactId>sage-jena</artifactId>
+  <artifactId>sage-jena-module</artifactId>
   <packaging>jar</packaging>
-  <version>1.0-SNAPSHOT</version>
-  <name>sage-jena</name>
+  <version>0.0.1</version>
+  <name>sage-jena-module</name>
   <url>http://maven.apache.org</url>
 
   <dependencies>
     <dependency> <!-- makes use of already implem'd for compilation targeting jena -->
       <groupId>fr.gdd.sage</groupId>
-      <artifactId>jena</artifactId>
+      <artifactId>sage-jena-tdb2</artifactId>
       <version>0.0.1</version>
     </dependency>
 
@@ -31,26 +31,6 @@
       <groupId>org.apache.jena</groupId>
       <artifactId>jena-fuseki-main</artifactId>
       <version>4.7.0</version>
-    </dependency>
-    <dependency> 
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-security</artifactId>
-      <version>10.0.13</version> <!-- version 11.0.13 was bugged :( -->
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-webapp</artifactId>
-      <version>10.0.13</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-http</artifactId>
-      <version>10.0.13</version>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
-      <version>10.0.13</version>
     </dependency>
     
     <dependency>
@@ -83,6 +63,8 @@
     <resources>
       <resource>
         <filtering>false</filtering>
+        <!-- contains a META-INF that automatically
+             registers SageModule in the life cycle -->
         <directory>src/main/resources</directory>
       </resource> 
     </resources>
@@ -106,14 +88,12 @@
           </execution>
         </executions>
       </plugin>
-
-      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.10.1</version>
         <configuration>
-          <release>19</release>
+          <release>11</release>
         </configuration>
       </plugin>
       <plugin>
@@ -124,7 +104,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>fr.gdd.sage.VolcanoApp</mainClass>
+              <mainClass>fr.gdd.sage.FusekiApp</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -135,8 +115,6 @@
         <version>3.1.0</version>
         <configuration>
           <mainClass>fr.gdd.sage.FusekiApp</mainClass>
-          <!--<mainClass>fr.gdd.sage.VolcanoApp</mainClass>-->
-          <!--<mainClass>fr.gdd.sage.HelloBlazegraph</mainClass>-->
         </configuration>
       </plugin>
     </plugins>
