@@ -26,10 +26,6 @@ public class VolcanoIteratorFactory {
     SageOutput<?> output;
     long deadline;
 
-    // do scans provide random bindings in their respective allowed
-    // range ?
-    boolean shouldRandom = false;
-
     private NodeTable quadNodeTable;
     private NodeTable tripleNodeTable;
     private PreemptableTupleTable preemptableQuadTupleTable;
@@ -53,16 +49,6 @@ public class VolcanoIteratorFactory {
         preemptableQuadTupleTable   = new PreemptableTupleTable(nodeQuadTupleTable.getTupleTable());
 
     }
-
-    public VolcanoIteratorFactory provideRandomScans() {
-        this.shouldRandom = true;
-        return this;
-    }
-
-    public VolcanoIteratorFactory provideRegularScans() {
-        this.shouldRandom = false;
-        return this;
-    }
     
     public VolcanoIterator getScan(Tuple<NodeId> pattern, Integer id) {
         BackendIterator<NodeId, SerializableRecord> wrapped = null;
@@ -72,7 +58,7 @@ public class VolcanoIteratorFactory {
             wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
         }
         
-        if (shouldRandom) {
+        if (input.isRandomWalking()) {
             ((RandomIterator) wrapped).random();
         }
         

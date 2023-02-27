@@ -3,7 +3,6 @@ package fr.gdd.sage.io;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
@@ -64,7 +63,9 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
     }
 
     public TreeMap<Integer, SKIP> getState() {
-        state.values().removeIf(Objects::isNull);
+        if (Objects.nonNull(state)) {
+            state.values().removeIf(Objects::isNull);
+        }
         return state;
     }
 

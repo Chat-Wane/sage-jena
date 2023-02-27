@@ -1,18 +1,21 @@
 package fr.gdd.sage.arq;
 
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpQuadPattern;
 import org.apache.jena.sparql.algebra.op.OpSlice;
 import org.apache.jena.sparql.algebra.op.OpTriple;
+import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.PatternMatchSage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 
 import fr.gdd.sage.configuration.SageInputBuilder;
 import fr.gdd.sage.configuration.SageServerConfiguration;
@@ -41,13 +44,15 @@ public class SageOpExecutor extends OpExecutorTDB2 {
             .localInput(context.getContext().get(SageConstants.input))
             .build();
 
+        input.setRandomWalking(true);
+        
         this.output = new SageOutput<>();
         this.iterators = new TreeMap<Integer, VolcanoIterator>();
         
         execCxt.getContext().set(SageConstants.output, output);
         execCxt.getContext().set(SageConstants.input, input);
         execCxt.getContext().set(SageConstants.iterators, iterators);
-        execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(context));
+        execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
     }
 
     @Override
@@ -74,6 +79,20 @@ public class SageOpExecutor extends OpExecutorTDB2 {
         qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
                                        this.iterators, this.output);
         return qIter;
+    }
+
+
+    @Override
+    public QueryIterator execute(OpUnion union, QueryIterator input) {
+        // (TODO) maybe RandomOpExecutor would be more appropriate.
+        SageInput sageInput = execCxt.getContext().get(SageConstants.input);
+        if (!sageInput.isRandomWalking()) {
+            return super.execute(union, input);
+        }
+        // copy from `OpExecutor`
+        List<Op> x = flattenUnion(union);
+        QueryIterator cIter = new RandomQueryIterUnion(input, x, execCxt);
+        return cIter;
     }
     
 }
