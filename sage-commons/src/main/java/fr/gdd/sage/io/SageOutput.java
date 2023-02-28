@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.TreeMap;
 
-import org.apache.jena.atlas.lib.Pair;
+import fr.gdd.sage.generics.Pair;
 
 
 
@@ -38,14 +38,14 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
         if (this.state == null) {
             this.state = new TreeMap<>();
         }
-        this.state.put(state.getLeft(), state.getRight());
+        this.state.put(state.left, state.right);
     }
 
     @SafeVarargs
     public final void save(Pair<Integer, SKIP>... states) {
         this.state = new TreeMap<>();
         for (Pair<Integer, SKIP> s : states) {
-            this.state.put(s.getLeft(), s.getRight());
+            this.state.put(s.left, s.right);
         }
     }
 
