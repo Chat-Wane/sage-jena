@@ -8,6 +8,9 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.engine.iterator.QueryIterSingleton;
+import org.apache.jena.sparql.engine.iterator.RandomQueryIterConcat;
+import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.iterator.QueryIterUnion;
 
 
@@ -31,7 +34,17 @@ public class RandomQueryIterUnion extends QueryIterUnion {
     @Override
     protected QueryIterator nextStage(Binding binding) {
         Collections.shuffle(initialOps);
-        subOps = new ArrayList<Op>(initialOps);;
-        return super.nextStage(binding);
+
+        RandomQueryIterConcat unionQIter = new RandomQueryIterConcat(getExecContext()) ;
+        for (Op subOp : subOps) {
+            subOp = QC.substitute(subOp, binding) ;
+            QueryIterator parent = QueryIterSingleton.create(binding, getExecContext()) ;
+            QueryIterator qIter = QC.execute(subOp, parent, getExecContext()) ;
+            unionQIter.add(qIter) ;
+        }
+        
+        return unionQIter;
     }
+
+    
 }

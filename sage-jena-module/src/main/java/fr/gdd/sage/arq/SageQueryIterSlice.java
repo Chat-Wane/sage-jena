@@ -67,11 +67,9 @@ public class SageQueryIterSlice extends QueryIter1 {
 
     @Override
     protected boolean hasNextBinding() {
-        if ( isFinished() )
+        if (isFinished()) {
             return false;
-        
-        if ( ! getInput().hasNext() )
-            return false ;
+        }
         
         if ( count >= limit ) {
             Entry<Integer, VolcanoIterator> lastKey = null;
@@ -97,6 +95,14 @@ public class SageQueryIterSlice extends QueryIter1 {
             
             return false;
         }
+
+        // The order is important: in case `hasNext` is infinite,
+        // (e.g. with random walks) yet the threshold number of
+        // elements is reached.
+        if (!getInput().hasNext()) {
+            return false;
+        }
+        
         return true;
     }
 

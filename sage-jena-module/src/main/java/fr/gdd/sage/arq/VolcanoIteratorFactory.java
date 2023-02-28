@@ -38,7 +38,7 @@ public class VolcanoIteratorFactory {
         this.input  = context.getContext().get(SageConstants.input);
         // (TODO) change this 
         this.deadline = System.currentTimeMillis() + input.getTimeout();
-        this.deadline = System.currentTimeMillis() + 1000;
+        this.deadline = System.currentTimeMillis() + 100000000;
 
         var graph = (DatasetGraphTDB) context.getDataset();
         var nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
