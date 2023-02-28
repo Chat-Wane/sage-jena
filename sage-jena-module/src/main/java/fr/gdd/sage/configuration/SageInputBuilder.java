@@ -31,11 +31,15 @@ public class SageInputBuilder {
     }
 
     public SageInput<?> build() {
+        long timeout = Math.min(global.getTimeout(), local.getTimeout());
+        int limit = Math.min(global.getLimit(), local.getLimit());
+        
         SageInput<?> merge = new SageInput<>()
             .setBackjumping(local.isBackjumping())
             .setRandomWalking(local.isRandomWalking())
-            .setTimeout(Math.min(global.getLimit(), local.getLimit()))
-            .setLimit(Math.min(global.getLimit(), local.getLimit()));
+            .setTimeout(timeout)
+            .setDeadline(Long.MAX_VALUE == timeout ? timeout : System.currentTimeMillis() + timeout)
+            .setLimit(limit);
         return merge;
     }
 

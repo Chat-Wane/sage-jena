@@ -84,7 +84,6 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         previousRecord = null;
         currentRecord = null;
         firstPage = loadStack(root, null);
-        //BPTreeRecords r = loadStack(root, null);
         current = getRecordsIterator(firstPage, minRecord, maxRecord);
     }
 
@@ -153,13 +152,10 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
             return false;
         }
         
-        // slot = current.next();
         previousRecord = currentRecord;
         currentRecord = current.next();
         slot = TupleLib.tuple(currentRecord, tupleMap);
-
-        // <https://github.com/apache/jena/blob/31dc0d328c4858401e5d3fa99702c97eba0383a0/jena-db/jena-dboe-base/src/main/java/org/apache/jena/dboe/base/buffer/RecordBufferIteratorMapper.java#L77>
-        //  maybe slot = rBuff.access(nextIdx, keySlot, mapper);
+        
         return true;
     }
     
@@ -251,7 +247,6 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         // return r;
         if (goRandom) {
             random();
-            finished = true;
         }
     }
     
@@ -388,11 +383,12 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
 
         if (min == max) {
             // No result for the random step, case closed.
-            finished = true;
+            // finished = true;
+            // finished = false; // (XXX)
             return ;
         } else {
             // Go on, proceed
-            finished = false;
+            // finished = false;
         }
 
         int randomInRecords = ((int) ((double) min + Math.random()*((double) max - min)));

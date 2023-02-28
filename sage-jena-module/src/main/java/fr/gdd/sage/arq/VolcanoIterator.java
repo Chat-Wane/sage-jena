@@ -75,8 +75,12 @@ public class VolcanoIterator implements Iterator<Quad> {
 
         // (TODO) ugly fix. How to make a better handling of scans?
         JenaIterator it = (JenaIterator) wrapped;
-        if (it.goRandom && id==0) {
-            it.finished = false;
+        if (it.goRandom) {
+            if (id == 0) {
+                it.finished = false;
+            } else {
+                it.finished = true;
+            }
         }
         
         return Quad.create(gx, sx, px, ox);

@@ -12,6 +12,8 @@ import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterSlice;
+import org.apache.jena.sparql.engine.iterator.RandomQueryIterUnion;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.PatternMatchSage;
 import org.slf4j.Logger;
@@ -38,12 +40,16 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     
     SageOpExecutor(ExecutionContext context, SageServerConfiguration configuration) {
         super(context);
+
+        // (TODO) remove this from there
+        configuration.setTimeout(1000);
         
         SageInput<?> input = new SageInputBuilder()
             .globalConfig(configuration)
             .localInput(context.getContext().get(SageConstants.input))
             .build();
 
+        // (TODO) remove this from there
         input.setRandomWalking(true);
         
         this.output = new SageOutput<>();
@@ -72,12 +78,8 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     
     @Override
     public QueryIterator execute(OpSlice opSlice, QueryIterator input) {
-        // (TODO) double check if TOP would work by itself return
-        // `hasNext` false without need of `this.iterators` and
-        // `this.output`.
         QueryIterator qIter = exec(opSlice.getSubOp(), input);
-        qIter = new SageQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt,
-                                       this.iterators, this.output);
+        qIter = new PreemptQueryIterSlice(qIter, opSlice.getStart(), opSlice.getLength(), execCxt);
         return qIter;
     }
 

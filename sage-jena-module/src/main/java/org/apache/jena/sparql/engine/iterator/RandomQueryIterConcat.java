@@ -6,7 +6,7 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 
 public class RandomQueryIterConcat extends QueryIterConcat {
 
-    public RandomQueryIterConcat( ExecutionContext context) {
+    public RandomQueryIterConcat(ExecutionContext context) {
         super(context);
     }
 
@@ -19,7 +19,5 @@ public class RandomQueryIterConcat extends QueryIterConcat {
         currentQIter = iteratorList.get(randomIndex);
         return true; // to test
     }
-
-    
 
 }

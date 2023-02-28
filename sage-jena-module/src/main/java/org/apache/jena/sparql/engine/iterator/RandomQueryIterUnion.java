@@ -1,4 +1,4 @@
-package fr.gdd.sage.arq;
+package org.apache.jena.sparql.engine.iterator;
 
 import java.util.ArrayList;
 import java.util.Collections;

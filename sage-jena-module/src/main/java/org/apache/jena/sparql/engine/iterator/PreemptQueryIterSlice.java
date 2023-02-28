@@ -1,70 +1,45 @@
-package fr.gdd.sage.arq;
+package org.apache.jena.sparql.engine.iterator;
 
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jena.atlas.lib.Pair;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecException;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.iterator.QueryIter1;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.arq.VolcanoIterator;
 import fr.gdd.sage.io.SageOutput;
 
 
 
 /**
- * Basic copy of
- * <https://github.com/apache/jena/blob/main/jena-arq/src/main/java/org/apache/jena/sparql/engine/iterator/QueryIterSlice.java>
- */
-public class SageQueryIterSlice extends QueryIter1 {
-    Logger logger = LoggerFactory.getLogger(SageQueryIterSlice.class);
-    
-    long count = 0;
-    long limit;
-    long offset;
+ * A slice iterator that, when the limit is reached, save the state of
+ * iterators in a context output.
+ **/
+public class PreemptQueryIterSlice extends QueryIterSlice {
+    Logger logger = LoggerFactory.getLogger(PreemptQueryIterSlice.class);
     
     Map<Integer, VolcanoIterator> iterators_map;
     SageOutput<?> output;
 
 
     
-    public SageQueryIterSlice(QueryIterator cIter, long startPosition, long numItems, ExecutionContext context,
-                              Map<Integer, VolcanoIterator> iterators, SageOutput<?> output) {
-        super(cIter, context);
-        this.iterators_map = iterators;
-        this.output = output;
-
-        // copy from `QueryIterSlice`.
-        offset = startPosition;
-        if (offset == Query.NOLIMIT)
-            offset = 0;
-
-        limit = numItems;
-        if (limit == Query.NOLIMIT)
-            limit = Long.MAX_VALUE;
-
-        if (limit < 0)
-            throw new QueryExecException("Negative LIMIT: " + limit);
-        if (offset < 0)
-            throw new QueryExecException("Negative OFFSET: " + offset);
-
-        count = 0;
-        // Offset counts from 0 (the no op).
-        for (int i = 0; i < offset; i++) {
-            // Not subtle
-            if (!cIter.hasNext()) {
-                close();
-                break;
-            }
-            cIter.next();
-        }
+    public PreemptQueryIterSlice(QueryIterator cIter,
+                                 long startPosition,
+                                 long numItems,
+                                 ExecutionContext context) {
+        super(cIter, startPosition, numItems, context);
+        this.iterators_map = context.getContext().get(SageConstants.iterators);
+        this.output = context.getContext().get(SageConstants.output);
     }
 
+    /**
+     * Two changes: It saves when the limit is reached, and the order
+     * of checks is not identical to that of {@link QueryIterSlice}.
+     **/
     @Override
     protected boolean hasNextBinding() {
         if (isFinished()) {
@@ -105,20 +80,7 @@ public class SageQueryIterSlice extends QueryIter1 {
         
         return true;
     }
-
-    @Override
-    protected Binding moveToNextBinding() {
-        count++;
-        return getInput().nextBinding();
-    }
-
-    @Override
-    protected void closeSubIterator() {
-    }
-
-    @Override
-    protected void requestSubCancel() {
-    }
+    
 }
 
 
