@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.VolcanoIterator;
 import fr.gdd.sage.generics.Pair;
+import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 
 
@@ -22,8 +23,9 @@ import fr.gdd.sage.io.SageOutput;
 public class PreemptQueryIterSlice extends QueryIterSlice {
     Logger logger = LoggerFactory.getLogger(PreemptQueryIterSlice.class);
     
-    Map<Integer, VolcanoIterator> iterators_map;
+    Map<Integer, VolcanoIterator> iterators;
     SageOutput<?> output;
+    SageInput<?> input;
 
 
     
@@ -32,8 +34,10 @@ public class PreemptQueryIterSlice extends QueryIterSlice {
                                  long numItems,
                                  ExecutionContext context) {
         super(cIter, startPosition, numItems, context);
-        this.iterators_map = context.getContext().get(SageConstants.iterators);
+        this.iterators = context.getContext().get(SageConstants.iterators);
         this.output = context.getContext().get(SageConstants.output);
+        this.input  = context.getContext().get(SageConstants.input);
+        this.limit = Math.min(this.input.getLimit(), this.limit);
     }
 
     /**
@@ -50,8 +54,9 @@ public class PreemptQueryIterSlice extends QueryIterSlice {
             Entry<Integer, VolcanoIterator> lastKey = null;
             // (TODO) Double check not necessarily .current() or .previous()
             // with volcano model.
-            for (Entry<Integer, VolcanoIterator> e : this.iterators_map.entrySet()) {
+            for (Entry<Integer, VolcanoIterator> e : this.iterators.entrySet()) {
                 lastKey = e;
+                System.out.printf("meow: %s -> %s", e.getKey(), e.getValue().wrapped.previous());
 
                 var toSave = new Pair(e.getKey(), e.getValue().wrapped.previous());
                 this.output.addState(toSave);
@@ -66,6 +71,7 @@ public class PreemptQueryIterSlice extends QueryIterSlice {
                 var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
                 this.output.addState(toSave);
             }
+            
             logger.info("Pausing query execution in slice operator.");
             
             return false;

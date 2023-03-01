@@ -118,14 +118,16 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
 
     @Override
     public void skip(SerializableRecord to) {
-        if (to == null) {
-            return;
-        }
-        stack.clear();
-        BPTreeRecords r = loadStack(root, to.record);
-        current = getRecordsIterator(r, to.record, maxRecord);
+        if (to != null) {
+        	stack.clear();
+        	BPTreeRecords r = loadStack(root, to.record);
+        	current = getRecordsIterator(r, to.record, maxRecord);
+            hasNext(); // because it's on step behind with Record to
+            next();
+        } // otherwise already set at the beginning
         hasNext(); // because it's on step behind with Record to
         next();
+
     }
 
     @Override
@@ -174,10 +176,7 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         
         BPTreePage p = iter.next();
         BPTreeRecords r = null;
-        // System.out.printf("LOADING PAGE %s \n", p.getId());
         if (p instanceof BPTreeNode) {
-            // System.out.printf("LOAD A STACK: %s", p.getId());
-
             r = loadStack((BPTreeNode) p, null);
         } else {
             r = (BPTreeRecords) p;

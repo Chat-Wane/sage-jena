@@ -1,3 +1,5 @@
+*#*#
+*.DS_Store
 *.dat
 *~
 .classpath
@@ -9,6 +11,10 @@ target/
 # datasets
 watdiv10M/
 watdiv42M/
+
+# intellij
+*.iml
+*.idea/
 
 # Compiled class file
 *.class

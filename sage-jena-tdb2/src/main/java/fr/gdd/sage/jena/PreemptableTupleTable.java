@@ -110,6 +110,7 @@ public class PreemptableTupleTable extends TupleTable {
         // TupleIndexRecord tir = (TupleIndexRecord) this.findIndex(pattern);
         // PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
         PreemptableTupleIndexRecord ptir = this.findIndex(pattern);
+        // (TODO) if a term does not exist, ptir is null and should be treated
         return ptir.scan(pattern);
     }
     

@@ -40,17 +40,11 @@ public class SageOpExecutor extends OpExecutorTDB2 {
     
     SageOpExecutor(ExecutionContext context, SageServerConfiguration configuration) {
         super(context);
-
-        // (TODO) remove this from there
-        configuration.setTimeout(1000);
         
         SageInput<?> input = new SageInputBuilder()
             .globalConfig(configuration)
             .localInput(context.getContext().get(SageConstants.input))
             .build();
-
-        // (TODO) remove this from there
-        input.setRandomWalking(true);
         
         this.output = new SageOutput<>();
         this.iterators = new TreeMap<Integer, VolcanoIterator>();

@@ -63,9 +63,9 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
     }
 
     public TreeMap<Integer, SKIP> getState() {
-        if (Objects.nonNull(state)) {
-            state.values().removeIf(Objects::isNull);
-        }
+        //        if (Objects.nonNull(state)) {
+        //            state.values().removeIf(Objects::isNull);
+        // }
         return state;
     }
 

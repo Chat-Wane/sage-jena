@@ -143,16 +143,13 @@ public class PatternMatchSage {
                 : TupleFactory.create4(g, s, p, o);
         Tuple<NodeId> patternTupleId = TupleLib.tupleNodeIds(nodeTable, patternTuple);
 
-        // (TODO) replasce dsgIter by our preemptable iterator.
-        // Iterator<Quad> dsgIter = SolverRX.accessData(patternTuple, nodeTupleTable, anyGraph, filter, execCxt);
-        
         Map<Integer, VolcanoIterator> iterators = context.getContext().get(SageConstants.iterators);
         
         VolcanoIteratorFactory factory = context.getContext().get(SageConstants.scanFactory);        
         VolcanoIterator volcanoIterator = factory.getScan(patternTupleId, id);
         
         if (!iterators.containsKey(id)) {
-            if (sageInput != null && sageInput.getState() != null) {
+            if (sageInput != null && sageInput.getState() != null && sageInput.getState().containsKey(id)) {
                 volcanoIterator.skip((SerializableRecord) sageInput.getState(id));
             }
         }

@@ -1,5 +1,7 @@
 package fr.gdd.sage.configuration;
 
+import java.util.Map;
+
 import fr.gdd.sage.io.SageInput;
 
 
@@ -39,7 +41,8 @@ public class SageInputBuilder {
             .setRandomWalking(local.isRandomWalking())
             .setTimeout(timeout)
             .setDeadline(Long.MAX_VALUE == timeout ? timeout : System.currentTimeMillis() + timeout)
-            .setLimit(limit);
+            .setLimit(limit)
+            .setState((Map)local.getState());
         return merge;
     }
 
