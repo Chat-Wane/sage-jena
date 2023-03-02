@@ -6,7 +6,7 @@ import org.apache.jena.sparql.util.Symbol;
 
 public class SageConstants {
 
-    public static final String systemVarNS = "http://sage.gdd.fr/Sage#";
+    public static final String systemVarNS = "https://sage.gdd.fr/Sage#";
     public static final String sageSymbolPrefix = "sage";
 
     static public Symbol backend = allocConstantSymbol("Backend");

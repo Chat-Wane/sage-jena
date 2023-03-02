@@ -1,6 +1,7 @@
 package fr.gdd.sage.arq;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
@@ -38,9 +39,9 @@ public class VolcanoIterator implements Iterator<Quad> {
 
 
     
-    public VolcanoIterator (BackendIterator<NodeId, SerializableRecord> iterator, NodeTable nodeTable,
+    public VolcanoIterator (BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
                             long deadline, SageOutput<?> output, Integer id) {
-        this.wrapped = iterator;
+        this.wrapped = wrapped;
         this.nodeTable = nodeTable;
         this.deadline = deadline;
         this.output = output;
@@ -50,14 +51,11 @@ public class VolcanoIterator implements Iterator<Quad> {
     @Override
     public boolean hasNext() {
         if (!first && System.currentTimeMillis() > deadline) {
-            if (this.output.getState() == null) {
-                var toSave = new Pair(id, this.wrapped.current());
-                this.output.addState(toSave);
-            } else {
-                var toSave = new Pair(id, this.wrapped.previous());
-                this.output.addState(toSave);
-            }
-            
+            Pair toSave = Objects.isNull(this.output.getState()) ?
+                    new Pair(id, this.wrapped.current()):
+                    new Pair(id, this.wrapped.previous());
+            this.output.addState(toSave);
+
             return false;
         }
         first = false;
@@ -68,7 +66,9 @@ public class VolcanoIterator implements Iterator<Quad> {
     @Override
     public Quad next() {
         wrapped.next();
-        Node gx = Quad.defaultGraphIRI;
+
+        Node gx = Objects.isNull(wrapped.getId(SPOC.CONTEXT)) ? Quad.defaultGraphIRI :
+                nodeTable.getNodeForNodeId(wrapped.getId(SPOC.GRAPH));
         Node sx = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.SUBJECT));
         Node px = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.PREDICATE));
         Node ox = nodeTable.getNodeForNodeId(wrapped.getId(SPOC.OBJECT));
@@ -87,7 +87,7 @@ public class VolcanoIterator implements Iterator<Quad> {
     }
 
     public void skip(SerializableRecord to) {
-        first = true;
+        first = true; // skip so first `hasNext` is mandatory
         wrapped.skip(to);
     }
 }

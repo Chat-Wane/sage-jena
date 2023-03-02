@@ -1,35 +1,16 @@
 package fr.gdd.sage;
 
-import org.apache.jena.dboe.base.record.Record;
-import org.apache.jena.graph.Graph;
-import org.apache.jena.query.ARQ;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.sparql.engine.QueryEngineRegistry;
-import org.apache.jena.sparql.engine.main.OpExecutorFactory;
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.arq.SageOpExecutorFactory;
+import fr.gdd.sage.arq.SageStageGenerator;
+import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
+import fr.gdd.sage.jena.SerializableRecord;
+import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
-import org.apache.jena.sparql.mgt.Explain;
-import org.apache.jena.sparql.mgt.Explain.InfoLevel;
-import org.apache.jena.sparql.util.QueryExecUtils;
 import org.apache.jena.tdb2.TDB2Factory;
-import org.apache.jena.tdb2.store.DatasetGraphTDB;
-import org.apache.jena.tdb2.sys.TDBInternal;
-
-import fr.gdd.sage.io.SageInput;
-import fr.gdd.sage.io.SageOutput;
-import fr.gdd.sage.jena.JenaBackend;
-import fr.gdd.sage.jena.SerializableRecord;
-import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.SageOpExecutor;
-import fr.gdd.sage.arq.SageOpExecutorFactory;
-import fr.gdd.sage.arq.SageStageGenerator;
 
 
 
@@ -38,15 +19,10 @@ public class VolcanoApp {
     public static void main( String[] args ) {
         // ARQ.setExecutionLogging(InfoLevel.ALL);
 
-        String path = "/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M";
+        String path = "/Users/nedelec-b-2/Desktop/Projects/sage-jena/sage-jena-module/watdiv10M";
         Dataset dataset = TDB2Factory.connectDataset(path);
-        // dataset.begin();
-        
-        // DatasetGraphTDB graph = TDBInternal.getDatasetGraphTDB(dataset);
 
-        JenaBackend backend = new JenaBackend("/Users/nedelec-b-2/Desktop/Projects/preemptable-blazegraph/watdiv10M");
-        
-        StageGenerator parent = (StageGenerator)ARQ.getContext().get(ARQ.stageGenerator) ;
+        StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
         SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
         
         StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
@@ -84,19 +60,13 @@ public class VolcanoApp {
             // (TODO) maybe not the way to go to create another
             // queryExecution, double check
             System.out.println("RESTARTING NEW EXECUTION");
-            QueryExecution qe = QueryExecutionFactory.create(query, dataset.getDefaultModel());
+            QueryExecution qe = QueryExecutionFactory.create(query, dataset);
             qe.getContext().put(SageConstants.input, input);
             qe.getContext().put(SageConstants.deadline, System.currentTimeMillis() + timeout);
             qe.getContext().put(SageConstants.output, new SageOutput<>());
             
             
             QC.setFactory(qe.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
-
-            // for (var key : qe.getContext().keys()) {
-            //     System.out.printf("%s  => %s \n", key, qe.getContext().get(key));
-            // }
-
-            // System.exit(1);
 
             ResultSet result_set = qe.execSelect();
             
@@ -115,7 +85,7 @@ public class VolcanoApp {
             System.out.printf("Saved state %s \n", results.getState());
             System.out.printf("%s results so far\n", sum);
             qe.close();
-        };
+        }
         System.out.printf("NB PReempt = %s\n" , nbPreempt);
         System.out.printf("Took %s ms to get %s results.\n", System.currentTimeMillis() - startExecution,  sum);
         
