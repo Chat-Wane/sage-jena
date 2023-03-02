@@ -18,16 +18,10 @@
     <dependency>
       <groupId>org.apache.jena</groupId>
       <artifactId>apache-jena-libs</artifactId>
-      <version>4.6.1</version>
+      <version>4.7.0</version>
       <type>pom</type>
     </dependency>
-    <dependency>
-      <groupId>org.apache.jena</groupId>
-      <artifactId>jena-tdb2</artifactId>
-      <version>4.7.0</version>
-      <scope>test</scope>
-    </dependency>
-    
+
     <dependency> <!-- logger of jena -->
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>

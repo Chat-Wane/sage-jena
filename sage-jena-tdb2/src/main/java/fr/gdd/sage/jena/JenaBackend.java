@@ -1,24 +1,23 @@
 package fr.gdd.sage.jena;
 
+import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.interfaces.Backend;
 import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.generics.LazyIterator;
-
-import org.apache.jena.atlas.lib.tuple.TupleFactory;
-import org.apache.jena.dboe.base.record.Record;
-
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.tdb2.store.DatasetGraphTDB;
-import org.apache.jena.tdb2.TDB2Factory;
-import org.apache.jena.tdb2.sys.TDBInternal;
-import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.shared.NotFoundException;
 import org.apache.jena.sparql.util.NodeFactoryExtra;
-import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
+import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.store.DatasetGraphTDB;
+import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
+import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
+import org.apache.jena.tdb2.sys.TDBInternal;
 
-
+import java.util.Objects;
+
 
 /**
  * TDB2 Jena Backend implementation of the interface `Backend<ID,
@@ -26,14 +25,16 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
  **/
 public class JenaBackend implements Backend<NodeId, SerializableRecord> {
 
-    private Dataset dataset;
-    private DatasetGraphTDB graph;
+    Dataset dataset;
+    DatasetGraphTDB graph;
 
-    private NodeTupleTable nodeQuadTupleTable;
-    private NodeTupleTable nodeTripleTupleTable;
-    private NodeTable  nodeTable;
-    private PreemptableTupleTable preemptableQuadTupleTable;
-    private PreemptableTupleTable preemptableTripleTupleTable;
+    NodeTupleTable nodeQuadTupleTable;
+    NodeTupleTable nodeTripleTupleTable;
+    NodeTable  nodeTripleTable;
+    NodeTable  nodeQuadTable;
+    PreemptableTupleTable preemptableTripleTupleTable;
+    PreemptableTupleTable preemptableQuadTupleTable;
+
 
     public JenaBackend(final String path) {
         dataset = TDB2Factory.connectDataset(path);
@@ -41,12 +42,7 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
         if (!dataset.isInTransaction()) {
             graph.begin();  // opened in at creation
         }
-
-        nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
-        nodeTripleTupleTable = graph.getTripleTable().getNodeTupleTable();
-        nodeTable  = nodeQuadTupleTable.getNodeTable(); 
-        preemptableTripleTupleTable = new PreemptableTupleTable(nodeTripleTupleTable.getTupleTable());
-        preemptableQuadTupleTable   = new PreemptableTupleTable(nodeQuadTupleTable.getTupleTable());
+        loadDataset();
     }
 
     public JenaBackend(final Dataset dataset) {
@@ -55,10 +51,14 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
         if (!dataset.isInTransaction()) {
             graph.begin();  // opened in at creation
         }
+        loadDataset();
+    }
 
-        nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
+    private void loadDataset() {
         nodeTripleTupleTable = graph.getTripleTable().getNodeTupleTable();
-        nodeTable  = nodeQuadTupleTable.getNodeTable(); 
+        nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
+        nodeTripleTable = nodeTripleTupleTable.getNodeTable();
+        nodeQuadTable  = nodeQuadTupleTable.getNodeTable();
         preemptableTripleTupleTable = new PreemptableTupleTable(nodeTripleTupleTable.getTupleTable());
         preemptableQuadTupleTable   = new PreemptableTupleTable(nodeQuadTupleTable.getTupleTable());
     }
@@ -68,16 +68,6 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
      */
     public void close() { graph.end(); }
 
-
-
-
-    public NodeTable getNodeTable() {
-        return nodeTable;
-    }
-
-    public NodeTupleTable getNodeTripleTupleTable() {
-        return nodeTripleTupleTable;
-    }
 
 
     
@@ -95,14 +85,27 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
     }
 
     @Override
-    public NodeId getId(final String value, final int... code) {
+    public NodeId getId(final String value, final int... code) throws NotFoundException {
         Node node = NodeFactoryExtra.parseNode(value);
-        return nodeTable.getNodeIdForNode(node);
+        NodeId id = nodeTripleTable.getNodeIdForNode(node);
+        if (NodeId.isDoesNotExist(id)) {
+            id = nodeQuadTable.getNodeIdForNode(node);
+            if (NodeId.isDoesNotExist(id)) {
+                throw new NotFoundException(String.format("Id of %s does not exist.", value));
+            }
+        }
+        return id;
     }
 
     @Override
-    public String getValue(final NodeId id, final int... code) {
-        Node node = nodeTable.getNodeForNodeId(id);
+    public String getValue(final NodeId id, final int... code) throws NotFoundException {
+        Node node = nodeTripleTable.getNodeForNodeId(id);
+        if (Objects.isNull(node)) {
+            node = nodeQuadTable.getNodeForNodeId(id);
+            if (Objects.isNull(node)) {
+                throw new NotFoundException(String.format("Id of %s does not exist.", id.toString()));
+            }
+        }
         return node.toString();
     }
 

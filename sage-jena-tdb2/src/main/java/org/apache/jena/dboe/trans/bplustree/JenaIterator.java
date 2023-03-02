@@ -116,14 +116,15 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         return null;
     }
 
+    /**
+     * Skip to `null` means skipping the very first element.
+     */
     @Override
     public void skip(SerializableRecord to) {
         if (to != null) {
         	stack.clear();
         	BPTreeRecords r = loadStack(root, to.record);
         	current = getRecordsIterator(r, to.record, maxRecord);
-            hasNext(); // because it's on step behind with Record to
-            next();
         } // otherwise already set at the beginning
         hasNext(); // because it's on step behind with Record to
         next();
@@ -162,7 +163,6 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
     }
     
     // Move across the head of the stack until empty - then move next level.
-    // private Iterator<Tuple<NodeId>> moveOnCurrent() {
     private Iterator<Record> moveOnCurrent() {
         Iterator<BPTreePage> iter = null;
         while (!stack.isEmpty()) {

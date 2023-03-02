@@ -65,7 +65,7 @@ public class PreemptQueryIterSlice extends QueryIterSlice {
             // before the projection should save its current instead
             // of previous. However, this only work because iterators
             // are sorted and there is only one projection. etc. So we
-            // need to have a datastructure to extract exactly what is
+            // need to have a data structure to extract exactly what is
             // needed by a operator that saves.
             if (lastKey != null) {
                 var toSave = new Pair(lastKey.getKey(), lastKey.getValue().wrapped.previous());
