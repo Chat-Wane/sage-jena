@@ -2,43 +2,25 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>fr.gdd.sage</groupId>
-  <artifactId>sage-jena-module</artifactId>
+  <artifactId>sage-jena-volcano</artifactId>
   <packaging>jar</packaging>
   <version>0.0.1</version>
-  <name>sage-jena-module</name>
+  <name>sage-jena-volcano</name>
   <url>http://maven.apache.org</url>
 
   <dependencies>
     <dependency> <!-- makes use of already implem'd for compilation targeting jena -->
       <groupId>fr.gdd.sage</groupId>
-      <artifactId>sage-jena-volcano</artifactId>
+      <artifactId>sage-jena-tdb2</artifactId>
       <version>0.0.1</version>
     </dependency>
 
-    <dependency>
-      <!-- to get ShiroEnvironmentLoader; or 
-           to get Services such as ActionServerStatus -->
-      <groupId>org.apache.jena</groupId> 
-      <artifactId>jena-fuseki-webapp</artifactId>
-      <version>4.7.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jena</groupId>
-      <artifactId>jena-fuseki-core</artifactId>
-      <version>4.7.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jena</groupId>
-      <artifactId>jena-fuseki-main</artifactId>
-      <version>4.7.0</version>
-    </dependency>
-    
     <dependency>
       <groupId>org.apache.jena</groupId>
       <artifactId>apache-jena-libs</artifactId>
       <version>4.7.0</version>
       <type>pom</type>
-    </dependency>
+    </dependency>    
     <dependency> <!-- logger of jena -->
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -49,14 +31,13 @@
       <artifactId>slf4j-simple</artifactId>
       <version>2.0.6</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <version>5.9.2</version>
       <scope>test</scope>
     </dependency>
-    
   </dependencies>
 
   <build>

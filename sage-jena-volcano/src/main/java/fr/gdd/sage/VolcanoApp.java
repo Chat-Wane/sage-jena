@@ -1,7 +1,6 @@
 package fr.gdd.sage;
 
 import org.apache.jena.dboe.base.record.Record;
-import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
