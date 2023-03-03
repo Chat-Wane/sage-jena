@@ -30,6 +30,9 @@ import org.slf4j.LoggerFactory;
  * cursor, and resume it later on; it relies on {@link AccessPath} to
  * find out the boundary of the scan and draw a random element from
  * it.
+ *
+ * It is heavily inspired by {@link BPTreeRangeIterator} and thus
+ * could be aliased by `BPTreePreemptRangeIterator`.
  */
 public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>, RandomIterator {
     static Logger log = LoggerFactory.getLogger(JenaIterator.class);
@@ -116,19 +119,27 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         return null;
     }
 
-    /**
-     * Skip to `null` means skipping the very first element.
-     */
     @Override
     public void skip(SerializableRecord to) {
-        if (to != null) {
-        	stack.clear();
-        	BPTreeRecords r = loadStack(root, to.record);
-        	current = getRecordsIterator(r, to.record, maxRecord);
-        } // otherwise already set at the beginning
-        hasNext(); // because it's on step behind with Record to
-        next();
+        if (Objects.isNull(to) || Objects.isNull(to.record)) {
+            // Corner case where an iterator indeed saved
+            // its `previous()` but since this is the first
+            // iteration, it is `null`. We still need to stay
+            // at the beginning of the iterator.
+            return;
+        }
 
+        // otherwise, we re-initialize the range iterator to
+        // start at the key.
+        stack.clear();
+        BPTreeRecords r = loadStack(root, to.record);
+        current = getRecordsIterator(r, to.record, maxRecord);
+
+        // We are voluntarily one step behind with the saved
+        // `Record`. Calling `hasNext()` and `next()` recover
+        // a clean internal state.
+        hasNext();
+        next();
     }
 
     @Override

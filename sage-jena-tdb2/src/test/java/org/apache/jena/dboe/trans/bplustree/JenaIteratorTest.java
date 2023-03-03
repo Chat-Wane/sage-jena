@@ -181,6 +181,7 @@ class JenaIteratorTest {
         assertEquals(dataset.getDefaultModel().size(), nbResultsFinish + nbResults);
     }
 
+    
     /**
      * Convenience function to assert the current values of the iterator compared to the truth.
      */
