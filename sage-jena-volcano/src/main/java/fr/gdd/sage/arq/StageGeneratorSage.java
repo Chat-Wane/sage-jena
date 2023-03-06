@@ -12,20 +12,22 @@ import org.apache.jena.tdb2.solver.PatternMatchSage;
 
 
 /**
- * Class in charge of creating preemptable basic graph patterns
+ * Class in charge of creating preemptive basic graph patterns
  * (BGPs).
  *
  * Mostly comes from {@link org.apache.jena.tdb2.solver.StageGeneratorDirectTDB}
  **/
-public class SageStageGenerator implements StageGenerator {
+public class StageGeneratorSage implements StageGenerator {
     StageGenerator parent;
     
-    public SageStageGenerator(StageGenerator parent) {
+    public StageGeneratorSage(StageGenerator parent) {
         this.parent = parent;
     }
     
     @Override
     public QueryIterator execute(BasicPattern pattern, QueryIterator input, ExecutionContext execCxt) {
+        // (TODO) everything goes by {@link OpExecutorSage} to (i) set up the context properly
+        //  and avoid duplicated code
 
         Graph g = execCxt.getActiveGraph();
         if (g instanceof GraphViewSwitchable) {

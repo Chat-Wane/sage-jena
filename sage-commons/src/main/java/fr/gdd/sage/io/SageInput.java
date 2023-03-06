@@ -16,7 +16,7 @@ import fr.gdd.sage.interfaces.Backend;
 public class SageInput<SKIP extends Serializable> implements Serializable {
 
     private Map<Integer, SKIP> state = new TreeMap<>();
-    private int  limit    = Integer.MAX_VALUE;
+    private long limit    = Long.MAX_VALUE;
     private long timeout  = Long.MAX_VALUE;
     private long deadline = Long.MAX_VALUE;
 
@@ -43,7 +43,7 @@ public class SageInput<SKIP extends Serializable> implements Serializable {
     
     public SageInput() { }
 
-    public SageInput<SKIP> setLimit(int limit) {
+    public SageInput<SKIP> setLimit(long limit) {
         this.limit = limit;
         return this;
     }
@@ -95,7 +95,7 @@ public class SageInput<SKIP extends Serializable> implements Serializable {
         return state;
     }
 
-    public int getLimit() {
+    public long getLimit() {
 	return limit;
     }
 

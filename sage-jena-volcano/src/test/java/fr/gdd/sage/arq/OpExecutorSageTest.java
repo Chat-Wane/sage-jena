@@ -1,20 +1,23 @@
 package fr.gdd.sage.arq;
 
+import fr.gdd.sage.ReflectionUtils;
 import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
-import org.apache.jena.query.ARQ;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ReadWrite;
+import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.*;
+import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.iterator.QueryIteratorCheck;
+import org.apache.jena.sparql.engine.iterator.QueryIteratorCloseable;
 import org.apache.jena.sparql.engine.main.QC;
-import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.sse.SSE;
+import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Testing the executor by building queries by hand.
  */
-class SageOpExecutorTest {
+class OpExecutorSageTest {
 
     static Dataset dataset = null;
     static JenaBackend backend = null;
@@ -89,13 +93,8 @@ class SageOpExecutorTest {
         any = backend.any();
 
         // set up the chain of execution to use Sage when called on this dataset
-        StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
-        // SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
-        // StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
-        // StageBuilder.setGenerator(dataset.getContext(), sageStageGenerator);
-        // QC.setFactory(dataset.getContext(), QC.getFactory(ARQ.getContext()));
-        QC.setFactory(ARQ.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
-        QC.setFactory(dataset.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
+        QC.setFactory(dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
+        QueryEngineRegistry.addFactory(QueryEngineSage.factory);
     }
 
     @AfterAll
@@ -127,11 +126,9 @@ class SageOpExecutorTest {
     public void simple_select_all_triples_by_predicate() {
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
-        SageInput input = new SageInput()
-                .setLimit(1);
-
-        dataset.getContext().set(SageConstants.input, input);
-        QueryIterator it = Algebra.exec(op, dataset);
+        Context c = dataset.getContext().copy().set(SageConstants.input, new SageInput<>());
+        Plan plan = QueryEngineSage.factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+        QueryIterator it = plan.iterator();
 
         int nb_results = 0;
         while (it.hasNext()) {
@@ -142,6 +139,37 @@ class SageOpExecutorTest {
         assertEquals(10, nb_results);
     }
 
+    @Test
+    public void select_all_triple_but_pauses_at_first_then_resume() {
+        Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
+        // #A we set a limit of only one result on first execution
+        long limit = 1;
+        Context c = dataset.getContext().copy().set(SageConstants.input, new SageInput<>().setLimit(limit));
+        Plan plan = QueryEngineSage.factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+        QueryIterator it = plan.iterator();
+
+        int nb_results = 0;
+        while (it.hasNext()) {
+            it.next();
+            nb_results += 1;
+        }
+        SageOutput output = c.get(SageConstants.output);
+        assertEquals(limit, nb_results);
+        assertEquals(limit, output.size());
+
+        // #B Then we don't set a limit to get the other 9 results
+        // thanks to `output.getState()`, the iterator is able to skip where the previous paused its execution
+        Context c2 = dataset.getContext().copy().set(SageConstants.input, new SageInput<>().setState(output.getState()));
+        Plan plan2 = QueryEngineSage.factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c2);
+        QueryIterator it2 = plan2.iterator();
+        while (it2.hasNext()) {
+            it2.next();
+            nb_results += 1;
+        }
+        SageOutput output2 = c2.get(SageConstants.output);
+        assertEquals(10, nb_results);
+        assertEquals(nb_results - 1, output2.size());
+    }
 
 }

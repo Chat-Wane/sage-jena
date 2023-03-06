@@ -1,8 +1,8 @@
 package fr.gdd.sage;
 
+import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.SageOpExecutorFactory;
-import fr.gdd.sage.arq.SageStageGenerator;
+import fr.gdd.sage.arq.StageGeneratorSage;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
@@ -23,10 +23,10 @@ public class VolcanoApp {
         Dataset dataset = TDB2Factory.connectDataset(path);
 
         StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
-        SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
+        StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
         
-        StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
-        // QC.setFactory(ARQ.getContext(), SageOpExecutor.factory) ;
+        StageBuilder.setGenerator(ARQ.getContext(), stageGeneratorSage);
+        // QC.setFactory(ARQ.getContext(), OpExecutorSage.factory) ;
 
         String query_as_str = " " +
             "SELECT * WHERE {" +
@@ -66,7 +66,7 @@ public class VolcanoApp {
             qe.getContext().put(SageConstants.output, new SageOutput<>());
             
             
-            QC.setFactory(qe.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
+            QC.setFactory(qe.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
 
             ResultSet result_set = qe.execSelect();
             
@@ -80,7 +80,7 @@ public class VolcanoApp {
             
             results = qe.getContext().get(SageConstants.output);
             input.setState(results.getState());
-            //sageStageGenerator.setSageInput(input.setState(results.getState()));
+            //stageGeneratorSage.setSageInput(input.setState(results.getState()));
             System.out.println();
             System.out.printf("Saved state %s \n", results.getState());
             System.out.printf("%s results so far\n", sum);

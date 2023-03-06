@@ -65,8 +65,8 @@ public class VolcanoIteratorFactory {
         }
 
         VolcanoIterator volcanoIterator = (pattern.len() < 4) ?
-                new VolcanoIterator(wrapped, tripleNodeTable, deadline, output, id):
-                new VolcanoIterator(wrapped, quadNodeTable, deadline, output, id);
+                new VolcanoIterator(wrapped, tripleNodeTable, input, output, id):
+                new VolcanoIterator(wrapped, quadNodeTable, input, output, id);
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
         if (!iterators.containsKey(id) && !input.isRandomWalking()) {

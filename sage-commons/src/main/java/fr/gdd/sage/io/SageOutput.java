@@ -17,10 +17,11 @@ import fr.gdd.sage.generics.Pair;
  **/
 public class SageOutput<SKIP extends Serializable> implements Serializable {
 
-    private List<String> projections   = new ArrayList<>();
-    private List<List<String>> results = new ArrayList<>();
+    List<String> projections   = new ArrayList<>();
+    List<List<String>> results = new ArrayList<>();
+    long count = 0;
     
-    private TreeMap<Integer, SKIP> state = null;
+    TreeMap<Integer, SKIP> state = null;
 
 
     
@@ -31,6 +32,7 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
     }
 
     public void add(List<String> result) {
+        count += 1;
         results.add(result);
     }
 
@@ -58,8 +60,8 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
         return results;
     }
 
-    public int size() {
-        return results.size();
+    public long size() {
+        return count;
     }
 
     public TreeMap<Integer, SKIP> getState() {

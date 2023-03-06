@@ -3,6 +3,7 @@ package fr.gdd.sage.arq;
 import java.util.Iterator;
 import java.util.Objects;
 
+import fr.gdd.sage.io.SageInput;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
@@ -29,8 +30,8 @@ public class VolcanoIterator implements Iterator<Quad> {
 
     public BackendIterator<NodeId, SerializableRecord> wrapped;
     NodeTable nodeTable;
-    long deadline;
 
+    SageInput<?>  input;
     SageOutput<?> output;
     Integer id;
 
@@ -40,17 +41,17 @@ public class VolcanoIterator implements Iterator<Quad> {
 
     
     public VolcanoIterator (BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
-                            long deadline, SageOutput<?> output, Integer id) {
+                            SageInput<?> input, SageOutput<?> output, Integer id) {
         this.wrapped = wrapped;
         this.nodeTable = nodeTable;
-        this.deadline = deadline;
+        this.input = input;
         this.output = output;
         this.id = id;
     }
     
     @Override
     public boolean hasNext() {
-        if (!first && System.currentTimeMillis() > deadline) {
+        if (!first && (System.currentTimeMillis() > input.getDeadline() || output.size() >= input.getLimit())) {
             Pair toSave = Objects.isNull(this.output.getState()) ?
                     new Pair(id, this.wrapped.current()):
                     new Pair(id, this.wrapped.previous());

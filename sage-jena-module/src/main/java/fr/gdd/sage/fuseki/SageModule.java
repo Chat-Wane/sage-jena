@@ -1,5 +1,6 @@
 package fr.gdd.sage.fuseki;
 
+import fr.gdd.sage.arq.OpExecutorSage;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.fuseki.server.Endpoint;
@@ -17,8 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.SageOpExecutorFactory;
-import fr.gdd.sage.arq.SageStageGenerator;
+import fr.gdd.sage.arq.StageGeneratorSage;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.writers.SageRowSetWriterJSON;
 
@@ -51,10 +51,10 @@ public class SageModule implements FusekiModule {
     public void start() {
         logger.info("start !");
         // replace the default engine behavior by ours.
-        QC.setFactory(ARQ.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
+        QC.setFactory(ARQ.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
         StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
-        SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
-        StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
+        StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
+        StageBuilder.setGenerator(ARQ.getContext(), stageGeneratorSage);
 
         // replace the output by ours to include the saved state.
         // all writers are here : <https://github.com/apache/jena/tree/main/jena-arq/src/main/java/org/apache/jena/riot/rowset/rw>
@@ -77,8 +77,8 @@ public class SageModule implements FusekiModule {
                 Dataset ds =  DatasetFactory.wrap(dap.getDataService().getDataset());
                 QC.setFactory(ds.getContext(), QC.getFactory(ARQ.getContext()));
                 StageGenerator parent = ds.getContext().get(ARQ.stageGenerator) ;
-                SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
-                StageBuilder.setGenerator(ds.getContext(), sageStageGenerator);
+                StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
+                StageBuilder.setGenerator(ds.getContext(), stageGeneratorSage);
                 // to conveniently get interface changes already implemented
                 JenaBackend backend = new JenaBackend(ds);
                 ds.getContext().set(SageConstants.backend, backend);

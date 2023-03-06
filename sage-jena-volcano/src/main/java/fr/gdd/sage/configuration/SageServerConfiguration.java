@@ -1,11 +1,9 @@
 package fr.gdd.sage.configuration;
 
-import java.util.Objects;
-
-import org.apache.jena.sparql.engine.ExecutionContext;
+import fr.gdd.sage.arq.SageConstants;
 import org.apache.jena.sparql.util.Context;
 
-import fr.gdd.sage.arq.SageConstants;
+import java.util.Objects;
 
 
 
@@ -16,10 +14,10 @@ import fr.gdd.sage.arq.SageConstants;
 public class SageServerConfiguration {
 
     /** The maximum number of results or random walks **/
-    int limit   = Integer.MAX_VALUE;
+    long limit   = Long.MAX_VALUE;
     /** The maximum duration before stopping the execution and
         returning the possibly partial results. **/
-    int timeout = Integer.MAX_VALUE;
+    long timeout = Long.MAX_VALUE;
 
     // (TODO) maybe add allowed collecting modules
     
@@ -35,11 +33,11 @@ public class SageServerConfiguration {
             this.timeout = context.get(SageConstants.timeout);
     }
     
-    public int getLimit() {
+    public long getLimit() {
         return limit;
     }
 
-    public int getTimeout() {
+    public long getTimeout() {
         return timeout;
     }
 

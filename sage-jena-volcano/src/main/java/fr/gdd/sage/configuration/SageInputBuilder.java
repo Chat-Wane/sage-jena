@@ -34,16 +34,15 @@ public class SageInputBuilder {
 
     public SageInput<?> build() {
         long timeout = Math.min(global.getTimeout(), local.getTimeout());
-        int limit = Math.min(global.getLimit(), local.getLimit());
+        long limit   = Math.min(global.getLimit(), local.getLimit());
         
-        SageInput<?> merge = new SageInput<>()
+        return new SageInput<>()
             .setBackjumping(local.isBackjumping())
             .setRandomWalking(local.isRandomWalking())
             .setTimeout(timeout)
             .setDeadline(Long.MAX_VALUE == timeout ? timeout : System.currentTimeMillis() + timeout)
             .setLimit(limit)
             .setState((Map)local.getState());
-        return merge;
     }
 
 }
