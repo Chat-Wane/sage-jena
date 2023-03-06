@@ -14,10 +14,9 @@ import org.apache.jena.tdb2.solver.PatternMatchSage;
 /**
  * Class in charge of creating preemptable basic graph patterns
  * (BGPs).
- * 
- * comes from:
- * <https://github.com/apache/jena/blob/main/jena-tdb2/src/main/java/org/apache/jena/tdb2/solver/StageGeneratorDirectTDB.java#L45>
- */
+ *
+ * Mostly comes from {@link org.apache.jena.tdb2.solver.StageGeneratorDirectTDB}
+ **/
 public class SageStageGenerator implements StageGenerator {
     StageGenerator parent;
     

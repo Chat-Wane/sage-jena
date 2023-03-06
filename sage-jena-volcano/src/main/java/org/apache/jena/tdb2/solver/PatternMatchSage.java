@@ -65,8 +65,8 @@ public class PatternMatchSage {
             if ( Quad.isDefaultGraph(graphNode[0]))
                 graphNode = null;
         }
-        boolean anyGraph = graphNode != null && (Node.ANY.equals(graphNode[0]));
-        var graph = graphNode == null ? null : graphNode[0];
+        boolean anyGraph = graphNode != null && graphNode.length > 0 && (Node.ANY.equals(graphNode[0]));
+        var graph = graphNode == null || graphNode.length == 0 ? null : graphNode[0];
 
         DatasetGraphTDB activeGraph = TDBInternal.getDatasetGraphTDB(context.getDataset());
         NodeTupleTable nodeTupleTable = (graph == null) ?

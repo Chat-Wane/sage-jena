@@ -1,7 +1,9 @@
 package org.apache.jena.dboe.trans.bplustree;
 
+import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
+import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.query.Dataset;
@@ -143,16 +145,10 @@ class JenaIteratorTest {
 
     @Test
     public void read_half_pause_resume_then_the_rest() {
-        BackendIterator<?, ?> baseline_it = backend.search(any, predicate, any);
         ArrayList<String> subjects = new ArrayList<>();
         ArrayList<String> predicates = new ArrayList<>();
         ArrayList<String> objects = new ArrayList<>();
-        while (baseline_it.hasNext()) {
-            baseline_it.next();
-            subjects.add(baseline_it.getValue(SPOC.SUBJECT));
-            predicates.add(baseline_it.getValue(SPOC.PREDICATE));
-            objects.add(baseline_it.getValue(SPOC.OBJECT));
-        }
+        fillWithSolutions(subjects, predicates, objects, any, predicate, any);
 
         BackendIterator<?, SerializableRecord> it = backend.search(any, predicate, any);
         int nbResults = 0;
@@ -181,7 +177,53 @@ class JenaIteratorTest {
         assertEquals(dataset.getDefaultModel().size(), nbResultsFinish + nbResults);
     }
 
-    
+
+    @Test
+    public void nested_scans_with_stop_resume_at_first() {
+        NodeId city_2 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/City102>");
+        BackendIterator<NodeId, SerializableRecord> it = backend.search(city_2, any, any);
+
+        SageOutput<SerializableRecord> output = new SageOutput();
+
+        // #1 first part of the query, we stop at first result
+        int nb_results = 0;
+        while (it.hasNext()) {
+            it.next();
+            BackendIterator<?, ?> it_2 = backend.search(any, it.getId(SPOC.PREDICATE), any);
+            while (it_2.hasNext()) {
+                it_2.next();
+                nb_results += 1;
+                if (nb_results >= 1) { // limit 1
+                    assertNull(it.previous());
+                    output.save(new Pair(0, it.previous()), new Pair(1, it_2.current()));
+                    break;
+                }
+            }
+        }
+
+        assertEquals(1, nb_results);
+
+        // #2 second part of the query, we restart from the first result, then we run till the end.
+        BackendIterator<NodeId, SerializableRecord> it_resume = backend.search(city_2, any, any);
+        it_resume.skip(output.getState().get(0));
+        while (it_resume.hasNext()) {
+            it_resume.next();
+            BackendIterator<?, SerializableRecord> it_2_resume = backend.search(any, it.getId(SPOC.PREDICATE), any);
+            if (output.getState().containsKey(1)) {
+                SerializableRecord to = output.getState().remove(1);
+                it_2_resume.skip(to);
+            }
+            while (it_2_resume.hasNext()) {
+                it_2_resume.next();
+                nb_results += 1;
+            }
+        }
+
+        assertEquals(10, nb_results);
+    }
+
+
+
     /**
      * Convenience function to assert the current values of the iterator compared to the truth.
      */

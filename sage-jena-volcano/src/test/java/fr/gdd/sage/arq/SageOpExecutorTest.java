@@ -1,0 +1,147 @@
+package fr.gdd.sage.arq;
+
+import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.jena.JenaBackend;
+import org.apache.jena.query.ARQ;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.main.StageBuilder;
+import org.apache.jena.sparql.engine.main.StageGenerator;
+import org.apache.jena.sparql.sse.SSE;
+import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.tdb2.sys.TDBInternal;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Testing the executor by building queries by hand.
+ */
+class SageOpExecutorTest {
+
+    static Dataset dataset = null;
+    static JenaBackend backend = null;
+
+    static NodeId predicate = null;
+    static NodeId any = null;
+
+    @BeforeAll
+    public static void initializeDB() {
+        dataset = TDB2Factory.createDataset();
+        dataset.begin(ReadWrite.WRITE);
+
+        // Model containing the 10 first triples of Dataset Watdiv.10M
+        // Careful, the order in the DB is not identical to that of the array
+        List<String> statements = Arrays.asList(
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City0>   <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country6>.",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City100> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>.",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City101> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City102> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country17> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City103> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country3> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City104> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country1> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City105> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country0> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City106> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country10> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City107> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country23> .",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City108> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>."
+        );
+
+        InputStream statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
+        Model model = ModelFactory.createDefaultModel();
+        model.read(statementsStream, "", Lang.NT.getLabel());
+
+        statements = Arrays.asList(
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City0>   <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country6>.",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City100> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>.",
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City101> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2> ."
+        );
+        statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
+        Model modelA = ModelFactory.createDefaultModel();
+        modelA.read(statementsStream, "", Lang.NT.getLabel());
+
+        statements = Arrays.asList(
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City102> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country17> ."
+        );
+        statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
+        Model modelB = ModelFactory.createDefaultModel();
+        modelB.read(statementsStream, "", Lang.NT.getLabel());
+
+        dataset.setDefaultModel(model);
+        dataset.addNamedModel("https://graphA.org", modelA);
+        dataset.addNamedModel("https://graphB.org", modelB);
+
+        backend = new JenaBackend(dataset);
+        predicate = backend.getId("<http://www.geonames.org/ontology#parentCountry>");
+        any = backend.any();
+
+        // set up the chain of execution to use Sage when called on this dataset
+        StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
+        // SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
+        // StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
+        // StageBuilder.setGenerator(dataset.getContext(), sageStageGenerator);
+        // QC.setFactory(dataset.getContext(), QC.getFactory(ARQ.getContext()));
+        QC.setFactory(ARQ.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
+        QC.setFactory(dataset.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
+    }
+
+    @AfterAll
+    public static void closeDB() {
+        dataset.abort();
+        TDBInternal.expel(dataset.asDatasetGraph());
+    }
+
+    @Test
+    public void simple_select_all_triples() {
+        Op op = SSE.parseOp("(bgp (?s ?p ?o))");
+
+        SageInput input = new SageInput()
+                .setLimit(1);
+
+        dataset.getContext().set(SageConstants.input, input);
+        QueryIterator it = Algebra.exec(op, dataset);
+
+        int nb_results = 0;
+        while (it.hasNext()) {
+            it.next();
+            nb_results += 1;
+        }
+
+        assertEquals(10, nb_results);
+    }
+
+    @Test
+    public void simple_select_all_triples_by_predicate() {
+        Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
+
+        SageInput input = new SageInput()
+                .setLimit(1);
+
+        dataset.getContext().set(SageConstants.input, input);
+        QueryIterator it = Algebra.exec(op, dataset);
+
+        int nb_results = 0;
+        while (it.hasNext()) {
+            it.next();
+            nb_results += 1;
+        }
+
+        assertEquals(10, nb_results);
+    }
+
+
+
+}

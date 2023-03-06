@@ -52,7 +52,7 @@ public class SageModule implements FusekiModule {
         logger.info("start !");
         // replace the default engine behavior by ours.
         QC.setFactory(ARQ.getContext(), new SageOpExecutorFactory(ARQ.getContext()));
-        StageGenerator parent = (StageGenerator) ARQ.getContext().get(ARQ.stageGenerator) ;
+        StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
         SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
         StageBuilder.setGenerator(ARQ.getContext(), sageStageGenerator);
 
@@ -76,13 +76,13 @@ public class SageModule implements FusekiModule {
                 // register the new executors for every dataset that is TDB2
                 Dataset ds =  DatasetFactory.wrap(dap.getDataService().getDataset());
                 QC.setFactory(ds.getContext(), QC.getFactory(ARQ.getContext()));
-                StageGenerator parent = (StageGenerator) ds.getContext().get(ARQ.stageGenerator) ;
+                StageGenerator parent = ds.getContext().get(ARQ.stageGenerator) ;
                 SageStageGenerator sageStageGenerator = new SageStageGenerator(parent);
                 StageBuilder.setGenerator(ds.getContext(), sageStageGenerator);
                 // to conveniently get interface changes already implemented
                 JenaBackend backend = new JenaBackend(ds);
                 ds.getContext().set(SageConstants.backend, backend);
-            };
+            }
             
             // replacing the operation registry and the processor
             server.getOperationRegistry().register(Operation.Query, new Sage_QueryDataset());
