@@ -16,6 +16,12 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import fr.gdd.sage.jena.JenaBackend;
 
+import java.io.BufferedInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Optional;
+
 
 public class SageJenaBenchmark {
 
@@ -35,6 +41,30 @@ public class SageJenaBenchmark {
     }
 
     public static void main(String[] args) throws RunnerException {
+        // (TODO) find out if args are well read.
+        // (TODO) use a CLI if need be
+        Optional<String> filePath = (args.length > 0) ? Optional.of(args[0]) : Optional.empty();
+
+        if (filePath.isPresent()) {
+            // (TODO) create a logger to inform about process
+            // #1 download the file from the internet
+            String watdivUrl = "https://dsg.uwaterloo.ca/watdiv/watdiv.10M.tar.bz2";
+
+            try (BufferedInputStream in = new BufferedInputStream(new URL(watdivUrl).openStream());
+                 FileOutputStream fileOutputStream = new FileOutputStream(filePath.get())) {
+                byte dataBuffer[] = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
+                    fileOutputStream.write(dataBuffer, 0, bytesRead);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // #2 unzip it if need be
+            // #3 ingest in jena database
+        }
+
         Options opt = new OptionsBuilder()
             .include(Backend.class.getSimpleName())
             .threads(4)

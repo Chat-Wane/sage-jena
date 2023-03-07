@@ -54,7 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
     </dependency>
     <dependency>
       <groupId>fr.gdd.sage</groupId>
-      <artifactId>sage-jena-module</artifactId>
+      <artifactId>sage-jena-volcano</artifactId>
       <version>0.0.1</version>
     </dependency>
 
