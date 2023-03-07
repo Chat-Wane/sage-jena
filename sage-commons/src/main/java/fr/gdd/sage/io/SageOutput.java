@@ -33,7 +33,9 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
 
     public void add(List<String> result) {
         count += 1;
-        results.add(result);
+        if (!Objects.isNull(result)) {
+            results.add(result);
+        }
     }
 
     public void addState(Pair<Integer, SKIP> state) {

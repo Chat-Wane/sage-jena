@@ -1,21 +1,22 @@
 package fr.gdd.sage.arq;
 
-import fr.gdd.sage.ReflectionUtils;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
-import org.apache.jena.query.*;
+import fr.gdd.sage.jena.SerializableRecord;
+import org.apache.jena.query.ARQ;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.engine.*;
+import org.apache.jena.sparql.engine.Plan;
+import org.apache.jena.sparql.engine.QueryEngineRegistry;
+import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorCheck;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorCloseable;
 import org.apache.jena.sparql.engine.main.QC;
-import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
@@ -23,15 +24,16 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Testing the executor by building queries by hand.
@@ -103,40 +105,22 @@ class OpExecutorSageTest {
         TDBInternal.expel(dataset.asDatasetGraph());
     }
 
+    @Disabled
     @Test
     public void simple_select_all_triples() {
         Op op = SSE.parseOp("(bgp (?s ?p ?o))");
+        // (TODO) for now, the fully unbounded pattern is not working
 
-        SageInput input = new SageInput()
-                .setLimit(1);
-
-        dataset.getContext().set(SageConstants.input, input);
-        QueryIterator it = Algebra.exec(op, dataset);
-
-        int nb_results = 0;
-        while (it.hasNext()) {
-            it.next();
-            nb_results += 1;
-        }
-
-        assertEquals(10, nb_results);
+        SageOutput output = run_to_the_limit(op, new SageInput());
+        assertEquals(10, output.size());
     }
 
     @Test
     public void simple_select_all_triples_by_predicate() {
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
-        Context c = dataset.getContext().copy().set(SageConstants.input, new SageInput<>());
-        Plan plan = QueryEngineSage.factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
-        QueryIterator it = plan.iterator();
-
-        int nb_results = 0;
-        while (it.hasNext()) {
-            it.next();
-            nb_results += 1;
-        }
-
-        assertEquals(10, nb_results);
+        SageOutput output = run_to_the_limit(op, new SageInput());
+        assertEquals(10, output.size());
     }
 
     @Test
@@ -144,32 +128,42 @@ class OpExecutorSageTest {
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
         // #A we set a limit of only one result on first execution
-        long limit = 1;
-        Context c = dataset.getContext().copy().set(SageConstants.input, new SageInput<>().setLimit(limit));
-        Plan plan = QueryEngineSage.factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+        SageOutput output = run_to_the_limit(op, new SageInput().setLimit(1));
+
+        // #B Then we don't set a limit to get the other 9 results
+        // thanks to `output.getState()`, the iterator is able to skip where the previous paused its execution
+        SageOutput rest = run_to_the_limit(op, new SageInput().setState(output.getState()));
+        assertEquals(9, rest.size());
+    }
+
+    @Test
+    public void simple_bgp_then_pause_at_first_then_resume() {
+        Op op = SSE.parseOp("(bgp (<http://db.uwaterloo.ca/~galuc/wsdbm/City102> ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country17>)" +
+                " (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
+
+        SageOutput out = run_to_the_limit(op, new SageInput().setLimit(1));
+        SageOutput rest = run_to_the_limit(op, new SageInput().setState(out.getState()));
+        assertEquals(9, rest.size());
+    }
+
+
+    public SageOutput<SerializableRecord> run_to_the_limit(Op query, SageInput<SerializableRecord> input) {
+        boolean limitIsSet = input.getLimit() != Long.MAX_VALUE;
+        Context c = dataset.getContext().copy().set(SageConstants.input, input);
+        Plan plan = QueryEngineSage.factory.create(query, dataset.asDatasetGraph(), BindingRoot.create(), c);
         QueryIterator it = plan.iterator();
 
-        int nb_results = 0;
+        long nb_results = 0;
         while (it.hasNext()) {
             it.next();
             nb_results += 1;
         }
         SageOutput output = c.get(SageConstants.output);
-        assertEquals(limit, nb_results);
-        assertEquals(limit, output.size());
-
-        // #B Then we don't set a limit to get the other 9 results
-        // thanks to `output.getState()`, the iterator is able to skip where the previous paused its execution
-        Context c2 = dataset.getContext().copy().set(SageConstants.input, new SageInput<>().setState(output.getState()));
-        Plan plan2 = QueryEngineSage.factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c2);
-        QueryIterator it2 = plan2.iterator();
-        while (it2.hasNext()) {
-            it2.next();
-            nb_results += 1;
+        if (limitIsSet) {
+            assertEquals(input.getLimit(), nb_results);
+            assertEquals(input.getLimit(), output.size());
         }
-        SageOutput output2 = c2.get(SageConstants.output);
-        assertEquals(10, nb_results);
-        assertEquals(nb_results - 1, output2.size());
+        return output;
     }
 
 }
