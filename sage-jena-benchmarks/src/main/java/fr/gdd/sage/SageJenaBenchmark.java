@@ -24,25 +24,24 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
-import org.slf4j.simple.SimpleLogger;
-import org.slf4j.simple.SimpleLoggerConfiguration;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
-
+@State(Scope.Benchmark)
 public class SageJenaBenchmark {
     static Logger log = LoggerFactory.getLogger(SageJenaBenchmark.class);
 
     static Path dbPath;
+
+    @Param("")
+    public String woof;
+
 
     @State(Scope.Benchmark)
     public static class Backend {
@@ -68,6 +67,7 @@ public class SageJenaBenchmark {
 
     @Benchmark
     public long query(Backend b) {
+        // (TODO) get the query from folder
         String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o .}";
         Query query = QueryFactory.create(query_as_str);
 
@@ -85,7 +85,6 @@ public class SageJenaBenchmark {
         it.close();
 
         SageOutput<?> output = c.get(SageConstants.output);
-
         return output.size();
     }
 
@@ -182,10 +181,26 @@ public class SageJenaBenchmark {
             log.info("Done with the database.");
         }
 
+        Path queriesPath = Paths.get("sage-jena-benchmarks" , "queries", "watdiv_with_sage_plan");
+        File[] queryFiles = queriesPath.toFile().listFiles();
+        ArrayList<String> queries = new ArrayList<>();
+        log.info("Queries folder contains {} SPARQL queries.", queryFiles.length);
+        for (File queryFile : queryFiles) {
+            // if (queries.size() > 2) { break; } // (for testing purpose)
+            try {
+                queries.add(Files.readString(queryFile.toPath(), StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        String[] queriesAsArray = queries.toArray(String[]::new);
+
         Options opt = new OptionsBuilder()
-                .include(SageJenaBenchmark.class.getSimpleName())
+                .include(".*" + SageJenaBenchmark.class.getSimpleName() + ".*")
+                .param("woof", queriesAsArray)
                 .forks(1)
-                .threads(1)
+                .threads(1) // (TODO) manage to up this number, for now, `Maximum lock count exceeded`… or other
                 .build();
 
         new Runner(opt).run();
