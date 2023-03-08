@@ -10,7 +10,6 @@ import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
@@ -31,7 +30,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -79,7 +77,7 @@ class OpExecutorSageTest {
         Model modelA = ModelFactory.createDefaultModel();
         modelA.read(statementsStream, "", Lang.NT.getLabel());
 
-        statements = Arrays.asList(
+        statements = List.of(
                 "<http://db.uwaterloo.ca/~galuc/wsdbm/City102> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country17> ."
         );
         statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
@@ -111,7 +109,7 @@ class OpExecutorSageTest {
         Op op = SSE.parseOp("(bgp (?s ?p ?o))");
         // (TODO) for now, the fully unbounded pattern is not working
 
-        SageOutput output = run_to_the_limit(op, new SageInput());
+        SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
         assertEquals(10, output.size());
     }
 
@@ -119,7 +117,7 @@ class OpExecutorSageTest {
     public void simple_select_all_triples_by_predicate() {
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
-        SageOutput output = run_to_the_limit(op, new SageInput());
+        SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
         assertEquals(10, output.size());
     }
 
@@ -128,11 +126,11 @@ class OpExecutorSageTest {
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
         // #A we set a limit of only one result on first execution
-        SageOutput output = run_to_the_limit(op, new SageInput().setLimit(1));
+        SageOutput<?> output = run_to_the_limit(op, new SageInput<>().setLimit(1));
 
         // #B Then we don't set a limit to get the other 9 results
         // thanks to `output.getState()`, the iterator is able to skip where the previous paused its execution
-        SageOutput rest = run_to_the_limit(op, new SageInput().setState(output.getState()));
+        SageOutput<?> rest = run_to_the_limit(op, new SageInput().setState(output.getState()));
         assertEquals(9, rest.size());
     }
 
@@ -141,13 +139,13 @@ class OpExecutorSageTest {
         Op op = SSE.parseOp("(bgp (<http://db.uwaterloo.ca/~galuc/wsdbm/City102> ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country17>)" +
                 " (?s <http://www.geonames.org/ontology#parentCountry> ?o))");
 
-        SageOutput out = run_to_the_limit(op, new SageInput().setLimit(1));
-        SageOutput rest = run_to_the_limit(op, new SageInput().setState(out.getState()));
+        SageOutput<?> out = run_to_the_limit(op, new SageInput<>().setLimit(1));
+        SageOutput<?> rest = run_to_the_limit(op, new SageInput().setState(out.getState()));
         assertEquals(9, rest.size());
     }
 
 
-    public SageOutput<SerializableRecord> run_to_the_limit(Op query, SageInput<SerializableRecord> input) {
+    public SageOutput<SerializableRecord> run_to_the_limit(Op query, SageInput<?> input) {
         boolean limitIsSet = input.getLimit() != Long.MAX_VALUE;
         Context c = dataset.getContext().copy().set(SageConstants.input, input);
         Plan plan = QueryEngineSage.factory.create(query, dataset.asDatasetGraph(), BindingRoot.create(), c);
@@ -158,7 +156,7 @@ class OpExecutorSageTest {
             it.next();
             nb_results += 1;
         }
-        SageOutput output = c.get(SageConstants.output);
+        SageOutput<SerializableRecord> output = c.get(SageConstants.output);
         if (limitIsSet) {
             assertEquals(input.getLimit(), nb_results);
             assertEquals(input.getLimit(), output.size());

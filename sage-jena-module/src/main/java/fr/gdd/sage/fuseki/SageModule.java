@@ -102,9 +102,13 @@ public class SageModule implements FusekiModule {
         logger.info("Stop! Have a good day!");
     }
 
+    /**
+     * Levels are described in
+     * <a href="https://jena.apache.org/documentation/notes/system-initialization.html">Jena initialization page</a>.
+     */
     @Override
     public int level() {
         // (TODO) find out the proper level for this module.
-        return 999999;
+        return 43;
     }
 }

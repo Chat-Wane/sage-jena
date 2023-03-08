@@ -58,7 +58,25 @@ THE POSSIBILITY OF SUCH DAMAGE.
       <version>0.0.1</version>
     </dependency>
 
-    
+    <dependency> <!-- logger -->
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>2.0.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>2.0.6</version>
+    </dependency>
+
+
+    <dependency> <!-- to unzip downloaded files -->
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>1.22</version>
+    </dependency>
+
+
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-core</artifactId>
@@ -93,6 +111,47 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
   <build>
     <plugins>
+      <!-- to solve the exception "org.openjdk.jmh.runner.ForkedMain not found" -->
+      <!-- Allows us to run the main directly inside IDE -->
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>build-classpath</id>
+            <goals>
+              <goal>build-classpath</goal>
+            </goals>
+            <configuration>
+              <includeScope>runtime</includeScope>
+              <outputProperty>depClasspath</outputProperty>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>fr.gdd.sage.SageJenaBenchmark</mainClass>
+          <systemProperties>
+            <systemProperty>
+              <key>java.class.path</key>
+              <value>${project.build.outputDirectory}${path.separator}${depClasspath}</value>
+            </systemProperty>
+          </systemProperties>
+        </configuration>
+      </plugin>
+      <!-- end of solution -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <mainClass>fr.gdd.sage.SageJenaBenchmark</mainClass>
+        </configuration>
+      </plugin>
+
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
