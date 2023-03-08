@@ -1,24 +1,32 @@
 package fr.gdd.sage;
 
 
-import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.arq.OpExecutorSage;
+import fr.gdd.sage.arq.QueryEngineSage;
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ReadWrite;
+import org.apache.jena.query.*;
+import org.apache.jena.sparql.engine.Plan;
+import org.apache.jena.sparql.engine.QueryEngineRegistry;
+import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
+import org.slf4j.simple.SimpleLogger;
+import org.slf4j.simple.SimpleLoggerConfiguration;
 
 import java.io.*;
 import java.net.URL;
@@ -38,18 +46,54 @@ public class SageJenaBenchmark {
 
     @State(Scope.Benchmark)
     public static class Backend {
-        volatile Dataset dataset = TDB2Factory.connectDataset(dbPath.toString());
-        
+        volatile Dataset dataset;
+
+        @Setup
+        public void prepare() {
+            // (TODO) change dbPath so its the one read by
+            dbPath = Paths.get("target", "watdiv10M");
+            dataset = TDB2Factory.connectDataset(dbPath.toString());
+            dataset.begin(ReadWrite.READ);
+
+            // kept outside of @Benchmark
+            QC.setFactory(dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
+            QueryEngineRegistry.addFactory(QueryEngineSage.factory);
+        }
+
+        @TearDown
+        public void close() {
+            dataset.end();
+        }
     }
 
     @Benchmark
-    public boolean query(Backend b) {
+    public long query(Backend b) {
         String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o .}";
         Query query = QueryFactory.create(query_as_str);
 
-        return true;
+        SageInput<?> input = new SageInput<>();
+        Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
+        Plan plan = QueryEngineSage.factory.create(query, b.dataset.asDatasetGraph(), BindingRoot.create(), c);
+        QueryIterator it = plan.iterator();
+
+        long nb_results = 0;
+        while (it.hasNext()) {
+            it.next();
+            nb_results += 1;
+        }
+
+        it.close();
+
+        SageOutput<?> output = c.get(SageConstants.output);
+
+        return output.size();
     }
 
+    /**
+     * Run the benchmark on Watdiv.
+     * @param args [0] The path to the DB directory (default: "target").
+     * @throws RunnerException
+     */
     public static void main(String[] args) throws RunnerException {
 
         Path dirPath = (args.length > 0) ? Paths.get(args[0]) : Paths.get("target");
@@ -60,8 +104,10 @@ public class SageJenaBenchmark {
         System.out.printf("ARGS : %s\n", Arrays.toString(args));
 
         // (TODO) refactor so downloading, extract, creating db is in its own class.
-        if (!Files.exists(dbPath)) {
-            log.info("The watdiv database does not exist, creating it");
+        if (Files.exists(dbPath)) {
+            log.info("Database already exists, starting benchmark…");
+        } else {
+            log.info("Database does not exist, creating it");
             if (!Files.exists(filePath)) {
                 log.info("Starting the download…");
                 // (TODO) create a logger to inform about process
@@ -138,6 +184,7 @@ public class SageJenaBenchmark {
 
         Options opt = new OptionsBuilder()
                 .include(SageJenaBenchmark.class.getSimpleName())
+                .forks(1)
                 .threads(1)
                 .build();
 

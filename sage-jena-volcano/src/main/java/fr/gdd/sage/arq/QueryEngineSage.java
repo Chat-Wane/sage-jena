@@ -69,7 +69,7 @@ public class QueryEngineSage extends QueryEngineTDB {
     }
 
     // ---- Factory
-    protected static QueryEngineFactory factory = new QueryEngineSage.QueryEngineFactorySage();
+    public static QueryEngineFactory factory = new QueryEngineSage.QueryEngineFactorySage();
 
     /**
      * True copy pasta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
