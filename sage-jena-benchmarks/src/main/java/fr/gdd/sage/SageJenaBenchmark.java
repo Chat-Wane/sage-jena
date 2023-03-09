@@ -4,6 +4,7 @@ package fr.gdd.sage;
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -11,12 +12,15 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.Plan;
+import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.solver.OpExecutorTDB2;
+import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -25,6 +29,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -32,15 +37,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
+@BenchmarkMode({Mode.SingleShotTime})
+@Warmup(iterations = 3)
 @State(Scope.Benchmark)
 public class SageJenaBenchmark {
     static Logger log = LoggerFactory.getLogger(SageJenaBenchmark.class);
 
     static Path dbPath;
 
-    @Param("")
-    public String woof;
+    static HashMap<String, Long> nbResultsPerQuery = new HashMap<>();
+
+    @Param("SELECT * WHERE {?s ?p ?o}")
+    public String query;
+
+    @Param({"default", "sage"})
+    public String engine;
 
 
     @State(Scope.Benchmark)
@@ -48,15 +61,11 @@ public class SageJenaBenchmark {
         volatile Dataset dataset;
 
         @Setup
-        public void prepare() {
+        public void open() {
             // (TODO) change dbPath so its the one read by
             dbPath = Paths.get("target", "watdiv10M");
             dataset = TDB2Factory.connectDataset(dbPath.toString());
             dataset.begin(ReadWrite.READ);
-
-            // kept outside of @Benchmark
-            QC.setFactory(dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
-            QueryEngineRegistry.addFactory(QueryEngineSage.factory);
         }
 
         @TearDown
@@ -65,33 +74,61 @@ public class SageJenaBenchmark {
         }
     }
 
+    @Setup
+    public void setup_engine(Backend b) {
+        if (engine.equals("default")) {
+            QC.setFactory(b.dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
+            QueryEngineTDB.register();
+        } else {
+            QC.setFactory(b.dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
+            QueryEngineRegistry.addFactory(QueryEngineSage.factory);
+        }
+    }
+
+    @TearDown
+    public void setdown_engine() {
+        if (engine.equals("default")) {
+            QueryEngineTDB.unregister();
+        } else {
+            QueryEngineRegistry.removeFactory(QueryEngineSage.factory); // (TODO) register unregister
+        }
+    }
+
     @Benchmark
-    public long query(Backend b) {
-        // (TODO) get the query from folder
-        String query_as_str = "SELECT ?o WHERE {<http://db.uwaterloo.ca/~galuc/wsdbm/Retailer6> ?p ?o .}";
-        Query query = QueryFactory.create(query_as_str);
+    public long execute_query(Backend b) {
+        Query q = QueryFactory.create(query);
 
         SageInput<?> input = new SageInput<>();
         Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
-        Plan plan = QueryEngineSage.factory.create(query, b.dataset.asDatasetGraph(), BindingRoot.create(), c);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(q, b.dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(q, b.dataset.asDatasetGraph(), BindingRoot.create(), c);
         QueryIterator it = plan.iterator();
 
-        long nb_results = 0;
+        long nbResults = 0;
         while (it.hasNext()) {
             it.next();
-            nb_results += 1;
+            nbResults += 1;
         }
-
         it.close();
 
-        SageOutput<?> output = c.get(SageConstants.output);
-        return output.size();
+        // SageOutput<?> output = c.get(SageConstants.output);
+        // return output.size();
+
+        // (TODO) remove this from the benchmarked part
+        if (nbResultsPerQuery.containsKey(query)) {
+            if (nbResultsPerQuery.get(query) != nbResults) {
+                System.out.println("/!\\ not the same number of results");
+            }
+        } else {
+            nbResultsPerQuery.put(query, nbResults);
+        }
+
+        return nbResults;
     }
 
     /**
      * Run the benchmark on Watdiv.
      * @param args [0] The path to the DB directory (default: "target").
-     * @throws RunnerException
      */
     public static void main(String[] args) throws RunnerException {
 
@@ -127,14 +164,14 @@ public class SageJenaBenchmark {
             }
 
             // #2 unzip it if need be
-            List<String> whiteList = Collections.singletonList("watdiv.10M.nt");
+            List<String> whitelist = Collections.singletonList("watdiv.10M.nt");
             try {
                 FileInputStream in = new FileInputStream(filePath.toString());
                 InputStream bin = new BufferedInputStream(in);
                 BZip2CompressorInputStream bzIn = new BZip2CompressorInputStream(bin);
                 TarArchiveInputStream tarIn = new TarArchiveInputStream(bzIn);
 
-                ArchiveEntry entry = null;
+                ArchiveEntry entry;
 
                 if (!Files.exists(extractPath)) {
                     Files.createDirectory(extractPath);
@@ -144,7 +181,7 @@ public class SageJenaBenchmark {
                         continue;
                     }
                     Path entryExtractPath = Paths.get(extractPath.toString(), entry.getName());
-                    if (Files.exists(entryExtractPath) || !whiteList.contains(entry.getName())) {
+                    if (Files.exists(entryExtractPath) || !whitelist.contains(entry.getName())) {
                         log.info("Skipping file {}…", entryExtractPath);
                         // still slows… for it must read the bytes to skip them
                         tarIn.skip(entry.getSize());
@@ -173,7 +210,7 @@ public class SageJenaBenchmark {
             Dataset dataset = TDB2Factory.connectDataset(dbPath.toString());
             dataset.begin(ReadWrite.WRITE);
             // (TODO) all whitelisted
-            Path entryExtractPath = Paths.get(extractPath.toString(), whiteList.get(0));
+            Path entryExtractPath = Paths.get(extractPath.toString(), whitelist.get(0));
             // (TODO) default or union ?
             dataset.getDefaultModel().read(entryExtractPath.toString());
             dataset.commit();
@@ -182,13 +219,19 @@ public class SageJenaBenchmark {
         }
 
         Path queriesPath = Paths.get("sage-jena-benchmarks" , "queries", "watdiv_with_sage_plan");
-        File[] queryFiles = queriesPath.toFile().listFiles();
+        File[] queryFiles = queriesPath.toFile().listFiles((dir, name) -> name.endsWith(".sparql"));
         ArrayList<String> queries = new ArrayList<>();
+        List<String> blacklist = List.of();
         log.info("Queries folder contains {} SPARQL queries.", queryFiles.length);
         for (File queryFile : queryFiles) {
-            // if (queries.size() > 2) { break; } // (for testing purpose)
+            if (blacklist.contains(queryFile.getName())) { continue; }
+            if (queries.size() > 0) { break; } // (for testing purpose)
             try {
-                queries.add(Files.readString(queryFile.toPath(), StandardCharsets.UTF_8));
+                String query = Files.readString(queryFile.toPath(), StandardCharsets.UTF_8);
+                query = query.replace('\n', ' '); // to get a clearer one line rendering
+                query = query.replace('\t', ' ');
+                query = String.format("# %s\n%s", queryFile.getName(), query);
+                queries.add(query);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -198,7 +241,7 @@ public class SageJenaBenchmark {
 
         Options opt = new OptionsBuilder()
                 .include(".*" + SageJenaBenchmark.class.getSimpleName() + ".*")
-                .param("woof", queriesAsArray)
+                .param("query", queriesAsArray)
                 .forks(1)
                 .threads(1) // (TODO) manage to up this number, for now, `Maximum lock count exceeded`… or other
                 .build();

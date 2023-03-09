@@ -75,7 +75,7 @@ public class QueryEngineSage extends QueryEngineTDB {
      * True copy pasta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
      * replacing
      */
-    protected static class QueryEngineFactorySage extends QueryEngineFactoryTDB {
+    public static class QueryEngineFactorySage extends QueryEngineFactoryTDB {
 
         protected DatasetGraphTDB dsgToQuery(DatasetGraph dataset) {
             try {
