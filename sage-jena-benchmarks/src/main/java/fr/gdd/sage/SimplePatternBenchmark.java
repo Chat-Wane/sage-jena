@@ -16,7 +16,11 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -33,6 +37,7 @@ import java.util.Optional;
 @Warmup(time = 5, iterations = 3)
 @Measurement(iterations = 1)
 public class SimplePatternBenchmark {
+    static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
 
     @Param({
             "?v0 <http://db.uwaterloo.ca/~galuc/wsdbm/gender> <http://db.uwaterloo.ca/~galuc/wsdbm/Gender0>", // vPO
@@ -42,29 +47,18 @@ public class SimplePatternBenchmark {
 
     @Param({"default", "sage"})
     public String b_engine;
-    
 
-    @State(Scope.Benchmark)
-    public static class Backend {
-        volatile Dataset dataset;
+    @Param("target/watdiv10M")
+    public String z_dbPath;
 
-        @Setup
-        public void open() {
-            // (TODO) change dbPath so its the one read by
-            Path dbPath = Paths.get("target", "watdiv10M");
-            dataset = TDB2Factory.connectDataset(dbPath.toString());
 
+    @Setup(Level.Trial)
+    public void setupEngine(WatdivBenchmark.Backend b) {
+        b.dataset = TDB2Factory.connectDataset(z_dbPath);
+        if (!b.dataset.isInTransaction()) {
+            b.dataset.begin(ReadWrite.READ);
         }
 
-        @TearDown
-        public void close() {
-
-        }
-    }
-
-    @Setup
-    public void setupEngine(Backend b) {
-        b.dataset.begin(ReadWrite.READ);
         if (b_engine.equals("default")) {
             QC.setFactory(b.dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
             QueryEngineTDB.register();
@@ -74,44 +68,63 @@ public class SimplePatternBenchmark {
         }
     }
 
-    @TearDown
-    public void setdownEngine(Backend b) {
+    @TearDown(Level.Trial)
+    public void setdownEngine(WatdivBenchmark.Backend b) {
         if (b_engine.equals("default")) {
             QueryEngineTDB.unregister();
         } else {
             QueryEngineSage.unregister();
         }
-        b.dataset.end();
+        if (b.dataset.isInTransaction()) {
+            b.dataset.end();
+        }
     }
 
-    @Benchmark
-    public long execute_pattern(Backend b) {
+    @Setup(Level.Trial)
+    public void read_query(WatdivBenchmark.Backend b) {
+        b.query = "SELECT * WHERE {" + a_pattern + "}";
+        log.debug("{}", b.query);
+    }
+
+    @Setup(Level.Invocation)
+    public void create_query_execution_plan(WatdivBenchmark.Backend b) {
         SageInput<?> input = new SageInput<>();
         Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
         c.set(ARQ.optimization, false);
 
-        String query = "SELECT * WHERE {"+ a_pattern + "}";
-        long nbResults = 0;
-        try(QueryExecution qExec = QueryExecution.create()
-                .dataset(b.dataset)
-                .context(c)
-                .query(query).build()) { // .set(ARQ.symLogExec, Explain.InfoLevel.ALL).build() ) {
-            ResultSet rs = qExec.execSelect() ;
-            while (rs.hasNext()) {
-                rs.next();
-                nbResults += 1;
-            }
+        try {
+            b.queryExecution = QueryExecution.create()
+                    .dataset(b.dataset)
+                    .context(c)
+                    .query(b.query).build();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+
+
+    @Benchmark
+    public long execute_pattern(WatdivBenchmark.Backend b) {
+        long nbResults = 0;
+        ResultSet rs = b.queryExecution.execSelect() ;
+        while (rs.hasNext()) {
+            rs.next();
+            nbResults+=1;
+        }
+
+        log.debug("Got {} results for this query.", nbResults);
+
         return nbResults;
     }
 
     public static void main(String[] args) throws RunnerException {
         Optional<String> dirPath_opt = (args.length > 0) ? Optional.of(args[0]) : Optional.empty();
 
-        new Watdiv10M(dirPath_opt); // creates the db if need be
+        Watdiv10M watdiv = new Watdiv10M(dirPath_opt); // creates the db if need be
 
         Options opt = new OptionsBuilder()
                 .include(SimplePatternBenchmark.class.getSimpleName())
+                .param("z_dbPath", watdiv.dbPath_asStr)
                 .forks(1)
                 .threads(1) // (TODO) manage to up this number, for now, `Maximum lock count exceeded`… or other
                 .build();

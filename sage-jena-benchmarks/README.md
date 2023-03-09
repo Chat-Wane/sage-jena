@@ -10,7 +10,7 @@ evaluate *Sage Query Engine* performance against the baseline of *TDB2
 Query Engine*.
 
 - [ ] Single triple pattern evaluation to measure the performance of
-  the simplest building block: `scans`.
+  the simplest building block: **scans**.
   
-- [ ] Watdiv benchmark to evaluate the performance on join only
-  queries.
+- [ ] Watdiv benchmark to evaluate the performance on **nested loop
+  join** queries.

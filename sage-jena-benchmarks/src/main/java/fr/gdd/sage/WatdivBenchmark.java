@@ -12,8 +12,6 @@ import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
-import org.apache.jena.tdb2.store.DatasetGraphTDB;
-import org.apache.jena.tdb2.sys.TDBInternal;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -22,6 +20,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -30,45 +30,35 @@ import java.util.Optional;
 @BenchmarkMode({Mode.SingleShotTime})
 @Warmup(iterations = 5)
 @State(Scope.Benchmark)
-public class SageJenaBenchmark {
-    static Logger log = LoggerFactory.getLogger(SageJenaBenchmark.class);
-
-    static Path dbPath;
+public class WatdivBenchmark {
+    static Logger log = LoggerFactory.getLogger(WatdivBenchmark.class);
 
     static HashMap<String, Long> nbResultsPerQuery = new HashMap<>();
 
-    @Param("SELECT * WHERE {?s ?p ?o}")
+    @Param("sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10084.sparql")
     public String a_query;
 
     @Param({"default", "sage"})
     public String b_engine;
 
+    @Param("target/watdiv10M")
+    public String z_dbPath;
 
-    @State(Scope.Thread)
+
+    @State(Scope.Benchmark)
     public static class Backend {
         volatile Dataset dataset;
-
-        @Setup
-        public void open() {
-            // (TODO) change dbPath so its the one read by
-            dbPath = Paths.get("target", "watdiv10M");
-            dataset = TDB2Factory.connectDataset(dbPath.toString());
-            DatasetGraphTDB graph = TDBInternal.getDatasetGraphTDB(this.dataset);
-            if (!dataset.isInTransaction()) {
-                dataset.begin(ReadWrite.READ);
-            }
-        }
-
-        @TearDown
-        public void close() {
-            if (dataset.isInTransaction()) {
-                dataset.end();
-            }
-        }
+        volatile QueryExecution queryExecution;
+        volatile String query = null;
     }
 
-    @Setup
+    @Setup(Level.Trial)
     public void setup_engine(Backend b) {
+        b.dataset = TDB2Factory.connectDataset(z_dbPath);
+        if (!b.dataset.isInTransaction()) {
+            b.dataset.begin(ReadWrite.READ);
+        }
+
         if (b_engine.equals("default")) {
             QC.setFactory(b.dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
             QueryEngineTDB.register();
@@ -78,50 +68,52 @@ public class SageJenaBenchmark {
         }
     }
 
-    @TearDown
-    public void setdown_engine() {
+    @TearDown(Level.Trial)
+    public void setdown_engine(Backend b) {
         if (b_engine.equals("default")) {
             QueryEngineTDB.unregister();
         } else {
             QueryEngineSage.unregister();
         }
+        if (b.dataset.isInTransaction()) {
+            b.dataset.end();
+        }
     }
 
-    @Benchmark
-    public long execute_query(Backend b) {
-        //Query q = QueryFactory.create(query);
+    @Setup(Level.Trial)
+    public void read_query(Backend b) {
+        try {
+            b.query = Files.readString(Paths.get(a_query), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        log.debug("{}", b.query);
+    }
 
-        // (TODO) maybe build plan outside of execute query ?
+    @Setup(Level.Iteration)
+    public void create_query_execution_plan(Backend b) {
         SageInput<?> input = new SageInput<>();
         Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
         c.set(ARQ.optimization, false);
 
-/*        QueryEngineFactory factory = QueryEngineRegistry.findFactory(q, b.dataset.asDatasetGraph(), c);
-        Plan plan = factory.create(q, b.dataset.asDatasetGraph(), BindingRoot.create(), c);*/
-
-        long nbResults = 0;
-        try(QueryExecution qExec = QueryExecution.create()
-                .dataset(b.dataset)
-                .context(c)
-                .query(a_query).build()) { // .set(ARQ.symLogExec, Explain.InfoLevel.ALL).build() ) {
-            ResultSet rs = qExec.execSelect() ;
-            while (rs.hasNext()) {
-                rs.next();
-                nbResults+=1;
-            }
+        try {
+            b.queryExecution = QueryExecution.create()
+                    .dataset(b.dataset)
+                    .context(c)
+                    .query(b.query).build();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
 
-/*        QueryIterator it = plan.iterator();
-
+    @Benchmark
+    public long execute_query(Backend b) {
         long nbResults = 0;
-        while (it.hasNext()) {
-            it.next();
-            nbResults += 1;
+        ResultSet rs = b.queryExecution.execSelect() ;
+        while (rs.hasNext()) {
+            rs.next();
+            nbResults+=1;
         }
-        it.close();*/
-
-        // SageOutput<?> output = c.get(SageConstants.output);
-        // return output.size();
 
         // (TODO) remove this from the benchmarked part
         if (nbResultsPerQuery.containsKey(a_query)) {
@@ -131,6 +123,8 @@ public class SageJenaBenchmark {
         } else {
             nbResultsPerQuery.put(a_query, nbResults);
         }
+
+        log.debug("Got {} results for this query.", nbResults);
 
         return nbResults;
     }
@@ -147,8 +141,9 @@ public class SageJenaBenchmark {
         String[] queriesAsArray = watdiv.queries.stream().map(p -> p.left).toArray(String[]::new);
 
         Options opt = new OptionsBuilder()
-                .include(".*" + SageJenaBenchmark.class.getSimpleName() + ".*")
+                .include(".*" + WatdivBenchmark.class.getSimpleName() + ".*")
                 .param("a_query", queriesAsArray)
+                .param("z_dbPath", watdiv.dbPath_asStr)
                 .forks(1)
                 .threads(1)
                 .build();

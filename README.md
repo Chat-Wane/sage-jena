@@ -33,5 +33,5 @@ on top of Jena**.
   samples, etc.
 
 - [ ] Sage provides additional features at the cost of additional
-  computation. This project provides benchmarks that highlight the
+  computation. This project provides **benchmarks** that highlight the
   marginal cost of these great features.

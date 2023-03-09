@@ -33,7 +33,7 @@ public class Watdiv10M {
     public static final String DEFAULT_DB_PATH = "target";
     public static final String DOWNLOAD_URL = "https://dsg.uwaterloo.ca/watdiv/watdiv.10M.tar.bz2";
 
-    public static final String QUERIES_PATH = "sage-jena-benchmark/queries/watdiv_with_sage_plan";
+    public static final String QUERIES_PATH = "sage-jena-benchmarks/queries/watdiv_with_sage_plan";
 
     public static final List<String> whitelist = List.of("watdiv.10M.nt");
     public static final List<String> blacklist = List.of();
@@ -77,7 +77,7 @@ public class Watdiv10M {
                 query = query.replace('\n', ' '); // to get a clearer one line rendering
                 query = query.replace('\t', ' ');
                 // query = String.format("# %s\n%s", queryFile.getName(), query);
-                queries.add(new Pair<>(queryFile.getName(), query));
+                queries.add(new Pair<>(queryFile.getPath(), query));
             } catch (Exception e) {
                 e.printStackTrace();
             }
