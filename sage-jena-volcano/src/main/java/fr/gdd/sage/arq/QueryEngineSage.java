@@ -7,10 +7,7 @@ import org.apache.jena.query.Query;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpLib;
 import org.apache.jena.sparql.core.DatasetGraph;
-import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.sparql.engine.Plan;
-import org.apache.jena.sparql.engine.QueryEngineFactory;
-import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.*;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.*;
 import org.apache.jena.sparql.engine.main.QC;
@@ -35,6 +32,14 @@ public class QueryEngineSage extends QueryEngineTDB {
 
     protected QueryEngineSage(Query query, DatasetGraphTDB dataset, Binding input, Context cxt) {
         super(query, dataset, input, cxt);
+    }
+
+    static public void register() {
+        QueryEngineRegistry.addFactory(QueryEngineSage.factory);
+    }
+
+    static public void unregister() {
+        QueryEngineRegistry.removeFactory(QueryEngineSage.factory);
     }
 
     private static boolean isUnionDefaultGraph(Context cxt) {

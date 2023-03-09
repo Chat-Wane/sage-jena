@@ -8,29 +8,33 @@ target/
 .factorypath
 .project
 
-# datasets
+#### datasets #####
 watdiv10M/
 watdiv42M/
 
-# intellij
+#### profiling ####
+*.profileconfig.json
+*.jfr
+
+#### intellij ####
 *.iml
 *.idea/
 
-# Compiled class file
+#### Compiled class file ####
 *.class
 # classpath file sometimes generated
 cp.txt
 
-# Log file
+#### Log file ####
 *.log
 
-# BlueJ files
+#### BlueJ files ####
 *.ctxt
 
-# Mobile Tools for Java (J2ME)
+#### Mobile Tools for Java (J2ME) ####
 .mtj.tmp/
 
-# Package Files #
+#### Package Files ####
 *.jar
 *.war
 *.nar
@@ -39,5 +43,5 @@ cp.txt
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+#### virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
