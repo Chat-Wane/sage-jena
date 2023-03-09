@@ -42,7 +42,7 @@ public class SimplePatternBenchmark {
 
     @Param({"default", "sage"})
     public String b_engine;
-
+    
 
     @State(Scope.Benchmark)
     public static class Backend {
