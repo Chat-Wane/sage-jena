@@ -10,6 +10,7 @@ import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
 import org.apache.jena.atlas.iterator.NullIterator;
 import org.apache.jena.atlas.iterator.SingletonIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.base.record.RecordFactory;
@@ -33,6 +34,8 @@ public class PreemptableTupleIndexRecord {
     
     public TupleIndexRecord tir;
 
+    private final RecordMapper<Tuple<NodeId>> recordMapper;
+
 
     
     public PreemptableTupleIndexRecord(TupleIndexRecord tir) {
@@ -40,13 +43,43 @@ public class PreemptableTupleIndexRecord {
         this.factory = (RecordFactory) ReflectionUtils._callField(factoryField, tir.getClass(), tir);
         Field tupleMapField = ReflectionUtils._getField(TupleIndexBase.class, "tupleMap");
         this.tupleMap = (TupleMap) ReflectionUtils._callField(tupleMapField, TupleIndexBase.class, tir);
-        
+
+        final int keyLen = factory.keyLength();
+        final int numNodeIds = factory.keyLength() / NodeId.SIZE;
+
         this.index = tir.getRangeIndex(); 
         this.tir = tir;
+
+        recordMapper = (bb, entryIdx, key, recFactory) -> {
+            // Version one. (Skipped) : index-order Tuple<NodeId>, then remap.
+            // Version two.
+            //   Straight to right order.
+            // Version three
+            //   Straight to right order. Delay creation.
+
+            int bbStart = entryIdx*recFactory.recordLength();
+            // Extract the bytes, index order for the key test..
+            if ( key != null ) {
+                bb.position(bbStart);
+                bb.get(key, 0, keyLen);
+            }
+
+            // Now directly create NodeIds, no Record.
+            NodeId[] nodeIds = new NodeId[numNodeIds];
+            for ( int i = 0; i < numNodeIds ; i++ ) {
+                int j = i;
+                if ( tupleMap != null )
+                    j = tupleMap.unmapIdx(i);
+                // Get data. It is faster to get from the ByteBuffer than from the key byte[].
+                NodeId id = NodeIdFactory.get(bb, bbStart+j*NodeId.SIZE);
+                nodeIds[i] = id;
+            }
+            return TupleFactory.create(nodeIds);
+        };
     }
 
-    public JenaIterator scan(Tuple<NodeId> patternNaturalOrder) {
-        Tuple<NodeId> pattern = this.tir.getMapping().map(patternNaturalOrder);
+    public BetterJenaIterator scan(Tuple<NodeId> patternNaturalOrder) {
+        Tuple<NodeId> pattern = tupleMap.map(patternNaturalOrder);
         
         // Canonical form.
         int numSlots = 0;
@@ -67,7 +100,7 @@ public class PreemptableTupleIndexRecord {
                 continue;
             }
             // if ( NodeId.isDoesNotExist(X) )
-            //     return Iter.nullIterator();
+            //     return new BetterJenaIterator();
 
             numSlots++;
             if ( leading ) {
@@ -78,25 +111,24 @@ public class PreemptableTupleIndexRecord {
         }
 
         // Is it a simple existence test?
-        // (TODO)
-        // if ( numSlots == pattern.len() ) {
-        //     if ( index.contains(minRec) )
-        //         return new SingletonIterator<>(pattern);
-        //     else
-        //         return new NullIterator<>();
-        // }
+        if ( numSlots == pattern.len() ) {
+             if ( index.contains(minRec) ) {
+                 return new BetterJenaIterator(pattern);
+             } else {
+                 return new BetterJenaIterator();
+             }
+         }
         
         // Iterator<Tuple<NodeId>> tuples;
-        JenaIterator tuples;
+        BetterJenaIterator tuples;
         if ( leadingIdx < 0 ) {
             // fullScan always allowed
             // if ( ! fullScanAllowed )
             // return null;
             // Full scan necessary
-            // tuples = index.iterator(null, null, recordMapper);
-            // (TODO)(TODO)(TODO)(TODO)(TODO)(TODO)
-            // tuples = new JenaIterator(tupleMap, null, minRec, maxRec);
-            tuples = null;
+            RangeIndex rIndex = tir.getRangeIndex();
+            BPlusTree bpt = (BPlusTree) rIndex;
+            tuples = new BetterJenaIterator(bpt, null, null, recordMapper, factory, tupleMap);
         } else {
             // Adjust the maxRec.
             NodeId X = pattern.get(leadingIdx);
@@ -108,20 +140,8 @@ public class PreemptableTupleIndexRecord {
 
             RangeIndex rIndex = tir.getRangeIndex();
             BPlusTree bpt = (BPlusTree) rIndex;
-            
-            // in org.apache.jena.dboe.trans.bplustree.BPlusTree.java
-            bpt.startReadBlkMgr();
-            int rootId = bpt.getRootId();
-            BPTreeNode root = bpt.getNodeManager().getRead(rootId, BPlusTreeParams.RootParent);
-            root.release();
-            bpt.finishReadBlkMgr();
-            tuples = new JenaIterator(tupleMap, root, minRec, maxRec);
-            // return iterator(root, minRec, maxRec, mapper);
 
-            // int keyLen = recordsMgr.getRecordBufferPageMgr().getRecordFactory().keyLength();
-            // return BPTreeRangeIteratorMapper.create(node, minRec, maxRec, keyLen, mapper);
- 
-            
+            tuples = new BetterJenaIterator(bpt, minRec, maxRec, recordMapper, factory, tupleMap);
         }
         
         if ( leadingIdx < numSlots-1 ) {

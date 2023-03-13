@@ -1,18 +1,16 @@
 package fr.gdd.sage.arq;
 
-import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.tdb2.store.DatasetGraphTDB;
-import org.apache.jena.tdb2.store.NodeId;
-import org.apache.jena.tdb2.store.nodetable.NodeTable;
-
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.RandomIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.PreemptableTupleTable;
 import fr.gdd.sage.jena.SerializableRecord;
-
+import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.sparql.engine.ExecutionContext;
+import org.apache.jena.tdb2.store.DatasetGraphTDB;
+import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import java.util.Map;
 
@@ -81,19 +79,18 @@ public class VolcanoIteratorFactory {
 
     public VolcanoIteratorTupleId getScanOnTupleId(Tuple<NodeId> pattern, Integer id) {
         BackendIterator<NodeId, SerializableRecord> wrapped = null;
+        VolcanoIteratorTupleId volcanoIterator = null;
         if (pattern.len() < 4) {
             wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
+            volcanoIterator = new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id);
         } else {
             wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
+            volcanoIterator = new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
         }
 
         if (input.isRandomWalking()) {
             ((RandomIterator) wrapped).random();
         }
-
-        VolcanoIteratorTupleId volcanoIterator = (pattern.len() < 4) ?
-                new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id):
-                new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
         if (!iterators.containsKey(id) && !input.isRandomWalking()) {

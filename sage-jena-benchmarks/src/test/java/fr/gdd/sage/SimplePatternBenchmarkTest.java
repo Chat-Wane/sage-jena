@@ -44,8 +44,6 @@ class SimplePatternBenchmarkTest {
 
     @Test
     public void execute_query_1000_with_TDB() {
-
-
         String query = "SELECT * WHERE {" +
                 "<http://db.uwaterloo.ca/~galuc/wsdbm/City193> <http://www.geonames.org/ontology#parentCountry> ?v1.\n" +
                 "        ?v6 <http://schema.org/nationality> ?v1.\n" +

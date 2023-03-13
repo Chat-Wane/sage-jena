@@ -1,17 +1,18 @@
 package fr.gdd.sage.jena;
 
-import static java.lang.String.format;
-import java.util.List;
-import java.util.ArrayList;
-
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.dboe.trans.bplustree.JenaIterator;
+import org.apache.jena.dboe.trans.bplustree.BetterJenaIterator;
 import org.apache.jena.dboe.trans.bplustree.PreemptableTupleIndexRecord;
 import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.tupletable.TupleIndex;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 import org.apache.jena.tdb2.store.tupletable.TupleTable;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static java.lang.String.format;
 
 
 
@@ -107,7 +108,7 @@ public class PreemptableTupleTable extends TupleTable {
         return index;
     }
 
-    public JenaIterator preemptable_find(Tuple<NodeId> pattern) {
+    public BetterJenaIterator preemptable_find(Tuple<NodeId> pattern) {
         // TupleIndexRecord tir = (TupleIndexRecord) this.findIndex(pattern);
         // PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
         PreemptableTupleIndexRecord ptir = this.findIndex(pattern);

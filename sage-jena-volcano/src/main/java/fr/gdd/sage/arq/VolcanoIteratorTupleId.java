@@ -6,7 +6,7 @@ import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.dboe.trans.bplustree.JenaIterator;
+import org.apache.jena.dboe.trans.bplustree.BetterJenaIterator;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
@@ -57,7 +57,7 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
     @Override
     public Tuple<NodeId> next() {
         wrapped.next();
-        return ((JenaIterator) wrapped).getCurrentTupleId();
+        return ((BetterJenaIterator) wrapped).getCurrentTuple();
     }
 
     public void skip(SerializableRecord to) {
