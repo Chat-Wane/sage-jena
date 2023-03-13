@@ -32,6 +32,7 @@ import java.util.Optional;
  * This benchmark aims to evaluate the cost of simple single triple patterns,
  * once again with preemptive volcano against simple volcano.
  */
+@BenchmarkMode({Mode.SingleShotTime})
 @State(Scope.Benchmark)
 @Warmup(time = 5, iterations = 5)
 @Measurement(iterations = 1)
@@ -39,6 +40,16 @@ public class SimplePatternBenchmark {
     static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
 
     @Param({
+            "<http://db.uwaterloo.ca/~galuc/wsdbm/City193> <http://www.geonames.org/ontology#parentCountry> ?v1.\n" +
+                    "        ?v6 <http://schema.org/nationality> ?v1.\n" +
+                    "        ?v6 <http://db.uwaterloo.ca/~galuc/wsdbm/likes> ?v3.\n" +
+                    "        ?v2 <http://purl.org/goodrelations/includes> ?v3.\n" +
+                    "        ?v2 <http://purl.org/goodrelations/validThrough> ?v5.\n" +
+                    "        ?v2 <http://purl.org/goodrelations/serialNumber> ?v4.\n" +
+                    "        ?v2 <http://schema.org/eligibleQuantity> ?v8.\n" +
+                    "        ?v6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v7.\n" +
+                    "        ?v9 <http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor> ?v3.\n" +
+                    "        ?v2 <http://schema.org/eligibleRegion> ?v1.",
             "?v0 <http://db.uwaterloo.ca/~galuc/wsdbm/gender> <http://db.uwaterloo.ca/~galuc/wsdbm/Gender0>", // vPO
             "?v0 <http://xmlns.com/foaf/familyName> ?v1." // vPv
     })

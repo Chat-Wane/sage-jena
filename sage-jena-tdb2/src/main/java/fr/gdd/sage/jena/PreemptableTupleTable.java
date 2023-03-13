@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.dboe.trans.bplustree.JenaIterator;
+import org.apache.jena.dboe.trans.bplustree.PreemptableTupleIndexRecord;
 import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.tupletable.TupleIndex;

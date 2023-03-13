@@ -20,6 +20,10 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
+/**
+ * Copy of {@link StageMatchTuple} but calling {@link VolcanoIteratorFactory} instead of
+ * creating basic Iterators.
+ */
 class PreemptStageMatchTuple {
 
     /* Entry point */

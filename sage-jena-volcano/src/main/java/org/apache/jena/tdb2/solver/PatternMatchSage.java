@@ -84,11 +84,15 @@ public class PatternMatchSage {
             // create the function that will be called everytime a
             // scan iterator is created.
             final int scanId = numberOfScans;
-            /*Function<BindingNodeId, Iterator<BindingNodeId>> step =
+
+            // (TODO) redo this part for star-patterns as in Jena's Solver
+            /* Function<BindingNodeId, Iterator<BindingNodeId>> step =
                 bnid -> find(bnid, nodeTupleTable, graph, triple, anyGraph, filter, context, scanId);
 
             chain = Iter.flatMap(chain, step);
-            */
+
+             */
+
 
             Tuple<Node> patternTuple = null;
             if ( graphNode == null )

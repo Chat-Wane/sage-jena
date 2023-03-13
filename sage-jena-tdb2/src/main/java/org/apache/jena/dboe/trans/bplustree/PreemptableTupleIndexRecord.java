@@ -1,4 +1,4 @@
-package fr.gdd.sage.jena;
+package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.ReflectionUtils;
 
@@ -108,24 +108,14 @@ public class PreemptableTupleIndexRecord {
 
             RangeIndex rIndex = tir.getRangeIndex();
             BPlusTree bpt = (BPlusTree) rIndex;
-
-            Method startReadBlkMgrMethod = ReflectionUtils._getMethod(BPlusTree.class, "startReadBlkMgr");
-            ReflectionUtils._callMethod(startReadBlkMgrMethod, bpt.getClass(), bpt);
-            Method getRootReadMethod = ReflectionUtils._getMethod(BPlusTree.class, "getRootRead");
-            BPTreeNode root = (BPTreeNode) ReflectionUtils._callMethod(getRootReadMethod, bpt.getClass(), bpt);
-            Method releaseRootReadMethod = ReflectionUtils._getMethod(BPlusTree.class, "releaseRootRead", BPTreeNode.class);
-            ReflectionUtils._callMethod(releaseRootReadMethod, bpt.getClass(), bpt, root);
-            Method finishReadBlkMgrMethod = ReflectionUtils._getMethod(BPlusTree.class, "finishReadBlkMgr");
-            ReflectionUtils._callMethod(finishReadBlkMgrMethod, bpt.getClass(), bpt);
-            
-            // tuples = BPTreePreemptableRangeIterator.create(tupleMap, root, minRec, maxRec, recordMapper);
-            tuples = new JenaIterator(tupleMap, root, minRec, maxRec);
             
             // in org.apache.jena.dboe.trans.bplustree.BPlusTree.java
-            // startReadBlkMgr();
-            // BPTreeNode root = getRootRead();
-            // releaseRootRead(root);
-            // finishReadBlkMgr();
+            bpt.startReadBlkMgr();
+            int rootId = bpt.getRootId();
+            BPTreeNode root = bpt.getNodeManager().getRead(rootId, BPlusTreeParams.RootParent);
+            root.release();
+            bpt.finishReadBlkMgr();
+            tuples = new JenaIterator(tupleMap, root, minRec, maxRec);
             // return iterator(root, minRec, maxRec, mapper);
 
             // int keyLen = recordsMgr.getRecordBufferPageMgr().getRecordFactory().keyLength();
