@@ -78,5 +78,32 @@ public class VolcanoIteratorFactory {
 
         return volcanoIterator;
     }
+
+    public VolcanoIteratorTupleId getScanOnTupleId(Tuple<NodeId> pattern, Integer id) {
+        BackendIterator<NodeId, SerializableRecord> wrapped = null;
+        if (pattern.len() < 4) {
+            wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
+        } else {
+            wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
+        }
+
+        if (input.isRandomWalking()) {
+            ((RandomIterator) wrapped).random();
+        }
+
+        VolcanoIteratorTupleId volcanoIterator = (pattern.len() < 4) ?
+                new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id):
+                new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
+
+        // Check if it is a preemptive iterator that should jump directly to its resume state.
+        if (!iterators.containsKey(id) && !input.isRandomWalking()) {
+            if (input != null && input.getState() != null && input.getState().containsKey(id)) {
+                volcanoIterator.skip((SerializableRecord) input.getState(id));
+            }
+        }
+        // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
+
+        return volcanoIterator;
+    }
     
 }

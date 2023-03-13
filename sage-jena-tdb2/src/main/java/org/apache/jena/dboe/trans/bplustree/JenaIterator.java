@@ -79,6 +79,10 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
             end();
     }
 
+    public Tuple<NodeId> getCurrentTupleId() {
+        return r;
+    }
+
 
     
     @Override

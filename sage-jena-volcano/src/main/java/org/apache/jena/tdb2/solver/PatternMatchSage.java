@@ -84,10 +84,21 @@ public class PatternMatchSage {
             // create the function that will be called everytime a
             // scan iterator is created.
             final int scanId = numberOfScans;
-            Function<BindingNodeId, Iterator<BindingNodeId>> step =
+            /*Function<BindingNodeId, Iterator<BindingNodeId>> step =
                 bnid -> find(bnid, nodeTupleTable, graph, triple, anyGraph, filter, context, scanId);
-            
+
             chain = Iter.flatMap(chain, step);
+            */
+
+            Tuple<Node> patternTuple = null;
+            if ( graphNode == null )
+                // 3-tuples
+                patternTuple = TupleFactory.create3(triple.getSubject(), triple.getPredicate(), triple.getObject());
+            else
+                // 4-tuples.
+                patternTuple = TupleFactory.create4(graph, triple.getSubject(), triple.getPredicate(), triple.getObject());
+            chain = PreemptStageMatchTuple.access(nodeTupleTable, chain, patternTuple, filter, anyGraph, context, scanId);
+
             chain = SolverLib.makeAbortable(chain, killList);
             numberOfScans += 1;
         }
@@ -97,11 +108,14 @@ public class PatternMatchSage {
     }
 
 
-    // This function is called every time an iterator is created but
-    // the `bnid` changes and contains the bindings created so far
-    // that may be injected in the current iterator.
-    //
-    // This comes from {@link SolverRX}.
+
+
+    /** This function is called every time an iterator is created but
+     * the `bnid` changes and contains the bindings created so far
+     * that may be injected in the current iterator.
+     *
+     * This comes from {@link SolverRX}.
+     **/
     private static Iterator<BindingNodeId> find(BindingNodeId bnid, NodeTupleTable nodeTupleTable,
                                                 Node xGraphNode, Triple xPattern,
                                                 boolean anyGraph,

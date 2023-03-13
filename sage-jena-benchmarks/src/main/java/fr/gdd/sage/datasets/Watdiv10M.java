@@ -66,9 +66,14 @@ public class Watdiv10M {
 
 
     static public ArrayList<Pair<String,String>> getQueries(String queriesPath_asStr, List<String> blacklist) {
-        Path queriesPath = Paths.get(queriesPath_asStr);
-        File[] queryFiles = queriesPath.toFile().listFiles((dir, name) -> name.endsWith(".sparql"));
         ArrayList<Pair<String, String>> queries = new ArrayList<>();
+        Path queriesPath = Paths.get(queriesPath_asStr);
+        if (!queriesPath.toFile().exists()) {
+            return queries; // no queries
+        };
+
+        File[] queryFiles = queriesPath.toFile().listFiles((dir, name) -> name.endsWith(".sparql"));
+
         log.info("Queries folder contains {} SPARQL queries.", queryFiles.length);
         for (File queryFile : queryFiles) {
             if (blacklist.contains(queryFile.getName())) { continue; }

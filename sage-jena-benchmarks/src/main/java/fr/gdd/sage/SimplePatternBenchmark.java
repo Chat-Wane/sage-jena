@@ -5,7 +5,10 @@ import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.datasets.Watdiv10M;
 import fr.gdd.sage.io.SageInput;
-import org.apache.jena.query.*;
+import org.apache.jena.query.ARQ;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.ReadWrite;
+import org.apache.jena.query.ResultSet;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
@@ -19,10 +22,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 /**
@@ -34,7 +33,7 @@ import java.util.Optional;
  * once again with preemptive volcano against simple volcano.
  */
 @State(Scope.Benchmark)
-@Warmup(time = 5, iterations = 3)
+@Warmup(time = 5, iterations = 5)
 @Measurement(iterations = 1)
 public class SimplePatternBenchmark {
     static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
