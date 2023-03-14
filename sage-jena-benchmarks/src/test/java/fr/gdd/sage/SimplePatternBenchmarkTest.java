@@ -7,6 +7,7 @@ import fr.gdd.sage.datasets.Watdiv10M;
 import fr.gdd.sage.io.SageInput;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.mgt.Explain;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
@@ -57,7 +58,7 @@ class SimplePatternBenchmarkTest {
                 "        ?v2 <http://schema.org/eligibleRegion> ?v1."+
                 "}";
 
-        QC.setFactory(dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
+        QC.setFactory(dataset.getContext(), new OpExecutorTDB2ForceOrder.OpExecutorTDB2ForceOrderFactory());
         QueryEngineTDB.register();
 
         Context c = dataset.getContext().copy();

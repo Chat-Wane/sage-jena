@@ -1,13 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.ReflectionUtils;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Iterator;
-
-import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
-import org.apache.jena.atlas.iterator.NullIterator;
 import org.apache.jena.atlas.iterator.SingletonIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
@@ -16,15 +9,17 @@ import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.dboe.index.RangeIndex;
-import org.apache.jena.dboe.trans.bplustree.BPTreeNode;
-import org.apache.jena.dboe.trans.bplustree.BPlusTree;
-import org.apache.jena.dboe.trans.bplustree.JenaIterator;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.NodeIdFactory;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexBase;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
+import org.apache.jena.util.iterator.NullIterator;
 
-
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
+import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
+
 
 public class PreemptableTupleIndexRecord {
 
@@ -113,9 +108,9 @@ public class PreemptableTupleIndexRecord {
         // Is it a simple existence test?
         if ( numSlots == pattern.len() ) {
              if ( index.contains(minRec) ) {
-                 return new BetterJenaIterator(pattern);
+                 return new BetterJenaIterator(new SingletonIterator<>(pattern));
              } else {
-                 return new BetterJenaIterator();
+                 return new BetterJenaIterator(new NullIterator<>());
              }
          }
         

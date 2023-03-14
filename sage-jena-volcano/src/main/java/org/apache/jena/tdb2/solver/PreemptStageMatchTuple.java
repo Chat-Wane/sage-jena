@@ -47,7 +47,7 @@ class PreemptStageMatchTuple {
             return Iter.nullIterator();
 
         VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
-        Iterator<Tuple<NodeId>> iterMatches = factory.getScanOnTupleId(TupleFactory.create(ids), id);
+        Iterator<Tuple<NodeId>> iterMatches = factory.getScanOnTupleId(nodeTupleTable, TupleFactory.create(ids), id);
 
         // Iterator<Tuple<NodeId>> iterMatches = nodeTupleTable.find(TupleFactory.create(ids));
         if ( false ) {

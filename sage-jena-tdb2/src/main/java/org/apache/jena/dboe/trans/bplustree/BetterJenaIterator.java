@@ -64,26 +64,15 @@ public class BetterJenaIterator implements BackendIterator<NodeId, SerializableR
     /**
      * Singleton
      **/
-    public BetterJenaIterator(Tuple<NodeId> pattern) {
+    public BetterJenaIterator(Iterator<Tuple<NodeId>> wrapped) {
         this.min = null;
         this.max = null;
         this.tree = null;
         this.mapper = null;
         this.factory = null;
         this.tupleMap = null;
-        wrapped = new SingletonIterator<>(pattern);
+        this.wrapped = wrapped;
     }
-
-    public BetterJenaIterator() {
-        this.min = null;
-        this.max = null;
-        this.tree = null;
-        this.mapper = null;
-        this.factory = null;
-        this.tupleMap = null;
-        wrapped = new NullIterator<>();
-    }
-
 
     public Tuple<NodeId> getCurrentTuple() {
         return current;

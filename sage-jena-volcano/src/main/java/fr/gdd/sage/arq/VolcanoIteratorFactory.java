@@ -7,10 +7,12 @@ import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.PreemptableTupleTable;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.dboe.trans.bplustree.BetterJenaIterator;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
+import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 import java.util.Map;
 
@@ -77,8 +79,8 @@ public class VolcanoIteratorFactory {
         return volcanoIterator;
     }
 
-    public VolcanoIteratorTupleId getScanOnTupleId(Tuple<NodeId> pattern, Integer id) {
-        BackendIterator<NodeId, SerializableRecord> wrapped = null;
+    public VolcanoIteratorTupleId getScanOnTupleId(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id) {
+        /* BackendIterator<NodeId, SerializableRecord> wrapped = null;
         VolcanoIteratorTupleId volcanoIterator = null;
         if (pattern.len() < 4) {
             wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
@@ -86,18 +88,21 @@ public class VolcanoIteratorFactory {
         } else {
             wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
             volcanoIterator = new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
-        }
+        }*/
 
-        if (input.isRandomWalking()) {
+        // (TODO) fix triple or quad node table
+        VolcanoIteratorTupleId volcanoIterator = new VolcanoIteratorTupleId(new BetterJenaIterator(nodeTupleTable.find(pattern)), tripleNodeTable, input, output, id);
+
+        /* if (input.isRandomWalking()) {
             ((RandomIterator) wrapped).random();
-        }
+        }*/
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
-        if (!iterators.containsKey(id) && !input.isRandomWalking()) {
+        /*if (!iterators.containsKey(id) && !input.isRandomWalking()) {
             if (input != null && input.getState() != null && input.getState().containsKey(id)) {
                 volcanoIterator.skip((SerializableRecord) input.getState(id));
             }
-        }
+        }*/
         // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
 
         return volcanoIterator;
