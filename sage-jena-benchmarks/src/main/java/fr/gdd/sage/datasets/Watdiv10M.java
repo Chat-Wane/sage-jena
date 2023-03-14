@@ -36,7 +36,8 @@ public class Watdiv10M {
     public static final String QUERIES_PATH = "sage-jena-benchmarks/queries/watdiv_with_sage_plan";
 
     public static final List<String> whitelist = List.of("watdiv.10M.nt");
-    public static final List<String> blacklist = List.of();
+    // fails or too time consuming because no limit
+    public static final List<String> blacklist = List.of("query_10069.sparql", "query_10150.sparql", "query_10091.sparql");
 
     public final String dbPath_asStr;
     public final List<Pair<String, String>> queries;

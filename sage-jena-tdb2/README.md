@@ -13,10 +13,10 @@ Jena by providing:
   on resuming, the saved key is used to create a new range iterator
   departing from this key.
   
-- [X] A way to create randomly jumping range iterators where each call
+- [ ] A way to create randomly jumping range iterators where each call
   to `next()` produces a random value within the initial range by
   descending in the `BPlusTree` at random. This is ideal to create
-  samples.
+  samples of results.
 
 
 

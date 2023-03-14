@@ -1,8 +1,8 @@
 package fr.gdd.sage.jena;
 
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.dboe.trans.bplustree.BetterJenaIterator;
-import org.apache.jena.dboe.trans.bplustree.PreemptableTupleIndexRecord;
+import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
+import org.apache.jena.dboe.trans.bplustree.PreemptTupleIndexRecord;
 import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.tupletable.TupleIndex;
@@ -16,10 +16,10 @@ import static java.lang.String.format;
 
 
 
-public class PreemptableTupleTable extends TupleTable {
+public class PreemptTupleTable extends TupleTable {
 
-    private final PreemptableTupleIndexRecord scanAllIndex;
-    private final List<PreemptableTupleIndexRecord> preemptable_indexes = new ArrayList<>(); // wrapped indexes
+    private final PreemptTupleIndexRecord scanAllIndex;
+    private final List<PreemptTupleIndexRecord> preemptable_indexes = new ArrayList<>(); // wrapped indexes
 
 
     
@@ -27,16 +27,16 @@ public class PreemptableTupleTable extends TupleTable {
     // SPO POS OSP
     // GSPO GPOS GOSP
     // POSG OSPG SPOG
-    public PreemptableTupleTable(TupleTable parent) {
+    public PreemptTupleTable(TupleTable parent) {
         super(parent.getTupleLen(), parent.getIndexes());
 
         TupleIndex sai = chooseScanAllIndex(parent.getTupleLen(), parent.getIndexes());
         TupleIndexRecord tir_sai = (TupleIndexRecord) sai;
-        scanAllIndex = new PreemptableTupleIndexRecord(tir_sai);
+        scanAllIndex = new PreemptTupleIndexRecord(tir_sai);
         
         for (TupleIndex idx: super.getIndexes()) {
             TupleIndexRecord tir = (TupleIndexRecord) idx;
-            PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
+            PreemptTupleIndexRecord ptir = new PreemptTupleIndexRecord(tir);
             preemptable_indexes.add(ptir);
         }
     }
@@ -69,7 +69,7 @@ public class PreemptableTupleTable extends TupleTable {
     
 
     // <https://github.com/apache/jena/blob/c4e999d633b2532b504b35937db4bec9a7c2e539/jena-tdb2/src/main/java/org/apache/jena/tdb2/store/tupletable/TupleTable.java#L133>
-    private PreemptableTupleIndexRecord findIndex(Tuple<NodeId> pattern) {
+    private PreemptTupleIndexRecord findIndex(Tuple<NodeId> pattern) {
         if ( super.getTupleLen() != pattern.len() )
             throw new TDBException(format("Mismatch: finding tuple of length %d in a table of tuples of length %d", pattern.len(), super.getTupleLen()));
         
@@ -89,8 +89,8 @@ public class PreemptableTupleTable extends TupleTable {
         }
         
         int indexNumSlots = 0;
-        PreemptableTupleIndexRecord index = null;
-        for ( PreemptableTupleIndexRecord ptir : preemptable_indexes ) {
+        PreemptTupleIndexRecord index = null;
+        for ( PreemptTupleIndexRecord ptir : preemptable_indexes ) {
             TupleIndex idx = ptir.tir;
             if ( idx != null ) {
                 int w = idx.weight( pattern );
@@ -108,10 +108,10 @@ public class PreemptableTupleTable extends TupleTable {
         return index;
     }
 
-    public BetterJenaIterator preemptable_find(Tuple<NodeId> pattern) {
+    public PreemptJenaIterator preemptable_find(Tuple<NodeId> pattern) {
         // TupleIndexRecord tir = (TupleIndexRecord) this.findIndex(pattern);
-        // PreemptableTupleIndexRecord ptir = new PreemptableTupleIndexRecord(tir);
-        PreemptableTupleIndexRecord ptir = this.findIndex(pattern);
+        // PreemptTupleIndexRecord ptir = new PreemptTupleIndexRecord(tir);
+        PreemptTupleIndexRecord ptir = this.findIndex(pattern);
         // (TODO) if a term does not exist, ptir is null and should be treated
         return ptir.scan(pattern);
     }

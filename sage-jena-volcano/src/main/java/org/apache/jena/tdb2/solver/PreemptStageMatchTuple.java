@@ -6,9 +6,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.VolcanoIterator;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
-import fr.gdd.sage.arq.VolcanoIteratorTupleId;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.StrUtils;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -21,9 +19,9 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 /**
- * Copy of {@link StageMatchTuple} but calling {@link VolcanoIteratorFactory} instead of
- * creating basic Iterators.
- */
+ * Copy/Pasta of {@link StageMatchTuple} but calling {@link VolcanoIteratorFactory} instead of
+ * creating basic iterators.
+ **/
 class PreemptStageMatchTuple {
 
     /* Entry point */
@@ -46,10 +44,10 @@ class PreemptStageMatchTuple {
             // Short cut - known unknown NodeId
             return Iter.nullIterator();
 
-        VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
-        Iterator<Tuple<NodeId>> iterMatches = factory.getScanOnTupleId(nodeTupleTable, TupleFactory.create(ids), id);
-
         // Iterator<Tuple<NodeId>> iterMatches = nodeTupleTable.find(TupleFactory.create(ids));
+        VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
+        Iterator<Tuple<NodeId>> iterMatches = factory.getScan(nodeTupleTable, TupleFactory.create(ids), id);
+
         if ( false ) {
             List<Tuple<NodeId>> x = Iter.toList(iterMatches);
             System.out.println(x);

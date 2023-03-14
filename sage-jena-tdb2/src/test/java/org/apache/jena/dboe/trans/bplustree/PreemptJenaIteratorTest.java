@@ -1,5 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
+import fr.gdd.sage.InMemoryInstanceOfTDB2;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
@@ -7,26 +8,21 @@ import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ReadWrite;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class JenaIteratorTest {
+/**
+ * Testing the pausing/resuming capabilities of {@link PreemptJenaIterator}.
+ * The results should always be identical to that of normal iterators.
+ **/
+class PreemptJenaIteratorTest {
 
     static Dataset dataset = null;
     static JenaBackend backend = null;
@@ -36,47 +32,7 @@ class JenaIteratorTest {
 
     @BeforeAll
     public static void initializeDB() {
-        dataset = TDB2Factory.createDataset();
-        dataset.begin(ReadWrite.WRITE);
-
-        // Model containing the 10 first triples of Dataset Watdiv.10M
-        // Careful, the order in the DB is not identical to that of the array
-        List<String> statements = Arrays.asList(
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City0>   <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country6>.",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City100> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>.",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City101> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City102> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country17> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City103> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country3> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City104> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country1> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City105> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country0> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City106> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country10> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City107> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country23> .",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City108> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>."
-        );
-
-        InputStream statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
-        Model model = ModelFactory.createDefaultModel();
-        model.read(statementsStream, "", Lang.NT.getLabel());
-
-        statements = Arrays.asList(
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City0>   <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country6>.",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City100> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>.",
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City101> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country2> ."
-        );
-        statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
-        Model modelA = ModelFactory.createDefaultModel();
-        modelA.read(statementsStream, "", Lang.NT.getLabel());
-
-        statements = Arrays.asList(
-                "<http://db.uwaterloo.ca/~galuc/wsdbm/City102> <http://www.geonames.org/ontology#parentCountry> <http://db.uwaterloo.ca/~galuc/wsdbm/Country17> ."
-        );
-        statementsStream = new ByteArrayInputStream(String.join("\n",statements).getBytes());
-        Model modelB = ModelFactory.createDefaultModel();
-        modelB.read(statementsStream, "", Lang.NT.getLabel());
-
-        dataset.setDefaultModel(model);
-        dataset.addNamedModel("https://graphA.org", modelA);
-        dataset.addNamedModel("https://graphB.org", modelB);
+        dataset = new InMemoryInstanceOfTDB2().getDataset();
 
         backend = new JenaBackend(dataset);
         predicate = backend.getId("<http://www.geonames.org/ontology#parentCountry>");

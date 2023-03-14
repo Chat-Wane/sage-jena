@@ -2,8 +2,10 @@ package fr.gdd.sage.arq;
 
 import org.apache.jena.sparql.util.Symbol;
 
-
 
+/**
+ * Enables quick access to variables that are stored in the context.
+ **/
 public class SageConstants {
 
     public static final String systemVarNS = "https://sage.gdd.fr/Sage#";

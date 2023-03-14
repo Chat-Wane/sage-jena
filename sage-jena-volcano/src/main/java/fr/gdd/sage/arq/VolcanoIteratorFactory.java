@@ -1,19 +1,19 @@
 package fr.gdd.sage.arq;
 
 import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.interfaces.RandomIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
-import fr.gdd.sage.jena.PreemptableTupleTable;
+import fr.gdd.sage.jena.PreemptTupleTable;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.dboe.trans.bplustree.BetterJenaIterator;
+import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
+import java.util.Iterator;
 import java.util.Map;
 
 
@@ -26,12 +26,12 @@ public class VolcanoIteratorFactory {
     SageInput<?> input;
     SageOutput<?> output;
     long deadline;
-    Map<Integer, VolcanoIterator> iterators;
+    Map<Integer, Iterator<?>> iterators;
 
     private NodeTable quadNodeTable;
     private NodeTable tripleNodeTable;
-    private PreemptableTupleTable preemptableQuadTupleTable;
-    private PreemptableTupleTable preemptableTripleTupleTable;
+    private PreemptTupleTable preemptableQuadTupleTable;
+    private PreemptTupleTable preemptableTripleTupleTable;
     
 
     
@@ -47,12 +47,12 @@ public class VolcanoIteratorFactory {
         var nodeTripleTupleTable = graph.getTripleTable().getNodeTupleTable();
         quadNodeTable = graph.getQuadTable().getNodeTupleTable().getNodeTable();
         tripleNodeTable = graph.getTripleTable().getNodeTupleTable().getNodeTable();
-        preemptableTripleTupleTable = new PreemptableTupleTable(nodeTripleTupleTable.getTupleTable());
-        preemptableQuadTupleTable   = new PreemptableTupleTable(nodeQuadTupleTable.getTupleTable());
+        preemptableTripleTupleTable = new PreemptTupleTable(nodeTripleTupleTable.getTupleTable());
+        preemptableQuadTupleTable   = new PreemptTupleTable(nodeQuadTupleTable.getTupleTable());
 
     }
     
-    public VolcanoIterator getScan(Tuple<NodeId> pattern, Integer id) {
+    public VolcanoIteratorQuad getScan(Tuple<NodeId> pattern, Integer id) {
         BackendIterator<NodeId, SerializableRecord> wrapped = null;
         if (pattern.len() < 4) {
             wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
@@ -60,13 +60,13 @@ public class VolcanoIteratorFactory {
             wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
         }
 
-        if (input.isRandomWalking()) {
+        /* if (input.isRandomWalking()) {
             ((RandomIterator) wrapped).random();
-        }
+        }*/
 
-        VolcanoIterator volcanoIterator = (pattern.len() < 4) ?
-                new VolcanoIterator(wrapped, tripleNodeTable, input, output, id):
-                new VolcanoIterator(wrapped, quadNodeTable, input, output, id);
+        VolcanoIteratorQuad volcanoIterator = (pattern.len() < 4) ?
+                new VolcanoIteratorQuad(wrapped, tripleNodeTable, input, output, id):
+                new VolcanoIteratorQuad(wrapped, quadNodeTable, input, output, id);
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
         if (!iterators.containsKey(id) && !input.isRandomWalking()) {
@@ -79,31 +79,20 @@ public class VolcanoIteratorFactory {
         return volcanoIterator;
     }
 
-    public VolcanoIteratorTupleId getScanOnTupleId(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id) {
-        /* BackendIterator<NodeId, SerializableRecord> wrapped = null;
-        VolcanoIteratorTupleId volcanoIterator = null;
-        if (pattern.len() < 4) {
-            wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
-            volcanoIterator = new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id);
-        } else {
-            wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
-            volcanoIterator = new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
-        }*/
-
-        // (TODO) fix triple or quad node table
-        VolcanoIteratorTupleId volcanoIterator = new VolcanoIteratorTupleId(new BetterJenaIterator(nodeTupleTable.find(pattern)), tripleNodeTable, input, output, id);
-
-        /* if (input.isRandomWalking()) {
-            ((RandomIterator) wrapped).random();
-        }*/
+    public VolcanoIteratorTupleId getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id) {
+        VolcanoIteratorTupleId volcanoIterator = new VolcanoIteratorTupleId(
+                new PreemptJenaIterator(nodeTupleTable.find(pattern)),
+                nodeTupleTable.getNodeTable(),
+                input, output,
+                id);
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
-        /*if (!iterators.containsKey(id) && !input.isRandomWalking()) {
+        if (!iterators.containsKey(id) && !input.isRandomWalking()) {
             if (input != null && input.getState() != null && input.getState().containsKey(id)) {
                 volcanoIterator.skip((SerializableRecord) input.getState(id));
             }
-        }*/
-        // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
+        }
+        iterators.put(id, volcanoIterator); // register and/or erase previous iterator
 
         return volcanoIterator;
     }

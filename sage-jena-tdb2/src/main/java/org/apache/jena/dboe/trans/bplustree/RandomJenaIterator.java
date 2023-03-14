@@ -1,41 +1,29 @@
 package org.apache.jena.dboe.trans.bplustree;
 
-import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.interfaces.SPOC;
-import fr.gdd.sage.jena.SerializableRecord;
 import fr.gdd.sage.interfaces.RandomIterator;
-
-import java.util.Objects;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
 import org.apache.jena.atlas.lib.InternalErrorException;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
-import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
+import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-
+import java.util.*;
+
 
 /**
- * This {@link JenaIterator} enables pausing/resuming of scans, and
- * random exploration. This heavily depends on the {@link BPlusTree}
- * data structure. Indeed, it relies on {@link Record} to save the
- * cursor, and resume it later on; it relies on {@link AccessPath} to
+ * This {@link RandomJenaIterator} enables random exploration of patterns.
+ * This heavily depends on the {@link BPlusTree}
+ * data structure, since it relies on {@link AccessPath} to
  * find out the boundary of the scan and draw a random element from
  * it.
  *
- * It is heavily inspired by {@link BPTreeRangeIterator} and thus
- * could be aliased by `BPTreePreemptRangeIterator`.
- */
-public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>, RandomIterator {
-    static Logger log = LoggerFactory.getLogger(JenaIterator.class);
+ * (TODO) This is an upcoming work.
+ *
+ * This is inspired from {@link BPTreeRangeIterator}.
+ **/
+public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterator {
     // Convert path to a stack of iterators
     private final Deque<Iterator<BPTreePage>> stack = new ArrayDeque<Iterator<BPTreePage>>();
     final private Record minRecord;
@@ -50,17 +38,15 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
     // records instead of iteratormapper.
     // private Iterator<Tuple<Record>> currentRecord;
     private Record currentRecord;
-    private Record previousRecord;
     private TupleMap tupleMap;
     BPTreeNode root;
 
     private BPTreeRecords firstPage;
 
-    public boolean goRandom = false;
-
 
-    
-    public JenaIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec) {
+
+    // (TODO) probably an argument to state if it is the root or not
+    public RandomJenaIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec) {
         this.root = node;
         this.tupleMap = tupleMap;
         this.minRecord = minRec;
@@ -69,93 +55,10 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         current = getRecordsIterator(firstPage, minRecord, maxRecord);
     }
 
-    private void end() {
-        finished = true;
-        current = null;
-    }
-
-    public void close() {
-        if (!finished)
-            end();
-    }
-
     public Tuple<NodeId> getCurrentTupleId() {
         return r;
     }
 
-
-    
-    @Override
-    public void reset() {
-        stack.clear();
-        previousRecord = null;
-        currentRecord = null;
-        firstPage = loadStack(root, null);
-        current = getRecordsIterator(firstPage, minRecord, maxRecord);
-    }
-
-    @Override
-    public NodeId getId(final int code) {
-        if (r.len() > 3) {
-            switch (code) {
-            case SPOC.SUBJECT:
-                return r.get(1);
-            case SPOC.PREDICATE:
-                return r.get(2);
-            case SPOC.OBJECT:
-                return r.get(3);
-            case SPOC.CONTEXT:
-                return r.get(0);
-            }
-        } else {
-            switch (code) {
-            case SPOC.SUBJECT:
-                return r.get(0);
-            case SPOC.PREDICATE:
-                return r.get(1);
-            case SPOC.OBJECT:
-                return r.get(2);
-            case SPOC.CONTEXT:
-                return null;
-            }
-        }
-        
-        return null;
-    }
-
-    @Override
-    public void skip(SerializableRecord to) {
-        if (Objects.isNull(to) || Objects.isNull(to.record)) {
-            // Corner case where an iterator indeed saved
-            // its `previous()` but since this is the first
-            // iteration, it is `null`. We still need to stay
-            // at the beginning of the iterator.
-            return;
-        }
-
-        // otherwise, we re-initialize the range iterator to
-        // start at the key.
-        stack.clear();
-        BPTreeRecords r = loadStack(root, to.record);
-        current = getRecordsIterator(r, to.record, maxRecord);
-
-        // We are voluntarily one step behind with the saved
-        // `Record`. Calling `hasNext()` and `next()` recover
-        // a clean internal state.
-        hasNext();
-        next();
-    }
-
-    @Override
-    public SerializableRecord current() {        
-        return Objects.isNull(currentRecord) ? null : new SerializableRecord(currentRecord);
-    }
-
-    @Override
-    public SerializableRecord previous() {
-        return Objects.isNull(previousRecord) ? null : new SerializableRecord(previousRecord);
-    }
-    
     @Override
     public boolean hasNext() {
         if (finished)
@@ -166,11 +69,9 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
             current = moveOnCurrent();
         }
         if (current == null) {
-            end();
             return false;
         }
-        
-        previousRecord = currentRecord;
+
         currentRecord = current.next();
         slot = TupleLib.tuple(currentRecord, tupleMap);
         
@@ -249,7 +150,8 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
     }
 
     @Override
-    public void next() {
+    public Tuple<NodeId> next() {
+        // (TODO) (TODO)
         if (!hasNext())
             throw new NoSuchElementException();
 
@@ -259,14 +161,10 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         // slotRecord = null;
         slot = null; // consumed
         // return r;
-        if (goRandom) {
-            random();
-        }
+        random();
+        // (TODO) (TODO)
+        return null;
     }
-    
-
-
-    // RandomIterator interface
 
     /**
      * Cardinality estimation exploiting the fact that the underlying
@@ -280,7 +178,8 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
     @Override
     public long cardinality() {
         // (TODO) revamp the whole thing
-        JenaIterator ji = new JenaIterator(tupleMap, root, minRecord, maxRecord);
+        /*
+        RandomJenaIterator ji = new RandomJenaIterator(tupleMap, root, minRecord, maxRecord);
         long sum = 0;
         
         for (Iterator<BPTreePage> ji_it : ji.getStack()) {
@@ -307,14 +206,14 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         var max = recordBuffer.find(maxRecord);
         
         sum += (min-max); // (max-min);
-
+        */
         // (TODO) remove last iterator to get exact cardinality.
 
         // (TODO) if on more than 3 pages
         // (TODO) if on 2 pages firstPage + lastPage
         // (TODO) if on 1 page firstPage
         
-        return sum;
+        return -1;
     }
 
     /**
@@ -328,8 +227,7 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
      **/
     @Override
     public void random() {
-        this.goRandom = true;
-        
+        // (TODO) rework for it to work standalone now.
         AccessPath minPath = new AccessPath(null);
         root.internalSearch(minPath, minRecord);
         AccessPath maxPath = new AccessPath(null);
@@ -383,14 +281,14 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         }
 
         // #3 Randomize within the found page
-        var randomSteps = randomPath.getPath();
+        List<AccessPath.AccessStep> randomSteps = randomPath.getPath();
         AccessPath.AccessStep lastStep = randomSteps.get(randomSteps.size() - 1);
         BPTreePage p = lastStep.page;
         BPTreeRecords record = (BPTreeRecords) p;        
         RecordBuffer recordBuffer = record.getRecordBuffer();
 
-        var min = recordBuffer.find(minRecord);
-        var max = recordBuffer.find(maxRecord);
+        int min = recordBuffer.find(minRecord);
+        int max = recordBuffer.find(maxRecord);
         
         min = min < 0 ? -min-1 : min;
         max = max < 0 ? -max-1 : max;
@@ -411,15 +309,6 @@ public class JenaIterator implements BackendIterator<NodeId, SerializableRecord>
         stack.clear();
         firstPage = loadStack(root, currentRecord);
         this.current = getRecordsIterator(firstPage, currentRecord, maxRecord);
-    }
-
-    
-    public Deque<Iterator<BPTreePage>> getStack() {
-        return stack;
-    }
-
-    public Iterator<Record> getCurrentIterator() {
-        return current;
     }
 
     /**

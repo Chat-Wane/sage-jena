@@ -1,7 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.interfaces.RandomIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -9,34 +8,21 @@ import org.apache.jena.atlas.lib.tuple.TupleMap;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.base.record.RecordMapper;
-import org.apache.jena.tdb.lib.ColumnMap;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
-import org.apache.jena.util.iterator.NullIterator;
-import org.apache.jena.util.iterator.SingletonIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Objects;
 
 
 /**
- * This {@link BetterJenaIterator} enables pausing/resuming of scans, and
- * random exploration. This heavily depends on the {@link BPlusTree}
- * data structure. Indeed, it relies on {@link Record} to save the
+ * This {@link PreemptJenaIterator} enables pausing/resuming of scans.
+ * It relies on {@link Record} to save the
  * cursor, and resume it later on; it relies on {@link AccessPath} to
  * find out the boundary of the scan and draw a random element from
  * it.
- *
- * It is heavily inspired by {@link BPTreeRangeIterator} and thus
- * could be aliased by `BPTreePreemptRangeIterator`.
- */
-public class BetterJenaIterator implements BackendIterator<NodeId, SerializableRecord>, RandomIterator {
-    static Logger log = LoggerFactory.getLogger(BetterJenaIterator.class);
-
-    public boolean goRandom = false; // (TODO) possibly another dedicated iterator
-
+ **/
+public class PreemptJenaIterator implements BackendIterator<NodeId, SerializableRecord> {
     final BPlusTree tree;
     final Record min;
     final Record max;
@@ -51,7 +37,7 @@ public class BetterJenaIterator implements BackendIterator<NodeId, SerializableR
 
 
 
-    public BetterJenaIterator(BPlusTree tree, Record min, Record max, RecordMapper mapper, RecordFactory factory, TupleMap tupleMap) {
+    public PreemptJenaIterator(BPlusTree tree, Record min, Record max, RecordMapper mapper, RecordFactory factory, TupleMap tupleMap) {
         this.min = min;
         this.max = max;
         this.tree = tree;
@@ -64,7 +50,7 @@ public class BetterJenaIterator implements BackendIterator<NodeId, SerializableR
     /**
      * Singleton
      **/
-    public BetterJenaIterator(Iterator<Tuple<NodeId>> wrapped) {
+    public PreemptJenaIterator(Iterator<Tuple<NodeId>> wrapped) {
         this.min = null;
         this.max = null;
         this.tree = null;
@@ -152,39 +138,6 @@ public class BetterJenaIterator implements BackendIterator<NodeId, SerializableR
     public void next() {
         previous = current;
         current = wrapped.next();
-    }
-    
-
-
-    // RandomIterator interface
-
-    /**
-     * Cardinality estimation exploiting the fact that the underlying
-     * data structure is a balanced tree. When the number of results
-     * is small, more precision is needed. Fortunately, this often
-     * means that results are spread among one or two pages which
-     * allows us to precisely count using binary search.
-     *
-     * (TODO) Take into account possible deletions.
-     */
-    @Override
-    public long cardinality() {
-        // (TODO) (TODO) (TODO)
-        return -1;
-    }
-
-    /**
-     * `random()` modifies the behavior of the iterator so that each
-     * `next()` provides a new random binding within the
-     * interval. Beware that it does not terminate nor it ensures
-     * distinct bindings.
-     *
-     * As for `cardinality()`, it uses the underlying balanced tree to
-     * efficiently reach a Record between two access paths.
-     **/
-    @Override
-    public void random() {
-        // (TODO) (TODO) (TODO)
     }
 
 }

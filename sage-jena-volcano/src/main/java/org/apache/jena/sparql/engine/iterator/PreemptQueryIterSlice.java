@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.VolcanoIterator;
+import fr.gdd.sage.arq.VolcanoIteratorQuad;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
@@ -23,7 +23,7 @@ import fr.gdd.sage.io.SageOutput;
 public class PreemptQueryIterSlice extends QueryIterSlice {
     Logger logger = LoggerFactory.getLogger(PreemptQueryIterSlice.class);
     
-    Map<Integer, VolcanoIterator> iterators;
+    Map<Integer, VolcanoIteratorQuad> iterators;
     SageOutput<?> output;
     SageInput<?> input;
 
@@ -51,10 +51,10 @@ public class PreemptQueryIterSlice extends QueryIterSlice {
         }
         
         if ( count >= limit ) {
-            Entry<Integer, VolcanoIterator> lastKey = null;
+            Entry<Integer, VolcanoIteratorQuad> lastKey = null;
             // (TODO) Double check not necessarily .current() or .previous()
             // with volcano model.
-            for (Entry<Integer, VolcanoIterator> e : this.iterators.entrySet()) {
+            for (Entry<Integer, VolcanoIteratorQuad> e : this.iterators.entrySet()) {
                 lastKey = e;
                 System.out.printf("meow: %s -> %s", e.getKey(), e.getValue().wrapped.previous());
 

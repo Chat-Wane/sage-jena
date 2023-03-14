@@ -2,7 +2,7 @@ package org.apache.jena.tdb2.solver;
 // In this package so it can access SolverLibTDB package functions.
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.VolcanoIterator;
+import fr.gdd.sage.arq.VolcanoIteratorQuad;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -30,9 +30,11 @@ import org.apache.jena.tdb2.sys.TDBInternal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-
+import static org.apache.jena.sparql.engine.main.solver.SolverLib.tripleHasEmbTripleWithVars;
+
 
 /**
  * Utility class dedicated to the pattern matching with Sage over TDB2. The main difference with
@@ -89,7 +91,6 @@ public class PatternMatchSage {
                 bnid -> find(bnid, nodeTupleTable, graph, triple, anyGraph, filter, context, scanId);
 
             chain = Iter.flatMap(chain, step);
-
              */
 
 
@@ -110,7 +111,29 @@ public class PatternMatchSage {
         return new QueryIterAbortable(iterBinding, killList, input, context);
     }
 
+    /**
+     * Function from {@link SolverRX} `matchQuadPattern`.
+     */
+    private static Iterator<BindingNodeId> processAsStarPatternOrNot(Iterator<BindingNodeId> chain, Node graphNode, Triple tPattern,
+                                                                     NodeTupleTable nodeTupleTable, Tuple<Node> patternTuple, boolean anyGraph,
+                                                                     Predicate<Tuple<NodeId>> filter, ExecutionContext execCxt,
+                                                                     Integer id){
+        if ( SolverRX.DATAPATH ) {
+            if ( ! tripleHasEmbTripleWithVars(tPattern) )
+                // No RDF-star <<>> with variables.
+                return PreemptStageMatchTuple.access(nodeTupleTable, chain, patternTuple, filter, anyGraph, execCxt, id);
+        }
 
+        // RDF-star <<>> with variables.
+        // This path should work regardless.
+
+        boolean isTriple = (patternTuple.len() == 3);
+        NodeTable nodeTable = nodeTupleTable.getNodeTable();
+
+        Function<BindingNodeId, Iterator<BindingNodeId>> step =
+                bnid -> find(bnid, nodeTupleTable, graphNode, tPattern, anyGraph, filter, execCxt, id);
+        return Iter.flatMap(chain, step);
+    }
 
 
     /** This function is called every time an iterator is created but
@@ -148,7 +171,7 @@ public class PatternMatchSage {
 
         // We call our factory instead of creating basic iterators.
         VolcanoIteratorFactory factory = context.getContext().get(SageConstants.scanFactory);        
-        VolcanoIterator volcanoIterator = factory.getScan(patternTupleId, id);
+        VolcanoIteratorQuad volcanoIterator = factory.getScan(patternTupleId, id);
 
         Iterator<Binding> matched = Iter.iter(volcanoIterator)
             .map(dQuad->SolverRX4.matchQuad(input, dQuad, tGraphNode, tPattern))

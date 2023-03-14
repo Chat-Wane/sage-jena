@@ -13,6 +13,7 @@
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-tdb2</artifactId>
       <version>0.0.1</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -41,15 +42,6 @@
   </dependencies>
 
   <build>
-    <resources>
-      <resource>
-        <filtering>false</filtering>
-        <!-- contains a META-INF that automatically
-             registers SageModule in the life cycle -->
-        <directory>src/main/resources</directory>
-      </resource> 
-    </resources>
-    
     <plugins>
       <plugin>
         <!-- mvn dependency:build-classpath -Dmdep.outputFile=cp.txt -->
@@ -75,27 +67,6 @@
         <version>3.10.1</version>
         <configuration>
           <release>11</release>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <mainClass>fr.gdd.sage.FusekiApp</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.1.0</version>
-        <configuration>
-          <mainClass>fr.gdd.sage.FusekiApp</mainClass>
         </configuration>
       </plugin>
     </plugins>

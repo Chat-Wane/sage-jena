@@ -21,7 +21,7 @@ import java.lang.reflect.Method;
 import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
 
 
-public class PreemptableTupleIndexRecord {
+public class PreemptTupleIndexRecord {
 
     RecordFactory factory;
     RangeIndex index;
@@ -33,7 +33,7 @@ public class PreemptableTupleIndexRecord {
 
 
     
-    public PreemptableTupleIndexRecord(TupleIndexRecord tir) {
+    public PreemptTupleIndexRecord(TupleIndexRecord tir) {
         Field factoryField = ReflectionUtils._getField(TupleIndexRecord.class, "factory");
         this.factory = (RecordFactory) ReflectionUtils._callField(factoryField, tir.getClass(), tir);
         Field tupleMapField = ReflectionUtils._getField(TupleIndexBase.class, "tupleMap");
@@ -73,7 +73,7 @@ public class PreemptableTupleIndexRecord {
         };
     }
 
-    public BetterJenaIterator scan(Tuple<NodeId> patternNaturalOrder) {
+    public PreemptJenaIterator scan(Tuple<NodeId> patternNaturalOrder) {
         Tuple<NodeId> pattern = tupleMap.map(patternNaturalOrder);
         
         // Canonical form.
@@ -95,7 +95,7 @@ public class PreemptableTupleIndexRecord {
                 continue;
             }
             // if ( NodeId.isDoesNotExist(X) )
-            //     return new BetterJenaIterator();
+            //     return new PreemptJenaIterator();
 
             numSlots++;
             if ( leading ) {
@@ -108,14 +108,14 @@ public class PreemptableTupleIndexRecord {
         // Is it a simple existence test?
         if ( numSlots == pattern.len() ) {
              if ( index.contains(minRec) ) {
-                 return new BetterJenaIterator(new SingletonIterator<>(pattern));
+                 return new PreemptJenaIterator(new SingletonIterator<>(pattern));
              } else {
-                 return new BetterJenaIterator(new NullIterator<>());
+                 return new PreemptJenaIterator(new NullIterator<>());
              }
          }
         
         // Iterator<Tuple<NodeId>> tuples;
-        BetterJenaIterator tuples;
+        PreemptJenaIterator tuples;
         if ( leadingIdx < 0 ) {
             // fullScan always allowed
             // if ( ! fullScanAllowed )
@@ -123,7 +123,7 @@ public class PreemptableTupleIndexRecord {
             // Full scan necessary
             RangeIndex rIndex = tir.getRangeIndex();
             BPlusTree bpt = (BPlusTree) rIndex;
-            tuples = new BetterJenaIterator(bpt, null, null, recordMapper, factory, tupleMap);
+            tuples = new PreemptJenaIterator(bpt, null, null, recordMapper, factory, tupleMap);
         } else {
             // Adjust the maxRec.
             NodeId X = pattern.get(leadingIdx);
@@ -136,7 +136,7 @@ public class PreemptableTupleIndexRecord {
             RangeIndex rIndex = tir.getRangeIndex();
             BPlusTree bpt = (BPlusTree) rIndex;
 
-            tuples = new BetterJenaIterator(bpt, minRec, maxRec, recordMapper, factory, tupleMap);
+            tuples = new PreemptJenaIterator(bpt, minRec, maxRec, recordMapper, factory, tupleMap);
         }
         
         if ( leadingIdx < numSlots-1 ) {

@@ -20,8 +20,7 @@ import java.util.Objects;
 
 
 /**
- * TDB2 Jena Backend implementation of the interface `Backend<ID,
- * SKIP>`.
+ * TDB2 Jena Backend implementation of the interface `Backend<ID, SKIP>`.
  **/
 public class JenaBackend implements Backend<NodeId, SerializableRecord> {
 
@@ -32,8 +31,8 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
     NodeTupleTable nodeTripleTupleTable;
     NodeTable  nodeTripleTable;
     NodeTable  nodeQuadTable;
-    PreemptableTupleTable preemptableTripleTupleTable;
-    PreemptableTupleTable preemptableQuadTupleTable;
+    PreemptTupleTable preemptableTripleTupleTable;
+    PreemptTupleTable preemptableQuadTupleTable;
 
 
     public JenaBackend(final String path) {
@@ -59,8 +58,8 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
         nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
         nodeTripleTable = nodeTripleTupleTable.getNodeTable();
         nodeQuadTable  = nodeQuadTupleTable.getNodeTable();
-        preemptableTripleTupleTable = new PreemptableTupleTable(nodeTripleTupleTable.getTupleTable());
-        preemptableQuadTupleTable   = new PreemptableTupleTable(nodeQuadTupleTable.getTupleTable());
+        preemptableTripleTupleTable = new PreemptTupleTable(nodeTripleTupleTable.getTupleTable());
+        preemptableQuadTupleTable   = new PreemptTupleTable(nodeQuadTupleTable.getTupleTable());
     }
 
     /**

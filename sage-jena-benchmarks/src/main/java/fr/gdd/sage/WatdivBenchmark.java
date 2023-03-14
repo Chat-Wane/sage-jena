@@ -26,6 +26,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Optional;
 
+// (TODO) different Mode depending on the time spent by queries. Need to run them once
+// at least though.
 @BenchmarkMode({Mode.SingleShotTime})
 @Warmup(iterations = 5)
 @State(Scope.Benchmark)
@@ -93,7 +95,7 @@ public class WatdivBenchmark {
     public void create_query_execution_plan(Backend b) {
         SageInput<?> input = new SageInput<>();
         Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
-        c.set(ARQ.optimization, false);
+        // c.set(ARQ.optimization, false);
 
         try {
             b.queryExecution = QueryExecution.create()

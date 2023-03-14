@@ -1,6 +1,5 @@
 package fr.gdd.sage.arq;
 
-import fr.gdd.sage.generics.Pair;
 import org.apache.jena.atlas.lib.Lib;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
@@ -9,7 +8,10 @@ import org.apache.jena.sparql.algebra.OpLib;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.engine.*;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.iterator.*;
+import org.apache.jena.sparql.engine.iterator.PreemptCounterIter;
+import org.apache.jena.sparql.engine.iterator.QueryIterRoot;
+import org.apache.jena.sparql.engine.iterator.QueryIteratorCheck;
+import org.apache.jena.sparql.engine.iterator.QueryIteratorTiming;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.mgt.Explain;
 import org.apache.jena.sparql.util.Context;
@@ -61,8 +63,8 @@ public class QueryEngineSage extends QueryEngineTDB {
                         : QueryIterRoot.create(input, execCxt);
         QueryIterator qIter = QC.execute(op, qIter1, execCxt) ;
 
-        // #3 inbetween we add our home-made slice iterator :)
-        // PreemptQueryIterSlice meow = new PreemptQueryIterSlice(qIter, 0, 5, execCxt);
+        // #3 inbetween we add our home-made counter iterator :)
+        // PreemptQueryIterSlice sliceIter = new PreemptQueryIterSlice(qIter, 0, 5, execCxt);
         PreemptCounterIter counterIter = new PreemptCounterIter(qIter, execCxt);
 
         // Wrap with something to check for closed iterators.
@@ -77,7 +79,7 @@ public class QueryEngineSage extends QueryEngineTDB {
     public static QueryEngineFactory factory = new QueryEngineSage.QueryEngineFactorySage();
 
     /**
-     * True copy pasta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
+     * True copy /asta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
      * replacing
      */
     public static class QueryEngineFactorySage extends QueryEngineFactoryTDB {
