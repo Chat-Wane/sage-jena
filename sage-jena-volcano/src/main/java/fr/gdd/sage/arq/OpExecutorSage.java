@@ -1,6 +1,5 @@
 package fr.gdd.sage.arq;
 
-import fr.gdd.sage.ReflectionUtils;
 import fr.gdd.sage.configuration.SageInputBuilder;
 import fr.gdd.sage.configuration.SageServerConfiguration;
 import fr.gdd.sage.io.SageInput;
@@ -10,14 +9,26 @@ import org.apache.jena.atlas.logging.Log;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.ARQ;
+import org.apache.jena.sparql.ARQInternalErrorException;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.algebra.op.OpBGP;
+import org.apache.jena.sparql.algebra.op.OpQuadPattern;
+import org.apache.jena.sparql.algebra.op.OpTriple;
+import org.apache.jena.sparql.algebra.op.OpUnion;
+import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacement;
 import org.apache.jena.sparql.core.BasicPattern;
+import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
 import org.apache.jena.sparql.engine.iterator.RandomQueryIterUnion;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
+import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.optimizer.reorder.ReorderProc;
+import org.apache.jena.sparql.engine.optimizer.reorder.ReorderTransformation;
+import org.apache.jena.sparql.expr.ExprList;
 import org.apache.jena.sparql.mgt.Explain;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
@@ -30,16 +41,17 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 
 
 /**
  * Some operators need rewriting to enable pausing/resuming their
- * operation.
+ * operation. This is mostly a copy/pasta of {@link OpExecutorTDB2}, for we want
+ * the same behavior of this executor but the use of our own preemptive iterators.
  **/
 public class OpExecutorSage extends OpExecutorTDB2 {
     static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
@@ -61,15 +73,14 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             // Modify the plain factory so it creates our own preemptable iterators when need be.
             // Since its a `static` field, it globally modifies the default factory of `TDB2`.
             // Using Sage AND TDB2 in a same thread could prove difficult for now.
-            Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
+            /* Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
             try {
                 plainFactoryField.set(this, new OpExecutorPlainFactorySage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
+             */
 
-
-            // Method m = ReflectionUtils._getMethod(
         }
 
         @Override
@@ -103,7 +114,8 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         if (execCxt.getContext().isFalse(ARQ.optimization)) { // force order
             return PatternMatchSage.matchTriplePattern(opBGP.getPattern(), input, execCxt);
         } else { // order of TDB2
-            return super.execute(opBGP, input);
+            GraphTDB graph = (GraphTDB)this.execCxt.getActiveGraph();
+            return executeBGP(graph, opBGP, input, (ExprList)null, this.execCxt);
         }
     }
     
@@ -119,7 +131,10 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         if (execCxt.getContext().isFalse(ARQ.optimization)) { // force order
             return PatternMatchSage.matchQuadPattern(quadPattern.getBasicPattern(), quadPattern.getGraphNode(), input, execCxt);
         } else { // order of TDB2
-            return super.execute(quadPattern, input);
+            DatasetGraphTDB ds = (DatasetGraphTDB)this.execCxt.getDataset();
+            BasicPattern bgp = quadPattern.getBasicPattern();
+            Node gn = quadPattern.getGraphNode();
+            return optimizeExecuteQuads(ds, input, gn, bgp, (ExprList)null, this.execCxt);
         }
     }
 
@@ -137,11 +152,98 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         return cIter;
     }
 
+
+
+    private static QueryIterator executeBGP(GraphTDB graph, OpBGP opBGP, QueryIterator input, ExprList exprs, ExecutionContext execCxt) {
+        DatasetGraphTDB dsgtdb = graph.getDSG();
+        return !isDefaultGraphStorage(graph.getGraphName()) ? optimizeExecuteQuads(dsgtdb, input, graph.getGraphName(), opBGP.getPattern(), exprs, execCxt) : optimizeExecuteTriples(dsgtdb, input, opBGP.getPattern(), exprs, execCxt);
+    }
+
+    private static QueryIterator optimizeExecuteTriples(DatasetGraphTDB dsgtdb, QueryIterator input, BasicPattern pattern, ExprList exprs, ExecutionContext execCxt) {
+        if (!((QueryIterator)input).hasNext()) {
+            return (QueryIterator)input;
+        } else {
+            if (pattern.size() >= 2) {
+                ReorderTransformation transform = dsgtdb.getReorderTransform();
+                if (transform != null) {
+                    QueryIterPeek peek = QueryIterPeek.create((QueryIterator)input, execCxt);
+                    input = peek;
+                    pattern = reorder(pattern, peek, transform);
+                }
+            }
+
+            if (exprs == null) {
+                Explain.explain("Execute", pattern, execCxt.getContext());
+                Predicate<Tuple<NodeId>> filter = QC2.getFilter(execCxt.getContext());
+                return PatternMatchSage.execute(dsgtdb, Quad.defaultGraphNodeGenerated, pattern, (QueryIterator)input, filter, execCxt);
+            } else {
+                Op op = TransformFilterPlacement.transform(exprs, pattern);
+                return plainExecute(op, (QueryIterator)input, execCxt);
+            }
+        }
+    }
+
+    private static QueryIterator optimizeExecuteQuads(DatasetGraphTDB dsgtdb, QueryIterator input, Node gn, BasicPattern bgp, ExprList exprs, ExecutionContext execCxt) {
+        if (!((QueryIterator)input).hasNext()) {
+            return (QueryIterator)input;
+        } else {
+            gn = decideGraphNode(gn, execCxt);
+            if (gn == null) {
+                return optimizeExecuteTriples(dsgtdb, (QueryIterator)input, bgp, exprs, execCxt);
+            } else {
+                if (bgp.size() >= 2) {
+                    ReorderTransformation transform = dsgtdb.getReorderTransform();
+                    if (transform != null) {
+                        QueryIterPeek peek = QueryIterPeek.create((QueryIterator)input, execCxt);
+                        input = peek;
+                        bgp = reorder(bgp, peek, transform);
+                    }
+                }
+
+                if (exprs == null) {
+                    Explain.explain("Execute", bgp, execCxt.getContext());
+                    Predicate<Tuple<NodeId>> filter = QC2.getFilter(execCxt.getContext());
+                    return PatternMatchSage.execute(dsgtdb, gn, bgp, (QueryIterator)input, filter, execCxt);
+                } else {
+                    Op op = TransformFilterPlacement.transform(exprs, gn, bgp);
+                    return plainExecute(op, (QueryIterator)input, execCxt);
+                }
+            }
+        }
+    }
+
+    private static BasicPattern reorder(BasicPattern pattern, QueryIterPeek peek, ReorderTransformation transform) {
+        if (transform != null) {
+            if (!peek.hasNext()) {
+                throw new ARQInternalErrorException("Peek iterator is already empty");
+            }
+
+            BasicPattern pattern2 = Substitute.substitute(pattern, peek.peek());
+            ReorderProc proc = transform.reorderIndexes(pattern2);
+            pattern = proc.reorder(pattern);
+        }
+
+        return pattern;
+    }
+
+    private static boolean isDefaultGraphStorage(Node gn) {
+        return Objects.isNull(gn) || Quad.isDefaultGraph(gn);
+    }
+
+    private static QueryIterator plainExecute(Op op, QueryIterator input, ExecutionContext execCxt) {
+        ExecutionContext ec2 = new ExecutionContext(execCxt);
+        ec2.setExecutor(plainFactory);
+        return QC.execute(op, input, ec2);
+    }
+
+
     /**
      * This is a copy/pasta of the inner factory classes of {@link OpExecutorTDB2}.
      * The only difference with the original is the use of a different {@link PatternMatchTDB2}
      * that will create {@link VolcanoIteratorQuad} that enable pausing/resuming of query execution.
      **/
+    static OpExecutorFactory plainFactory = new OpExecutorPlainFactorySage();
+
     private static class OpExecutorPlainFactorySage implements OpExecutorFactory {
         @Override
         public OpExecutor create(ExecutionContext execCxt) {return new OpExecutorPlainSage(execCxt);}

@@ -13,7 +13,6 @@
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-tdb2</artifactId>
       <version>0.0.1</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>

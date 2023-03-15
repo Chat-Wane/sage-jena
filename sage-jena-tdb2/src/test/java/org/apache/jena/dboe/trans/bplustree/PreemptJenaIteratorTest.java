@@ -139,19 +139,19 @@ class PreemptJenaIteratorTest {
         NodeId city_2 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/City102>");
         BackendIterator<NodeId, SerializableRecord> it = backend.search(city_2, any, any);
 
-        SageOutput<SerializableRecord> output = new SageOutput();
+        SageOutput<SerializableRecord> output = new SageOutput<>();
 
         // #1 first part of the query, we stop at first result
         int nb_results = 0;
         while (it.hasNext()) {
             it.next();
-            BackendIterator<?, ?> it_2 = backend.search(any, it.getId(SPOC.PREDICATE), any);
+            BackendIterator<?, SerializableRecord> it_2 = backend.search(any, it.getId(SPOC.PREDICATE), any);
             while (it_2.hasNext()) {
                 it_2.next();
                 nb_results += 1;
                 if (nb_results >= 1) { // limit 1
                     assertNull(it.previous());
-                    output.save(new Pair(0, it.previous()), new Pair(1, it_2.current()));
+                    output.save(new Pair<>(0, it.previous()), new Pair<>(1, it_2.current()));
                     break;
                 }
             }

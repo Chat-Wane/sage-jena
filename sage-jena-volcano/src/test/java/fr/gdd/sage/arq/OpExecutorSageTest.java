@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -105,11 +104,10 @@ class OpExecutorSageTest {
         TDBInternal.expel(dataset.asDatasetGraph());
     }
 
-    @Disabled
+
     @Test
     public void simple_select_all_triples() {
         Op op = SSE.parseOp("(bgp (?s ?p ?o))");
-        // (TODO) for now, the fully unbounded pattern is not working
 
         SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
         assertEquals(10, output.size());

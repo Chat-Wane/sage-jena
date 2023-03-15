@@ -22,6 +22,7 @@ import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
+import org.apache.jena.tdb2.store.GraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
@@ -41,6 +42,18 @@ import static org.apache.jena.sparql.engine.main.solver.SolverLib.tripleHasEmbTr
  * {@link PatternMatchTDB2} lies in the {@link VolcanoIteratorFactory} call.
  **/
 public class PatternMatchSage {
+
+    public static QueryIterator execute(GraphTDB graph, BasicPattern pattern, QueryIterator input, Predicate<Tuple<NodeId>> filter, ExecutionContext execCxt) {
+        NodeTupleTable ntt = graph.getNodeTupleTable();
+        return matchTriplePattern(pattern, input, execCxt);
+    }
+
+    public static QueryIterator execute(DatasetGraphTDB ds, Node graphNode, BasicPattern pattern, QueryIterator input, Predicate<Tuple<NodeId>> filter, ExecutionContext execCxt) {
+        NodeTupleTable ntt = ds.chooseNodeTupleTable(graphNode);
+        return matchQuadPattern(pattern, graphNode, input, execCxt);
+    }
+
+
 
     /**
      * Creates the builder for triple patterns.
