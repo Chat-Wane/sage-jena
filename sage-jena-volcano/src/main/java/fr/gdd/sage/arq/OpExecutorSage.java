@@ -52,6 +52,11 @@ import java.util.function.Predicate;
  * Some operators need rewriting to enable pausing/resuming their
  * operation. This is mostly a copy/pasta of {@link OpExecutorTDB2}, for we want
  * the same behavior of this executor but the use of our own preemptive iterators.
+ *
+ * It is worth noting that including preemptive iterators in the standard workflow of
+ * TDB2 would be easier if modifying the source code was allowed. Indeed, it would be
+ * enough to have a ScanIteratorFactory that instantiates the proper scan iterator depending
+ * on the execution context.
  **/
 public class OpExecutorSage extends OpExecutorTDB2 {
     static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
@@ -69,18 +74,6 @@ public class OpExecutorSage extends OpExecutorTDB2 {
 
         public OpExecutorSageFactory(Context context) {
             configuration = new SageServerConfiguration(context);
-
-            // Modify the plain factory so it creates our own preemptable iterators when need be.
-            // Since its a `static` field, it globally modifies the default factory of `TDB2`.
-            // Using Sage AND TDB2 in a same thread could prove difficult for now.
-            /* Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
-            try {
-                plainFactoryField.set(this, new OpExecutorPlainFactorySage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-             */
-
         }
 
         @Override
@@ -105,7 +98,6 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         execCxt.getContext().set(SageConstants.input, input);
         execCxt.getContext().set(SageConstants.iterators, iterators);
         execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
-
     }
 
     @Override
@@ -153,6 +145,10 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     }
 
 
+    /**
+     * Again copy/past of this specific section of {@link OpExecutorTDB2} where the order of operations
+     * could be modified.
+     **/
 
     private static QueryIterator executeBGP(GraphTDB graph, OpBGP opBGP, QueryIterator input, ExprList exprs, ExecutionContext execCxt) {
         DatasetGraphTDB dsgtdb = graph.getDSG();

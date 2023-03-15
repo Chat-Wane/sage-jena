@@ -1,5 +1,4 @@
-package org.apache.jena.tdb2.solver;
-// In this package so it can access SolverLibTDB package functions.
+package org.apache.jena.tdb2.solver; // In this package so it can access SolverLibTDB package functions.
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.VolcanoIteratorQuad;

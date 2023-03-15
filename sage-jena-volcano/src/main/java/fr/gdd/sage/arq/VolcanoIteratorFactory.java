@@ -54,19 +54,18 @@ public class VolcanoIteratorFactory {
     
     public VolcanoIteratorQuad getScan(Tuple<NodeId> pattern, Integer id) {
         BackendIterator<NodeId, SerializableRecord> wrapped = null;
+        VolcanoIteratorQuad volcanoIterator = null;
         if (pattern.len() < 4) {
             wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
+            volcanoIterator = new VolcanoIteratorQuad(wrapped, tripleNodeTable, input, output, id);
         } else {
             wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
+            volcanoIterator = new VolcanoIteratorQuad(wrapped, quadNodeTable, input, output, id);
         }
 
         /* if (input.isRandomWalking()) {
             ((RandomIterator) wrapped).random();
         }*/
-
-        VolcanoIteratorQuad volcanoIterator = (pattern.len() < 4) ?
-                new VolcanoIteratorQuad(wrapped, tripleNodeTable, input, output, id):
-                new VolcanoIteratorQuad(wrapped, quadNodeTable, input, output, id);
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
         if (!iterators.containsKey(id) && !input.isRandomWalking()) {
@@ -80,11 +79,15 @@ public class VolcanoIteratorFactory {
     }
 
     public VolcanoIteratorTupleId getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id) {
-        VolcanoIteratorTupleId volcanoIterator = new VolcanoIteratorTupleId(
-                new PreemptJenaIterator(nodeTupleTable.find(pattern)),
-                nodeTupleTable.getNodeTable(),
-                input, output,
-                id);
+        BackendIterator<NodeId, SerializableRecord> wrapped = null;
+        VolcanoIteratorTupleId volcanoIterator = null;
+        if (pattern.len() < 4) {
+            wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
+            volcanoIterator = new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id);
+        } else {
+            wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
+            volcanoIterator = new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
+        }
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
         if (!iterators.containsKey(id) && !input.isRandomWalking()) {

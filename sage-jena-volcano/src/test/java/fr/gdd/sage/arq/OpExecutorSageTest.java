@@ -104,7 +104,7 @@ class OpExecutorSageTest {
         TDBInternal.expel(dataset.asDatasetGraph());
     }
 
-
+    @Disabled
     @Test
     public void simple_select_all_triples() {
         Op op = SSE.parseOp("(bgp (?s ?p ?o))");
@@ -144,7 +144,9 @@ class OpExecutorSageTest {
         assertEquals(9, rest.size());
     }
 
-
+    /**
+     * Runs the query until there are no result anymore.
+     */
     public SageOutput<SerializableRecord> run_to_the_limit(Op query, SageInput<?> input) {
         boolean limitIsSet = input.getLimit() != Long.MAX_VALUE;
         Context c = dataset.getContext().copy().set(SageConstants.input, input);

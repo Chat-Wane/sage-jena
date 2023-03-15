@@ -1,18 +1,13 @@
 package fr.gdd.sage;
 
-import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.datasets.Watdiv10M;
 import fr.gdd.sage.io.SageInput;
-import org.apache.jena.query.ARQ;
 import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.util.Context;
-import org.apache.jena.tdb2.TDB2Factory;
-import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -39,74 +34,57 @@ import java.util.Optional;
 public class SimplePatternBenchmark {
     static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
 
-    @Param({
-            "<http://db.uwaterloo.ca/~galuc/wsdbm/City193> <http://www.geonames.org/ontology#parentCountry> ?v1.\n" +
-                    "        ?v6 <http://schema.org/nationality> ?v1.\n" +
-                    "        ?v6 <http://db.uwaterloo.ca/~galuc/wsdbm/likes> ?v3.\n" +
-                    "        ?v2 <http://purl.org/goodrelations/includes> ?v3.\n" +
-                    "        ?v2 <http://purl.org/goodrelations/validThrough> ?v5.\n" +
-                    "        ?v2 <http://purl.org/goodrelations/serialNumber> ?v4.\n" +
-                    "        ?v2 <http://schema.org/eligibleQuantity> ?v8.\n" +
-                    "        ?v6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v7.\n" +
-                    "        ?v9 <http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor> ?v3.\n" +
-                    "        ?v2 <http://schema.org/eligibleRegion> ?v1.",
-            "?v0 <http://db.uwaterloo.ca/~galuc/wsdbm/gender> <http://db.uwaterloo.ca/~galuc/wsdbm/Gender0>", // vPO
-            "?v0 <http://xmlns.com/foaf/familyName> ?v1." // vPv
-    })
-    public String a_pattern; // prefixed with alphanumeric character to force the execution order of @Param
 
-    @Param({"default", "sage"})
+    static OpExecutorFactory opExecutorTDB2ForceOrderFactory;
+
+    @Param({"tdb", "sage", "tdb force order", "sage force order"})
     public String b_engine;
 
     @Param("target/watdiv10M")
     public String z_dbPath;
 
+    @Param({
+            "<http://db.uwaterloo.ca/~galuc/wsdbm/City193> <http://www.geonames.org/ontology#parentCountry> ?v1." +
+                    "?v6 <http://schema.org/nationality> ?v1." +
+                    "?v6 <http://db.uwaterloo.ca/~galuc/wsdbm/likes> ?v3." +
+                    "?v2 <http://purl.org/goodrelations/includes> ?v3." +
+                    "?v2 <http://purl.org/goodrelations/validThrough> ?v5." +
+                    "?v2 <http://purl.org/goodrelations/serialNumber> ?v4." +
+                    "?v2 <http://schema.org/eligibleQuantity> ?v8." +
+                    "?v6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?v7." +
+                    "?v9 <http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor> ?v3." +
+                    "?v2 <http://schema.org/eligibleRegion> ?v1.",
+            "?v0 <http://db.uwaterloo.ca/~galuc/wsdbm/gender> <http://db.uwaterloo.ca/~galuc/wsdbm/Gender0>", // vPO
+            "?v0 <http://xmlns.com/foaf/familyName> ?v1." // vPv
+    })
+    public String a_pattern; // prefixed with alphanumeric character to force the execution order of @Param
 
     @Setup(Level.Trial)
-    public void setupEngine(WatdivBenchmark.Backend b) {
-        b.dataset = TDB2Factory.connectDataset(z_dbPath);
-        if (!b.dataset.isInTransaction()) {
-            b.dataset.begin(ReadWrite.READ);
-        }
-
-        if (b_engine.equals("default")) {
-            QC.setFactory(b.dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
-            QueryEngineTDB.register();
-        } else {
-            QC.setFactory(b.dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
-            QueryEngineSage.register();
-        }
+    public void setup(SetupBenchmark.ExecutionContext ec) {
+        SetupBenchmark.setup(ec, z_dbPath, b_engine);
     }
 
     @TearDown(Level.Trial)
-    public void setdownEngine(WatdivBenchmark.Backend b) {
-        if (b_engine.equals("default")) {
-            QueryEngineTDB.unregister();
-        } else {
-            QueryEngineSage.unregister();
-        }
-        if (b.dataset.isInTransaction()) {
-            b.dataset.end();
-        }
+    public void setdown(SetupBenchmark.ExecutionContext ec) {
+        SetupBenchmark.setdown(ec, b_engine);
     }
 
     @Setup(Level.Trial)
-    public void read_query(WatdivBenchmark.Backend b) {
-        b.query = "SELECT * WHERE {" + a_pattern + "}";
-        log.debug("{}", b.query);
+    public void read_query(SetupBenchmark.ExecutionContext ec) {
+        ec.query = "SELECT * WHERE {" + a_pattern + "}";
+        log.debug("{}", ec.query);
     }
 
     @Setup(Level.Invocation)
-    public void create_query_execution_plan(WatdivBenchmark.Backend b) {
+    public void create_query_execution_plan(SetupBenchmark.ExecutionContext ec) {
         SageInput<?> input = new SageInput<>();
-        Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
-        c.set(ARQ.optimization, false);
+        Context c = ec.dataset.getContext().copy().set(SageConstants.input, input);
 
         try {
-            b.queryExecution = QueryExecution.create()
-                    .dataset(b.dataset)
+            ec.queryExecution = QueryExecution.create()
+                    .dataset(ec.dataset)
                     .context(c)
-                    .query(b.query).build();
+                    .query(ec.query).build();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -114,9 +92,9 @@ public class SimplePatternBenchmark {
 
 
     @Benchmark
-    public long execute_pattern(WatdivBenchmark.Backend b) {
+    public long execute_pattern(SetupBenchmark.ExecutionContext ec) {
         long nbResults = 0;
-        ResultSet rs = b.queryExecution.execSelect() ;
+        ResultSet rs = ec.queryExecution.execSelect() ;
         while (rs.hasNext()) {
             rs.next();
             nbResults+=1;
@@ -133,6 +111,7 @@ public class SimplePatternBenchmark {
         Watdiv10M watdiv = new Watdiv10M(dirPath_opt); // creates the db if need be
 
         Options opt = new OptionsBuilder()
+
                 .include(SimplePatternBenchmark.class.getSimpleName())
                 .param("z_dbPath", watdiv.dbPath_asStr)
                 .forks(1)

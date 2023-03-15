@@ -10,6 +10,7 @@ import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 import java.util.Iterator;
 import java.util.Objects;
@@ -24,8 +25,8 @@ import java.util.Objects;
  **/
 public class PreemptJenaIterator implements BackendIterator<NodeId, SerializableRecord> {
     final BPlusTree tree;
-    final Record min;
-    final Record max;
+    Record min;
+    Record max;
     final RecordMapper mapper;
     final RecordFactory factory;
     final TupleMap tupleMap;
@@ -59,6 +60,7 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
         this.tupleMap = null;
         this.wrapped = wrapped;
     }
+
 
     public Tuple<NodeId> getCurrentTuple() {
         return current;

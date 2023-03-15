@@ -46,71 +46,46 @@ public class WatdivBenchmark {
     public String z_dbPath;
 
 
-    @State(Scope.Benchmark)
-    public static class Backend {
-        volatile Dataset dataset;
-        volatile QueryExecution queryExecution;
-        volatile String query = null;
-    }
-
     @Setup(Level.Trial)
-    public void setup_engine(Backend b) {
-        b.dataset = TDB2Factory.connectDataset(z_dbPath);
-        if (!b.dataset.isInTransaction()) {
-            b.dataset.begin(ReadWrite.READ);
-        }
-
-        if (b_engine.equals("default")) {
-            QC.setFactory(b.dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
-            QueryEngineTDB.register();
-        } else {
-            QC.setFactory(b.dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
-            QueryEngineSage.register();
-        }
+    public void setup(SetupBenchmark.ExecutionContext ec) {
+        SetupBenchmark.setup(ec, z_dbPath, b_engine);
     }
 
     @TearDown(Level.Trial)
-    public void setdown_engine(Backend b) {
-        if (b_engine.equals("default")) {
-            QueryEngineTDB.unregister();
-        } else {
-            QueryEngineSage.unregister();
-        }
-        if (b.dataset.isInTransaction()) {
-            b.dataset.end();
-        }
+    public void setdown(SetupBenchmark.ExecutionContext ec) {
+        SetupBenchmark.setdown(ec, b_engine);
     }
 
     @Setup(Level.Trial)
-    public void read_query(Backend b) {
+    public void read_query(SetupBenchmark.ExecutionContext ec) {
         try {
-            b.query = Files.readString(Paths.get(a_query), StandardCharsets.UTF_8);
+            ec.query = Files.readString(Paths.get(a_query), StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        log.debug("{}", b.query);
+        log.debug("{}", ec.query);
     }
 
     @Setup(Level.Iteration)
-    public void create_query_execution_plan(Backend b) {
+    public void create_query_execution_plan(SetupBenchmark.ExecutionContext ec) {
         SageInput<?> input = new SageInput<>();
-        Context c = b.dataset.getContext().copy().set(SageConstants.input, input);
+        Context c = ec.dataset.getContext().copy().set(SageConstants.input, input);
         // c.set(ARQ.optimization, false);
 
         try {
-            b.queryExecution = QueryExecution.create()
-                    .dataset(b.dataset)
+            ec.queryExecution = QueryExecution.create()
+                    .dataset(ec.dataset)
                     .context(c)
-                    .query(b.query).build();
+                    .query(ec.query).build();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     @Benchmark
-    public long execute_query(Backend b) {
+    public long execute_query(SetupBenchmark.ExecutionContext ec) {
         long nbResults = 0;
-        ResultSet rs = b.queryExecution.execSelect() ;
+        ResultSet rs = ec.queryExecution.execSelect() ;
         while (rs.hasNext()) {
             rs.next();
             nbResults+=1;

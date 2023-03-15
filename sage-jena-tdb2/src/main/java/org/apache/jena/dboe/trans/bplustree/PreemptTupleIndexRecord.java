@@ -90,7 +90,7 @@ public class PreemptTupleIndexRecord {
             NodeId X = pattern.get(i);
             if ( NodeId.isAny(X) ) {
                 X = null;
-                // No longer seting leading key slots.
+                // No longer setting leading key slots.
                 leading = false;
                 continue;
             }
