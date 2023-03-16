@@ -27,10 +27,10 @@ public class SageServerConfiguration {
 
     public SageServerConfiguration(Context context) {
         if (Objects.nonNull(context.get(SageConstants.limit)))
-            this.limit   = context.get(SageConstants.limit);
+            this.limit   = context.getLong(SageConstants.limit, Long.MAX_VALUE);
 
         if (Objects.nonNull(context.get(SageConstants.timeout)))
-            this.timeout = context.get(SageConstants.timeout);
+            this.timeout = context.getLong(SageConstants.timeout, Long.MAX_VALUE);
     }
     
     public long getLimit() {
@@ -41,12 +41,12 @@ public class SageServerConfiguration {
         return timeout;
     }
 
-    public SageServerConfiguration setLimit(int limit) {
+    public SageServerConfiguration setLimit(long limit) {
         this.limit = limit;
         return this;
     }
 
-    public SageServerConfiguration setTimeout(int timeout) {
+    public SageServerConfiguration setTimeout(long timeout) {
         this.timeout = timeout;
         return this;
     }

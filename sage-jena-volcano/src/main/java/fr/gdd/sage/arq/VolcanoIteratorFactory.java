@@ -20,13 +20,15 @@ import java.util.Map;
 /**
  * A volcano iterator factory to ease creation of iterators, one per
  * execution context.
+ *
+ * (TODO) make it more general to showcase a `ScanIteratorFactory` that would
+ * replace the iterator creation of `TDB2`.
  **/
 public class VolcanoIteratorFactory {
     
     SageInput<?> input;
     SageOutput<?> output;
     long deadline;
-    Map<Integer, Iterator<?>> iterators;
 
     private NodeTable quadNodeTable;
     private NodeTable tripleNodeTable;
@@ -40,7 +42,6 @@ public class VolcanoIteratorFactory {
         this.input  = context.getContext().get(SageConstants.input);
 
         this.deadline = this.input.getDeadline();
-        this.iterators = context.getContext().get(SageConstants.iterators);
         
         var graph = (DatasetGraphTDB) context.getDataset();
         var nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
@@ -68,12 +69,12 @@ public class VolcanoIteratorFactory {
         }*/
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
-        if (!iterators.containsKey(id) && !input.isRandomWalking()) {
+        // if (!iterators.containsKey(id) && !input.isRandomWalking()) {
             if (input != null && input.getState() != null && input.getState().containsKey(id)) {
                 volcanoIterator.skip((SerializableRecord) input.getState(id));
             }
-        }
-        iterators.put(id, volcanoIterator); // register and/or erase previous iterator
+        // }
+        // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
 
         return volcanoIterator;
     }
@@ -90,12 +91,12 @@ public class VolcanoIteratorFactory {
         }
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
-        if (!iterators.containsKey(id) && !input.isRandomWalking()) {
+        // if (!iterators.containsKey(id) && !input.isRandomWalking()) {
             if (input != null && input.getState() != null && input.getState().containsKey(id)) {
                 volcanoIterator.skip((SerializableRecord) input.getState(id));
             }
-        }
-        iterators.put(id, volcanoIterator); // register and/or erase previous iterator
+        // }
+        // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
 
         return volcanoIterator;
     }

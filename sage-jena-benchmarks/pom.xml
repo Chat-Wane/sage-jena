@@ -166,8 +166,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
         <version>3.8.0</version>
         <configuration>
           <compilerVersion>${javac.target}</compilerVersion>
-          <source>11</source>
-          <target>11</target>
+          <source>19</source>
+          <target>19</target>
+            <compilerArgs>--enable-preview</compilerArgs>
         </configuration>
       </plugin>
       <plugin>

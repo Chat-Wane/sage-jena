@@ -1,18 +1,10 @@
 package fr.gdd.sage;
 
 
-import fr.gdd.sage.arq.OpExecutorSage;
-import fr.gdd.sage.arq.QueryEngineSage;
-import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.datasets.Watdiv10M;
-import fr.gdd.sage.io.SageInput;
-import org.apache.jena.query.*;
-import org.apache.jena.sparql.engine.main.QC;
-import org.apache.jena.sparql.util.Context;
-import org.apache.jena.tdb2.TDB2Factory;
-import org.apache.jena.tdb2.solver.OpExecutorTDB2;
-import org.apache.jena.tdb2.solver.QueryEngineTDB;
+import fr.gdd.sage.generics.Pair;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -29,7 +21,7 @@ import java.util.Optional;
 // (TODO) different Mode depending on the time spent by queries. Need to run them once
 // at least though.
 @BenchmarkMode({Mode.SingleShotTime})
-@Warmup(iterations = 5)
+@Warmup(iterations = 3)
 @State(Scope.Benchmark)
 public class WatdivBenchmark {
     static Logger log = LoggerFactory.getLogger(WatdivBenchmark.class);
@@ -39,7 +31,10 @@ public class WatdivBenchmark {
     @Param("sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10084.sparql")
     public String a_query;
 
-    @Param({"default", "sage"})
+    @Param({EngineTypes.TDB, EngineTypes.Sage})
+            // EngineTypes.TDBForceOrder, EngineTypes.SageForceOrder })
+           // EngineTypes.SageForceOrderTimeout60s, EngineTypes.SageForceOrderTimeout30s,
+           // EngineTypes.SageForceOrderTimeout10s, EngineTypes.SageForceOrderTimeout1s})
     public String b_engine;
 
     @Param("target/watdiv10M")
@@ -66,43 +61,24 @@ public class WatdivBenchmark {
         log.debug("{}", ec.query);
     }
 
-    @Setup(Level.Iteration)
-    public void create_query_execution_plan(SetupBenchmark.ExecutionContext ec) {
-        SageInput<?> input = new SageInput<>();
-        Context c = ec.dataset.getContext().copy().set(SageConstants.input, input);
-        // c.set(ARQ.optimization, false);
-
-        try {
-            ec.queryExecution = QueryExecution.create()
-                    .dataset(ec.dataset)
-                    .context(c)
-                    .query(ec.query).build();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     @Benchmark
-    public long execute_query(SetupBenchmark.ExecutionContext ec) {
-        long nbResults = 0;
-        ResultSet rs = ec.queryExecution.execSelect() ;
-        while (rs.hasNext()) {
-            rs.next();
-            nbResults+=1;
-        }
+    public long execute(SetupBenchmark.ExecutionContext ec) throws Exception {
+        Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
 
         // (TODO) remove this from the benchmarked part
         if (nbResultsPerQuery.containsKey(a_query)) {
-            if (nbResultsPerQuery.get(a_query) != nbResults) {
-                System.out.println("/!\\ not the same number of results");
+            long previousNbResults = nbResultsPerQuery.get(a_query);
+            if (previousNbResults != nbResultsAndPreempt.left) {
+                throw (new Exception(String.format("/!\\ not the same number of results on %s: %s vs %s.",
+                        a_query, previousNbResults, nbResultsAndPreempt.left)));
             }
         } else {
-            nbResultsPerQuery.put(a_query, nbResults);
+            nbResultsPerQuery.put(a_query, nbResultsAndPreempt.left);
         }
 
-        log.debug("Got {} results for this query.", nbResults);
+        log.debug("Got {} results for this query.", nbResultsAndPreempt.left);
 
-        return nbResults;
+        return nbResultsAndPreempt.left;
     }
 
     /**
@@ -122,6 +98,8 @@ public class WatdivBenchmark {
                 .param("z_dbPath", watdiv.dbPath_asStr)
                 .forks(1)
                 .threads(1)
+                .result("sage-jena-benchmarks/results/WatdivBenchmarkBase.csv")
+                .resultFormat(ResultFormatType.CSV)
                 .build();
 
         new Runner(opt).run();

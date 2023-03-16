@@ -57,12 +57,13 @@ import java.util.function.Predicate;
  * TDB2 would be easier if modifying the source code was allowed. Indeed, it would be
  * enough to have a ScanIteratorFactory that instantiates the proper scan iterator depending
  * on the execution context.
+ * This modification would take place in two instances only : {@link org.apache.jena.tdb2.solver.SolverRX}
+ * Line 116; and {@link org.apache.jena.tdb2.solver.StageMatchTuple} Line 59.
  **/
 public class OpExecutorSage extends OpExecutorTDB2 {
     static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
     
     SageOutput<?> output; // where pausing state is saved when need be.
-    public Map<Integer, VolcanoIteratorQuad> iterators; // all iterators that may need saving
 
     /**
      * Factory to be registered in Jena ARQ. It creates an OpExecutor for
@@ -92,11 +93,9 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             .build();
         
         this.output = new SageOutput<>();
-        this.iterators = new TreeMap<>();
         
         execCxt.getContext().set(SageConstants.output, output);
         execCxt.getContext().set(SageConstants.input, input);
-        execCxt.getContext().set(SageConstants.iterators, iterators);
         execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
     }
 
