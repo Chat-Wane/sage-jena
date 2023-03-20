@@ -42,20 +42,31 @@ public class Watdiv10M {
     public final String dbPath_asStr;
     public final List<Pair<String, String>> queries;
 
+    // above 100s
+    final List<String> longQueryNames = List.of("query_10020.sparql", "query_10082.sparql", "query_10168.sparql",
+            "query_10078.sparql", "query_10083.sparql");
+    public List<String> longQueries = new ArrayList<>();
+    // between 1s to 100s
+    final List<String> mediumQueryNames = List.of("query_10122.sparql", "query_10012.sparql", "query_10061.sparql");
+    public List<String> mediumQueries = new ArrayList<>();
+    // the rest below 1s
+
+    public List<String> shortQueries = new ArrayList<>();
+
     public Watdiv10M(Optional<String> dbPath_opt) {
 
         Path dirPath = dbPath_opt.map(Paths::get).orElseGet(() -> Paths.get(DEFAULT_DB_PATH));
         Path dbPath = Paths.get(dirPath.toString(), DB_NAME);
         Path filePath = Paths.get(dirPath.toString(), ARCHIVE_NAME);
-        Path extract_path = Paths.get(dirPath.toString(), EXTRACT_PATH);
+        Path extractPath = Paths.get(dirPath.toString(), EXTRACT_PATH);
 
         if (Files.exists(dbPath)) {
             log.info("Database already exists, skipping creation.");
         } else {
             log.info("Database does not exist, creating it…");
             download(filePath, DOWNLOAD_URL);
-            extract(filePath, extract_path, whitelist);
-            ingest(dbPath, extract_path, whitelist);
+            extract(filePath, extractPath, whitelist);
+            ingest(dbPath, extractPath, whitelist);
             log.info("Done with the database {}.", dbPath);
         }
 
@@ -63,9 +74,31 @@ public class Watdiv10M {
 
         log.info("Reading queries…");
         this.queries = getQueries(QUERIES_PATH, blacklist);
+
+        categorizeQueries(queries);
     }
 
+    /**
+     * Divide the performance analysis into 3 categories to ease benchmarking.
+     */
+    public void categorizeQueries(List<Pair<String, String>> queries) {
+        longQueries = new ArrayList<>();
+        mediumQueries = new ArrayList<>();
+        shortQueries = new ArrayList<>();
+        for (String queryName : queries.stream().map((p) -> p.left).toList()) {
+            if (!longQueryNames.stream().filter(e -> queryName.contains(e)).toList().isEmpty()) {
+                longQueries.add(queryName);
+            } else if (!mediumQueryNames.stream().filter(e -> queryName.contains(e)).toList().isEmpty()) {
+                mediumQueries.add(queryName);
+            } else {
+                shortQueries.add(queryName);
+            }
+        }
+    }
 
+    /**
+     * @return A list of pairs containing the name of the query and its actual content.
+     */
     static public ArrayList<Pair<String,String>> getQueries(String queriesPath_asStr, List<String> blacklist) {
         ArrayList<Pair<String, String>> queries = new ArrayList<>();
         Path queriesPath = Paths.get(queriesPath_asStr);
@@ -91,7 +124,11 @@ public class Watdiv10M {
         return queries;
     }
 
-
+    /**
+     * Download the dataset from remote URL.
+     * @param path The file location to download to.
+     * @param url The URL of the content to download.
+     */
     static public void download(Path path, String url) {
         if (!Files.exists(path)) {
             log.info("Starting the download…");
@@ -110,6 +147,12 @@ public class Watdiv10M {
         }
     }
 
+    /**
+     * Extract the dataset archive and keep the whitelisted files.
+     * @param archive The archive file location.
+     * @param outDir The directory to extract to.
+     * @param whitelist The whitelisted files to extract.
+     */
     static public void extract(Path archive, Path outDir, List<String> whitelist) {
         log.info("Starting the unarchiving…");
         try {
@@ -154,6 +197,12 @@ public class Watdiv10M {
 
     }
 
+    /**
+     * Ingest the whitelisted files in the Jena database.
+     * @param dbPath The path to the database.
+     * @param extractedPath The directory location of extracted files.
+     * @param whitelist The whitelisted files to ingest.
+     */
     static public void ingest(Path dbPath, Path extractedPath, List<String> whitelist) {
         log.info("Starting to ingest in a Jena TDB2 database…");
         Dataset dataset = TDB2Factory.connectDataset(dbPath.toString());
