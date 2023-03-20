@@ -127,7 +127,6 @@ public class WatdivBenchmark {
                 .param("b_engine", engine)
                 .forks(1)
                 .threads(1)
-                .mode(Mode.SingleShotTime)
                 .resultFormat(ResultFormatType.CSV);
     }
 
@@ -153,6 +152,7 @@ public class WatdivBenchmark {
 
         return runCommon(watdiv, watdiv.mediumQueries, engine)
                 .warmupIterations(5)
+                .mode(Mode.SingleShotTime)
                 .result(outfile.toString())
                 .build();
     }
@@ -164,6 +164,7 @@ public class WatdivBenchmark {
 
         return runCommon(watdiv, watdiv.longQueries, engine)
                 .warmupIterations(2)
+                .mode(Mode.SingleShotTime)
                 .result(outfile.toString())
                 .build();
     }

@@ -8,6 +8,9 @@ target/
 .factorypath
 .project
 
+#### jupyter notebook ####
+*.ipynb_checkpoints/
+
 #### datasets #####
 watdiv10M/
 watdiv42M/
