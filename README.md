@@ -1,5 +1,7 @@
 # Sage ⨯ Jena
 
+[![Tests](https://github.com/Chat-Wane/sage-jena/actions/workflows/testing.yaml/badge.svg)](https://github.com/Chat-Wane/sage-jena/actions/workflows/testing.yaml)
+
 
 [Jena](https://jena.apache.org/) is `A free and open source Java
 framework for building Semantic Web and Linked Data applications.`
