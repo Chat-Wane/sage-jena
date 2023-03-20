@@ -8,6 +8,12 @@
   <name>sage-jena-volcano</name>
   <url>http://maven.apache.org</url>
 
+  <parent>
+    <groupId>fr.gdd.sage</groupId>
+    <artifactId>sage-jena</artifactId>
+    <version>0.0.1</version>
+  </parent>
+  
   <dependencies>
     <dependency> <!-- makes use of already implem'd for compilation targeting jena -->
       <groupId>fr.gdd.sage</groupId>

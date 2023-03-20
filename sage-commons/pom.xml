@@ -1,5 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>fr.gdd.sage</groupId>
   <artifactId>sage-commons</artifactId>
@@ -8,6 +10,12 @@
   <name>sage-commons</name>
   <url>http://maven.apache.org</url>
 
+  <parent>
+    <groupId>fr.gdd.sage</groupId>
+    <artifactId>sage-jena</artifactId>
+    <version>0.0.1</version>
+  </parent>
+  
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

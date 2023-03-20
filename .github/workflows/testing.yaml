@@ -1,0 +1,20 @@
+name: Running tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 19
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '19'
+          architecture: x64
+          cache: maven
+      - name: Actually run tests with maven
+        run: mvn --batch-mode --update-snapshots test
+
