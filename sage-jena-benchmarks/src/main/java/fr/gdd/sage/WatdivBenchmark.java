@@ -75,7 +75,7 @@ public class WatdivBenchmark {
             nbResultsPerQuery.put(a_query, nbResultsAndPreempt.left);
         }
 
-        log.debug("Got {} results for this query.", nbResultsAndPreempt.left);
+        log.debug("Got {} results for this query in {} pause/resume.", nbResultsAndPreempt.left, nbResultsAndPreempt.right);
 
         return nbResultsAndPreempt.left;
     }
@@ -109,8 +109,8 @@ public class WatdivBenchmark {
     // (TODO) use args to run subset of benchmarks
     public static List<Options> createOptions(String[] args, Watdiv10M watdiv, String... engines) {
         ArrayList<Options> options = new ArrayList<>();
-        for (String engine : engines) // run all shorts
-            options.add(runShort(watdiv, engine));
+        //for (String engine : engines) // run all shorts
+        //    options.add(runShort(watdiv, engine));
         for (String engine : engines) // then run all mediums
             options.add(runMedium(watdiv, engine));
         for (String engine : engines) // finally run all longs
@@ -118,6 +118,7 @@ public class WatdivBenchmark {
         return options.stream().filter(Objects::nonNull).toList();
     }
 
+    // some interesting remark about microbenchmarking at https://wiki.openjdk.org/display/HotSpot/MicroBenchmarks
     public static ChainedOptionsBuilder runCommon(Watdiv10M watdiv, List<String> queries, String engine) {
         String[] queriesAsArray = queries.toArray(String[]::new);
         return new OptionsBuilder()
@@ -127,6 +128,8 @@ public class WatdivBenchmark {
                 .param("b_engine", engine)
                 .forks(1)
                 .threads(1)
+                .jvmArgsAppend("-XX:+PrintCompilation")
+                .jvmArgsAppend("-verbose:gc")
                 .resultFormat(ResultFormatType.CSV);
     }
 
@@ -152,6 +155,7 @@ public class WatdivBenchmark {
 
         return runCommon(watdiv, watdiv.mediumQueries, engine)
                 .warmupIterations(5)
+                .forks(2)
                 .mode(Mode.SingleShotTime)
                 .result(outfile.toString())
                 .build();
@@ -164,6 +168,7 @@ public class WatdivBenchmark {
 
         return runCommon(watdiv, watdiv.longQueries, engine)
                 .warmupIterations(2)
+                .forks(2)
                 .mode(Mode.SingleShotTime)
                 .result(outfile.toString())
                 .build();
