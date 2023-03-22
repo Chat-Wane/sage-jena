@@ -51,7 +51,7 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
     }
 
     /**
-     * Null Iterator
+     * Null Iterator, does not need any preemptive behavior.
      **/
     public PreemptJenaIterator() {
         this.min = null;
@@ -61,6 +61,20 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
         this.factory = null;
         this.tupleMap = null;
         this.wrapped = new NullIterator<>();
+    }
+
+    /**
+     * Singelton Iterator, still need basic parameters since they are
+     * needed for `previous()`/`current()` and `skip(to)` as well.
+     */
+    public PreemptJenaIterator(Tuple<NodeId> pattern, BPlusTree tree, Record min, Record max, RecordMapper mapper, RecordFactory factory, TupleMap tupleMap) {
+        this.min = min;
+        this.max = max;
+        this.tree = tree;
+        this.mapper = mapper;
+        this.factory = factory;
+        this.tupleMap = tupleMap;
+        wrapped = new SingletonIterator<>(pattern);
     }
 
 
@@ -125,16 +139,13 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
 
     @Override
     public SerializableRecord current() {
-        // check `tupleMap` is `null` since initializing a singleton does not require anything.
-        // Yet, on resume, we want the state to recover with null hence producing its value on `next`.
-        return Objects.isNull(current) || Objects.isNull(tupleMap) ?
+        return Objects.isNull(current) ?
                 null :
                 new SerializableRecord(TupleLib.record(factory, current, tupleMap));
     }
 
     @Override
     public SerializableRecord previous() {
-        // `tupleMap` does not need checking here since previous is always null for singleton.
         return Objects.isNull(previous) ? null : new SerializableRecord(TupleLib.record(factory, previous, tupleMap));
     }
     

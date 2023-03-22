@@ -99,6 +99,7 @@ public class WatdivBenchmark {
                 // EngineTypes.Sage,
                 EngineTypes.TDBForceOrder,
                 EngineTypes.SageForceOrder,
+                EngineTypes.SageForceOrderTimeout1ms,
                 EngineTypes.SageForceOrderTimeout1s,
                 EngineTypes.SageForceOrderTimeout30s,
                 EngineTypes.SageForceOrderTimeout60s);
@@ -203,7 +204,7 @@ public class WatdivBenchmark {
 
         return runCommon(watdiv, watdiv.longQueries, engine)
                 .warmupIterations(2)
-                .forks(2)
+                .forks(1)
                 .mode(Mode.SingleShotTime)
                 .result(outfile.toString())
                 .build();

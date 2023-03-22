@@ -113,7 +113,7 @@ public class PreemptTupleIndexRecord {
                  // Set the max Record to the leading NodeIds, +1.
                  // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
                  NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
-                 return new PreemptJenaIterator(bpt, minRec, maxRec, recordMapper, factory, tupleMap);
+                 return new PreemptJenaIterator(pattern, bpt, minRec, maxRec, recordMapper, factory, tupleMap);
                  // return new PreemptJenaIterator(new SingletonIterator<>(pattern));
              } else {
                  return new PreemptJenaIterator(); // null iterator
