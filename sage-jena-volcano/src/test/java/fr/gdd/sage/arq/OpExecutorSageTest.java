@@ -23,7 +23,6 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -32,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Testing the executor by building queries by hand.
@@ -104,13 +104,58 @@ class OpExecutorSageTest {
         TDBInternal.expel(dataset.asDatasetGraph());
     }
 
-    @Disabled
     @Test
+    // related to issue#7
     public void simple_select_all_triples() {
         Op op = SSE.parseOp("(bgp (?s ?p ?o))");
 
         SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
         assertEquals(10, output.size());
+    }
+
+    @Test
+    public void select_a_singleton_ie_a_fully_bounded_triple() {
+        Op op = SSE.parseOp("(bgp (" +
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City0> " +
+                "<http://www.geonames.org/ontology#parentCountry> " +
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/Country6>))");
+        SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
+        assertEquals(1, output.size());
+    }
+
+    @Test
+    // related to issue#13
+    public void select_a_singleton_and_preempt() {
+        Op op = SSE.parseOp("(bgp (" +
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/City0> " +
+                "<http://www.geonames.org/ontology#parentCountry> " +
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/Country6>) (" +
+                "?s <http://www.geonames.org/ontology#parentCountry> ?o))");
+        SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
+        assertEquals(10, output.size()); // make sure there are 10 results
+
+        // now with preemption
+        output = run_to_the_limit(op, new SageInput<>().setLimit(1));
+        assertEquals(1, output.size());
+
+        // the saved state for singleton is always null since it always
+        // needs to produce its unique value on resuming.
+        assertNull(output.getState().get(0));
+
+        SageOutput<?> rest = run_to_the_limit(op, new SageInput().setState(output.getState()));
+        assertEquals(9, rest.size());
+    }
+
+    @Test
+    public void select_a_null_iterator() {
+        Op op = SSE.parseOp("(bgp (" +
+                "<http://deliberate_mistake> " +
+                "<http://www.geonames.org/ontology#parentCountry> " +
+                "<http://db.uwaterloo.ca/~galuc/wsdbm/Country6>))");
+        SageOutput<?> output = run_to_the_limit(op, new SageInput<>());
+        assertEquals(0, output.size());
+        // we don't need for preemptive testing since null always immediately
+        // report `hasNext` false.
     }
 
     @Test
@@ -149,7 +194,9 @@ class OpExecutorSageTest {
      */
     public SageOutput<SerializableRecord> run_to_the_limit(Op query, SageInput<?> input) {
         boolean limitIsSet = input.getLimit() != Long.MAX_VALUE;
-        Context c = dataset.getContext().copy().set(SageConstants.input, input);
+        Context c = dataset.getContext().copy()
+                .set(SageConstants.input, input)
+                .set(ARQ.optimization, false); // we don't want reordering of triples for tests
         Plan plan = QueryEngineSage.factory.create(query, dataset.asDatasetGraph(), BindingRoot.create(), c);
         QueryIterator it = plan.iterator();
 

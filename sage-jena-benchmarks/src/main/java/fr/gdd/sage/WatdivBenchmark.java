@@ -42,7 +42,11 @@ public class WatdivBenchmark {
 
     @Setup(Level.Trial)
     public void setup(SetupBenchmark.ExecutionContext ec) {
-        SetupBenchmark.setup(ec, z_dbPath, b_engine);
+        try {
+            SetupBenchmark.setup(ec, z_dbPath, b_engine);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @TearDown(Level.Trial)
@@ -91,31 +95,57 @@ public class WatdivBenchmark {
 
         // create all the runners' options
         List<Options> options = createOptions(args, watdiv,
-                EngineTypes.TDB,
-                EngineTypes.Sage,
+                // EngineTypes.TDB,
+                // EngineTypes.Sage,
                 EngineTypes.TDBForceOrder,
                 EngineTypes.SageForceOrder,
                 EngineTypes.SageForceOrderTimeout1s,
                 EngineTypes.SageForceOrderTimeout30s,
                 EngineTypes.SageForceOrderTimeout60s);
 
+        // testing only one query
+        /* options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
+                EngineTypes.SageTimeout1s);
+                // EngineTypes.TDB);
+        */
         for (Options opt : options) {
             new Runner(opt).run();
         }
-    }
 
+    }
 
 
     // (TODO) use args to run subset of benchmarks
     public static List<Options> createOptions(String[] args, Watdiv10M watdiv, String... engines) {
         ArrayList<Options> options = new ArrayList<>();
-        //for (String engine : engines) // run all shorts
-        //    options.add(runShort(watdiv, engine));
+        /* for (String engine : engines) // run all shorts
+            options.add(runShort(watdiv, engine));
         for (String engine : engines) // then run all mediums
-            options.add(runMedium(watdiv, engine));
+            options.add(runMedium(watdiv, engine)); */
         for (String engine : engines) // finally run all longs
             options.add(runLong(watdiv, engine));
         return options.stream().filter(Objects::nonNull).toList();
+
+
+    }
+
+    // no out file for debugging
+    public static List<Options> customsOptions(Watdiv10M watdiv, String query, String... engines) {
+        ArrayList<Options> options = new ArrayList<>();
+        for (String engine : engines) {
+            options.add(runCommon(watdiv, List.of(query), engine)
+                    .warmupIterations(1)
+                    .forks(10)
+                    .mode(Mode.SingleShotTime)
+                    //.jvmArgsAppend("-XX:-TieredCompilation", "-XX:-BackgroundCompilation")
+                    // Such option comes from an issue with `jmh` where identical run, ie forks would
+                    // yield twice increased/decreased execution time due to different JVM compiler choices.
+                    // see: <https://stackoverflow.com/questions/32047440/different-benchmarking-results-between-forks-in-jmh>
+                    .jvmArgsAppend("-XX:-BackgroundCompilation")
+                    //.jvmArgsAppend("-XX:-BackgroundCompilation -XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -verbose:gc")
+                    .build());
+        }
+        return options;
     }
 
     // some interesting remark about microbenchmarking at https://wiki.openjdk.org/display/HotSpot/MicroBenchmarks
@@ -126,15 +156,16 @@ public class WatdivBenchmark {
                 .param("z_dbPath", watdiv.dbPath_asStr)
                 .param("a_query", queriesAsArray)
                 .param("b_engine", engine)
+                .jvmArgsAppend("-XX:-BackgroundCompilation")
                 .forks(1)
                 .threads(1)
-                .jvmArgsAppend("-XX:+PrintCompilation")
-                .jvmArgsAppend("-verbose:gc")
                 .resultFormat(ResultFormatType.CSV);
     }
 
     public static Options runShort(Watdiv10M watdiv, String engine) {
-        Path outfile = Path.of(String.format("sage-jena-benchmarks/results/WatdivBenchmark-%s-Short.csv", engine));
+        Path outfile = Path.of(String.format("sage-jena-benchmarks/results/%s-%s-Short.csv",
+                WatdivBenchmark.class.getSimpleName(),
+                engine));
 
         if (fileExistsAndNotEmpty(outfile)) return null;
 
@@ -149,7 +180,9 @@ public class WatdivBenchmark {
     }
 
     public static Options runMedium(Watdiv10M watdiv, String engine) {
-        Path outfile = Path.of(String.format("sage-jena-benchmarks/results/WatdivBenchmark-%s-Medium.csv", engine));
+        Path outfile = Path.of(String.format("sage-jena-benchmarks/results/%s-%s-Medium.csv",
+                WatdivBenchmark.class.getSimpleName(),
+                engine));
 
         if (fileExistsAndNotEmpty(outfile)) return null;
 
@@ -162,7 +195,9 @@ public class WatdivBenchmark {
     }
 
     public static Options runLong(Watdiv10M watdiv, String engine) {
-        Path outfile = Path.of(String.format("sage-jena-benchmarks/results/WatdivBenchmark-%s-Long.csv", engine));
+        Path outfile = Path.of(String.format("sage-jena-benchmarks/results/%s-%s-Long.csv",
+                WatdivBenchmark.class.getSimpleName(),
+                engine));
 
         if (fileExistsAndNotEmpty(outfile)) return null;
 

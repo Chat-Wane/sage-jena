@@ -42,13 +42,13 @@ class PreemptStageMatchTuple {
         boolean b = prepare(nodeTupleTable.getNodeTable(), patternTuple, input, ids, vars);
         if ( !b )
             // Short cut - known unknown NodeId
-            return Iter.nullIterator();
+            return Iter.nullIterator(); // null iterator is not preempt
 
         // Iterator<Tuple<NodeId>> iterMatches = nodeTupleTable.find(TupleFactory.create(ids));
         VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
         Iterator<Tuple<NodeId>> iterMatches = factory.getScan(nodeTupleTable, TupleFactory.create(ids), id);
 
-        if ( false ) {
+        if ( false ) { // some testing from original source code
             List<Tuple<NodeId>> x = Iter.toList(iterMatches);
             System.out.println(x);
             iterMatches = x.iterator();

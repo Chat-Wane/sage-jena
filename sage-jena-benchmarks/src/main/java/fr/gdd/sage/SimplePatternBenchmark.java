@@ -42,7 +42,11 @@ public class SimplePatternBenchmark {
 
     @Setup(Level.Trial)
     public void setup(SetupBenchmark.ExecutionContext ec) {
-        SetupBenchmark.setup(ec, z_dbPath, b_engine);
+        try {
+            SetupBenchmark.setup(ec, z_dbPath, b_engine);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @TearDown(Level.Trial)

@@ -109,8 +109,6 @@ public class PreemptTupleTable extends TupleTable {
     }
 
     public PreemptJenaIterator preemptable_find(Tuple<NodeId> pattern) {
-        // TupleIndexRecord tir = (TupleIndexRecord) this.findIndex(pattern);
-        // PreemptTupleIndexRecord ptir = new PreemptTupleIndexRecord(tir);
         PreemptTupleIndexRecord ptir = this.findIndex(pattern);
         // (TODO) if a term does not exist, ptir is null and should be treated
         return ptir.scan(pattern);

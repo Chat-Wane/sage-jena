@@ -1,7 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.ReflectionUtils;
-import org.apache.jena.atlas.iterator.SingletonIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
@@ -13,10 +12,8 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.NodeIdFactory;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexBase;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
-import org.apache.jena.util.iterator.NullIterator;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
 
@@ -108,9 +105,18 @@ public class PreemptTupleIndexRecord {
         // Is it a simple existence test?
         if ( numSlots == pattern.len() ) {
              if ( index.contains(minRec) ) {
-                 return new PreemptJenaIterator(new SingletonIterator<>(pattern));
+                 // We slightly lose in efficiency here by searching into the btree instead of
+                 // creating a `SingletonIterator` but it enables easy pause/resume.
+                 RangeIndex rIndex = tir.getRangeIndex();
+                 BPlusTree bpt = (BPlusTree) rIndex;
+                 NodeId X = pattern.get(leadingIdx);
+                 // Set the max Record to the leading NodeIds, +1.
+                 // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
+                 NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
+                 return new PreemptJenaIterator(bpt, minRec, maxRec, recordMapper, factory, tupleMap);
+                 // return new PreemptJenaIterator(new SingletonIterator<>(pattern));
              } else {
-                 return new PreemptJenaIterator(new NullIterator<>());
+                 return new PreemptJenaIterator(); // null iterator
              }
          }
         
@@ -146,12 +152,15 @@ public class PreemptTupleIndexRecord {
             // Didn't match all defined slots in request.
             // Partial or full scan needed.
             //pattern.unmap(colMap);
-            Method scanMethod = ReflectionUtils._getMethod(TupleIndexRecord.class, "scan");
+
+            // Method scanMethod = ReflectionUtils._getMethod(TupleIndexRecord.class, "scan");
             // tuples = scan(tuples, patternNaturalOrder);
             // tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
             // tuples, patternNaturalOrder);
-            // (TODO)
-            tuples = null;
+            // (TODO) double check this part.
+            RangeIndex rIndex = tir.getRangeIndex();
+            BPlusTree bpt = (BPlusTree) rIndex;
+            tuples = new PreemptJenaIterator(bpt, null, null, recordMapper, factory, tupleMap);
         }
         
         return tuples;

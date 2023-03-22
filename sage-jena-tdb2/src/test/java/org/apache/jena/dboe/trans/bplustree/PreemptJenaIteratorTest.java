@@ -12,6 +12,7 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -43,6 +44,18 @@ class PreemptJenaIteratorTest {
     public static void closeDB() {
         dataset.abort();
         TDBInternal.expel(dataset.asDatasetGraph());
+    }
+
+    @Test
+    //  related to issue#7
+    public void read_all_using_fully_unbounded_triple_pattern() {
+        BackendIterator<?, ?> it = backend.search(any, any, any);
+        int nbResults = 0;
+        while (it.hasNext()) {
+            it.next();
+            nbResults += 1;
+        }
+        assertEquals(dataset.getDefaultModel().size(), nbResults);
     }
 
     @Test
@@ -178,7 +191,66 @@ class PreemptJenaIteratorTest {
         assertEquals(10, nb_results);
     }
 
+    @Test
+    // related to issue #13
+    public void check_singleton_pause_and_resume() {
+        NodeId city_2 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/City102>");
+        NodeId parentCountry = backend.getId("<http://www.geonames.org/ontology#parentCountry>");
+        NodeId country_17 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country17>");
 
+        // #A first run to check that singleton works well
+        long sum = 0;
+        BackendIterator<NodeId, SerializableRecord> itSingleton = backend.search(city_2, parentCountry, country_17);
+        while (itSingleton.hasNext()) {
+            itSingleton.next();
+            BackendIterator<NodeId, SerializableRecord> itWithPredicate = backend.search(any, predicate, any);
+            while (itWithPredicate.hasNext()) {
+                itWithPredicate.next();
+                sum += 1;
+            }
+        }
+        assertEquals(10, sum);
+
+        // #B now the same with preemption
+        sum = 0;
+        itSingleton = backend.search(city_2, parentCountry, country_17);
+        SageOutput<SerializableRecord> output = new SageOutput<>();
+        while (itSingleton.hasNext()) {
+            itSingleton.next();
+            BackendIterator<NodeId, SerializableRecord> itWithPredicate = backend.search(any, predicate, any);
+            while (itWithPredicate.hasNext()) {
+                itWithPredicate.next();
+                sum += 1;
+            }
+            // save after loop because we emulate an exceeded timeout
+            output.save(new Pair<>(0, itSingleton.current()));
+            break;
+        }
+        // we stopped yet every result were produced, since we don't know, we must execute till the end.
+        assertEquals(10, sum);
+
+        // #C we stopped, so now we resume
+        sum = 0;
+        itSingleton = backend.search(city_2, parentCountry, country_17);
+        if (output.getState().containsKey(0)) {
+            itSingleton.skip(output.getState().remove(0));
+        }
+        while (itSingleton.hasNext()) {
+            itSingleton.next();
+            BackendIterator<NodeId, SerializableRecord> itWithPredicate = backend.search(any, predicate, any);
+            // no key to skip to
+            if (output.getState().containsKey(1)) {
+                itSingleton.skip(output.getState().remove(1));
+            }
+            while (itWithPredicate.hasNext()) {
+                itWithPredicate.next();
+                sum += 1;
+            }
+        }
+        assertEquals(0, sum);
+    }
+
+    /* **************************************************************************************************** */
 
     /**
      * Convenience function to assert the current values of the iterator compared to the truth.

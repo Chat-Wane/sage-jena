@@ -11,6 +11,8 @@ import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
+import org.apache.jena.util.iterator.NullIterator;
+import org.apache.jena.util.iterator.SingletonIterator;
 
 import java.util.Iterator;
 import java.util.Objects;
@@ -49,16 +51,16 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
     }
 
     /**
-     * Singleton
+     * Null Iterator
      **/
-    public PreemptJenaIterator(Iterator<Tuple<NodeId>> wrapped) {
+    public PreemptJenaIterator() {
         this.min = null;
         this.max = null;
         this.tree = null;
         this.mapper = null;
         this.factory = null;
         this.tupleMap = null;
-        this.wrapped = wrapped;
+        this.wrapped = new NullIterator<>();
     }
 
 
@@ -123,11 +125,16 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
 
     @Override
     public SerializableRecord current() {
-        return Objects.isNull(current) ? null : new SerializableRecord(TupleLib.record(factory, current, tupleMap));
+        // check `tupleMap` is `null` since initializing a singleton does not require anything.
+        // Yet, on resume, we want the state to recover with null hence producing its value on `next`.
+        return Objects.isNull(current) || Objects.isNull(tupleMap) ?
+                null :
+                new SerializableRecord(TupleLib.record(factory, current, tupleMap));
     }
 
     @Override
     public SerializableRecord previous() {
+        // `tupleMap` does not need checking here since previous is always null for singleton.
         return Objects.isNull(previous) ? null : new SerializableRecord(TupleLib.record(factory, previous, tupleMap));
     }
     

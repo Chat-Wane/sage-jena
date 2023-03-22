@@ -113,7 +113,9 @@ public class PatternMatchSage {
             else
                 // 4-tuples.
                 patternTuple = TupleFactory.create4(graph, triple.getSubject(), triple.getPredicate(), triple.getObject());
-            chain = PreemptStageMatchTuple.access(nodeTupleTable, chain, patternTuple, filter, anyGraph, context, scanId);
+
+            chain = processAsStarPatternOrNot(chain, graph, triple, nodeTupleTable, patternTuple, anyGraph, filter, context, scanId);
+            // chain = PreemptStageMatchTuple.access(nodeTupleTable, chain, patternTuple, filter, anyGraph, context, scanId);
 
             chain = SolverLib.makeAbortable(chain, killList);
             numberOfScans += 1;

@@ -6,6 +6,10 @@ package fr.gdd.sage;
 public interface EngineTypes {
     String TDB = "TDB";
     String Sage = "Sage";
+    String SageTimeout60s = "Sage 60s";
+    String SageTimeout1s = "Sage 1s";
+
+
     String SageForceOrder = "Sage force order";
     String TDBForceOrder = "TDB force order";
 

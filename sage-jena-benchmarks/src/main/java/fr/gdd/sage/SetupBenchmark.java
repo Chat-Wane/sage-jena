@@ -32,7 +32,7 @@ public class SetupBenchmark {
     }
 
 
-    public static void setup(ExecutionContext context, String dbPath, String engine) {
+    public static void setup(ExecutionContext context, String dbPath, String engine) throws Exception {
         context.dataset = TDB2Factory.connectDataset(dbPath);
         if (!context.dataset.isInTransaction()) {
             context.dataset.begin(ReadWrite.READ);
@@ -56,6 +56,16 @@ public class SetupBenchmark {
                 context.dataset.getContext().set(ARQ.optimization, true);
                 context.dataset.getContext().remove(SageConstants.limit);
                 context.dataset.getContext().remove(SageConstants.timeout);
+            }
+            case EngineTypes.SageTimeout60s -> {
+                context.dataset.getContext().set(ARQ.optimization, true);
+                context.dataset.getContext().set(SageConstants.timeout, 60000);
+                context.dataset.getContext().remove(SageConstants.limit);
+            }
+            case EngineTypes.SageTimeout1s -> {
+                context.dataset.getContext().set(ARQ.optimization, true);
+                context.dataset.getContext().set(SageConstants.timeout, 1000);
+                context.dataset.getContext().remove(SageConstants.limit);
             }
             case EngineTypes.SageForceOrder -> {
                 context.dataset.getContext().set(ARQ.optimization, false);
@@ -81,6 +91,9 @@ public class SetupBenchmark {
                 context.dataset.getContext().set(ARQ.optimization, false);
                 context.dataset.getContext().set(SageConstants.limit, 1);
                 context.dataset.getContext().remove(SageConstants.timeout);
+            }
+            case default -> {
+                throw new Exception("The configuration such an engine does not exist");
             }
         }
 
