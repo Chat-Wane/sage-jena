@@ -68,6 +68,8 @@ public class WatdivBenchmark {
     public long execute(SetupBenchmark.ExecutionContext ec) throws Exception {
         Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
 
+        log.debug("Got {} results for this query in {} pause/resume.", nbResultsAndPreempt.left, nbResultsAndPreempt.right);
+
         // (TODO) remove this from the benchmarked part
         if (nbResultsPerQuery.containsKey(a_query)) {
             long previousNbResults = nbResultsPerQuery.get(a_query);
@@ -78,8 +80,6 @@ public class WatdivBenchmark {
         } else {
             nbResultsPerQuery.put(a_query, nbResultsAndPreempt.left);
         }
-
-        log.debug("Got {} results for this query in {} pause/resume.", nbResultsAndPreempt.left, nbResultsAndPreempt.right);
 
         return nbResultsAndPreempt.left;
     }
@@ -105,7 +105,7 @@ public class WatdivBenchmark {
                 EngineTypes.SageForceOrderTimeout60s);
 
         // testing only one query
-        options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10078.sparql",
+        options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
                 EngineTypes.SageForceOrderTimeout1ms);
                 // EngineTypes.TDB);
 
@@ -138,6 +138,7 @@ public class WatdivBenchmark {
                     .warmupIterations(1)
                     .forks(100)
                     .mode(Mode.SingleShotTime)
+                    .timeout(TimeValue.seconds(10000))
                     //.jvmArgsAppend("-XX:-TieredCompilation", "-XX:-BackgroundCompilation")
                     // Such option comes from an issue with `jmh` where identical run, ie forks would
                     // yield twice increased/decreased execution time due to different JVM compiler choices.

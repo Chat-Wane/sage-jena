@@ -10,6 +10,7 @@ target/
 
 #### jupyter notebook ####
 *.ipynb_checkpoints/
+*.csv
 
 #### datasets #####
 watdiv10M/

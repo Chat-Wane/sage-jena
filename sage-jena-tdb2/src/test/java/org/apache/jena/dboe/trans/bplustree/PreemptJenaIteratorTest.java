@@ -266,12 +266,10 @@ class PreemptJenaIteratorTest {
     }
 
     private SageOutput<?> execute_vpv_then_spo_till_end(long timeout) {
-        long nbPreempt = -1; // the first execution is not a preempt
         SageOutput partialOutput = null;
         SageOutput output = new SageOutput();
         SageInput<SerializableRecord> input  = new SageInput<SerializableRecord>().setTimeout(timeout);
         while (Objects.isNull(partialOutput) || (!Objects.isNull(partialOutput.getState()))) {
-            nbPreempt += 1;
             partialOutput = execute_vpv_then_spo(input);
             input.setState(partialOutput.getState());
             output.merge(partialOutput);
@@ -311,15 +309,15 @@ class PreemptJenaIteratorTest {
 
                 if (System.currentTimeMillis() > input.getDeadline()) {
                     output.save(new Pair(0, itWithPredicate.previous()), new Pair(1, itSingleton.current()));
-                    return  output;
+                    return output;
                 }
             }
             if (System.currentTimeMillis() > input.getDeadline()) {
                 output.save(new Pair(0, itWithPredicate.current()));
-                return  output;
+                return output;
             }
         }
-        return  output;
+        return output;
     }
 
     /* **************************************************************************************************** */

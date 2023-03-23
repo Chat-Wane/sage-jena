@@ -11,6 +11,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Optional;
 
 /**
@@ -29,12 +30,14 @@ import java.util.Optional;
 public class SimplePatternBenchmark {
     static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
 
-    @Param({EngineTypes.TDB, EngineTypes.Sage, EngineTypes.TDBForceOrder, EngineTypes.SageForceOrder,
+    @Param({EngineTypes.SageForceOrderTimeout1ms, EngineTypes.TDB, EngineTypes.Sage, EngineTypes.TDBForceOrder, EngineTypes.SageForceOrder,
             EngineTypes.SageForceOrderLimit1, EngineTypes.SageForceOrderTimeout1ms})
     public String b_engine;
 
     @Param("target/watdiv10M")
     public String z_dbPath;
+
+    static HashMap<String, Long> nbResultsPerQuery = new HashMap<>();
 
     @Param({ "?v0 <http://db.uwaterloo.ca/~galuc/wsdbm/gender> <http://db.uwaterloo.ca/~galuc/wsdbm/Gender0>", // vPO
              "?v0 <http://xmlns.com/foaf/familyName> ?v1." }) // vPv
@@ -61,9 +64,20 @@ public class SimplePatternBenchmark {
     }
 
     @Benchmark
-    public long execute(SetupBenchmark.ExecutionContext ec) {
+    public long execute(SetupBenchmark.ExecutionContext ec) throws Exception {
         Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
         log.debug("Got {} results for this query.", nbResultsAndPreempt.left);
+
+        if (nbResultsPerQuery.containsKey(ec.query)) {
+            long previousNbResults = nbResultsPerQuery.get(ec.query);
+            if (previousNbResults != nbResultsAndPreempt.left) {
+                throw (new Exception(String.format("/!\\ not the same number of results on %s: %s vs %s.",
+                        ec.query, previousNbResults, nbResultsAndPreempt.left)));
+            }
+        } else {
+            nbResultsPerQuery.put(ec.query, nbResultsAndPreempt.left);
+        }
+
         return nbResultsAndPreempt.left;
     }
 

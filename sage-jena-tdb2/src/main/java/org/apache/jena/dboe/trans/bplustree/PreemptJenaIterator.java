@@ -10,7 +10,6 @@ import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
-import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import org.apache.jena.util.iterator.NullIterator;
 import org.apache.jena.util.iterator.SingletonIterator;
 
@@ -29,7 +28,7 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
     final BPlusTree tree;
     Record min;
     Record max;
-    final RecordMapper mapper;
+    final RecordMapper<Tuple<NodeId>> mapper;
     final RecordFactory factory;
     final TupleMap tupleMap;
 
@@ -40,7 +39,8 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
 
 
 
-    public PreemptJenaIterator(BPlusTree tree, Record min, Record max, RecordMapper mapper, RecordFactory factory, TupleMap tupleMap) {
+    public PreemptJenaIterator(BPlusTree tree, Record min, Record max,
+                               RecordMapper<Tuple<NodeId>> mapper, RecordFactory factory, TupleMap tupleMap) {
         this.min = min;
         this.max = max;
         this.tree = tree;
@@ -63,11 +63,16 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
         this.wrapped = new NullIterator<>();
     }
 
+    public boolean isNullIterator() {
+        return this.wrapped instanceof NullIterator;
+    }
+
     /**
      * Singelton Iterator, still need basic parameters since they are
      * needed for `previous()`/`current()` and `skip(to)` as well.
      */
-    public PreemptJenaIterator(Tuple<NodeId> pattern, BPlusTree tree, Record min, Record max, RecordMapper mapper, RecordFactory factory, TupleMap tupleMap) {
+    public PreemptJenaIterator(Tuple<NodeId> pattern, BPlusTree tree, Record min, Record max,
+                               RecordMapper<Tuple<NodeId>> mapper, RecordFactory factory, TupleMap tupleMap) {
         this.min = min;
         this.max = max;
         this.tree = tree;
@@ -75,6 +80,10 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
         this.factory = factory;
         this.tupleMap = tupleMap;
         wrapped = new SingletonIterator<>(pattern);
+    }
+
+    public boolean isSingletonIterator() {
+        return this.wrapped instanceof SingletonIterator;
     }
 
 
@@ -126,6 +135,14 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
             return;
         }
 
+        if (isSingletonIterator()) { // you already worked or you are null and returned just before
+            // called on previous() therefore `null` therefore produce the pattern again, or;
+            // called on current() therefore `null` if not produced then produce the pattern, or;
+            // called on current() therefore `record` if produced then do not produce again.
+            wrapped = new NullIterator<>();
+            return;
+        }
+
         // otherwise, we re-initialize the range iterator to
         // start at the key.
         wrapped = tree.iterator(to.record, max, mapper);
@@ -139,9 +156,7 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
 
     @Override
     public SerializableRecord current() {
-        return Objects.isNull(current) ?
-                null :
-                new SerializableRecord(TupleLib.record(factory, current, tupleMap));
+        return Objects.isNull(current) ? null : new SerializableRecord(TupleLib.record(factory, current, tupleMap));
     }
 
     @Override

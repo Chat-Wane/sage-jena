@@ -24,7 +24,7 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
     SageInput<?>  input;
     SageOutput<?> output;
-    Integer id;
+    int id;
 
     // Cannot pause at first execution of the `hasNext()`.
     boolean first = false;

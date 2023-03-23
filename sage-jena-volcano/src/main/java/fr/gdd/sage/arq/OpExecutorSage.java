@@ -21,6 +21,7 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
 import org.apache.jena.sparql.engine.iterator.RandomQueryIterUnion;
 import org.apache.jena.sparql.engine.main.OpExecutor;
@@ -91,10 +92,14 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             .globalConfig(configuration)
             .localInput(context.getContext().get(SageConstants.input))
             .build();
-        
-        this.output = new SageOutput<>();
-        
-        execCxt.getContext().set(SageConstants.output, output);
+
+        if (context.getContext().isUndef(SageConstants.output)) { // it may have been created by {@link SageQueryEngine}
+            this.output = new SageOutput<>();
+            execCxt.getContext().set(SageConstants.output, output);
+        } else {
+            this.output = execCxt.getContext().get(SageConstants.output);
+        }
+
         execCxt.getContext().set(SageConstants.input, input);
         execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
     }
@@ -132,7 +137,7 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     @Override
     public QueryIterator execute(OpUnion union, QueryIterator input) {
         log.info("Executing a union");
-        // (TODO) maybe RandomOpExecutor would be more appropriate.
+        /*// (TODO) maybe RandomOpExecutor would be more appropriate.
         SageInput sageInput = execCxt.getContext().get(SageConstants.input);
         if (!sageInput.isRandomWalking()) {
             return super.execute(union, input);
@@ -140,9 +145,13 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         // copy from `OpExecutor`
         List<Op> x = flattenUnion(union);
         QueryIterator cIter = new RandomQueryIterUnion(input, x, execCxt);
+        return cIter;*/
+        List<Op> x = flattenUnion(union);
+        QueryIterator cIter = new PreemptQueryIterUnion(input, x, execCxt);
         return cIter;
     }
 
+    /* **************************************************************************************************************/
 
     /**
      * Again copy/past of this specific section of {@link OpExecutorTDB2} where the order of operations

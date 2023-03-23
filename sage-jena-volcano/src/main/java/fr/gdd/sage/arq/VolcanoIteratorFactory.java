@@ -94,6 +94,7 @@ public class VolcanoIteratorFactory {
         // if (!iterators.containsKey(id) && !input.isRandomWalking()) {
             if (input != null && input.getState() != null && input.getState().containsKey(id)) {
                 volcanoIterator.skip((SerializableRecord) input.getState(id));
+
             }
         // }
         // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
