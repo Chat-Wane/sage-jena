@@ -4,6 +4,7 @@ import fr.gdd.sage.InMemoryInstanceOfTDB2;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
+import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.jena.SerializableRecord;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -248,6 +251,75 @@ class PreemptJenaIteratorTest {
             }
         }
         assertEquals(0, sum);
+    }
+
+    @Test
+    // related to issue #14; but does not seem to be the issue...
+    public void check_every_steps_of_preempt_with_singleton_at_the_end() {
+        // #A first run to check that singleton works well
+        SageOutput output = execute_vpv_then_spo_till_end(Long.MAX_VALUE);
+        assertEquals(10, output.size());
+
+        // #B create a function that will pause/resume every step of the run with sleep and timeout
+        output = execute_vpv_then_spo_till_end(1);
+        assertEquals(10, output.size());
+    }
+
+    private SageOutput<?> execute_vpv_then_spo_till_end(long timeout) {
+        long nbPreempt = -1; // the first execution is not a preempt
+        SageOutput partialOutput = null;
+        SageOutput output = new SageOutput();
+        SageInput<SerializableRecord> input  = new SageInput<SerializableRecord>().setTimeout(timeout);
+        while (Objects.isNull(partialOutput) || (!Objects.isNull(partialOutput.getState()))) {
+            nbPreempt += 1;
+            partialOutput = execute_vpv_then_spo(input);
+            input.setState(partialOutput.getState());
+            output.merge(partialOutput);
+        }
+
+        return output;
+    }
+
+    private SageOutput<?> execute_vpv_then_spo(SageInput<SerializableRecord> input) {
+        input.setTimeout(input.getTimeout()); // set deadline with CurrentTime
+
+        SageOutput output = new SageOutput();
+        NodeId city_2 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/City102>");
+        NodeId parentCountry = backend.getId("<http://www.geonames.org/ontology#parentCountry>");
+        NodeId country_17 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country17>");
+
+        BackendIterator<NodeId, SerializableRecord> itWithPredicate = backend.search(any, predicate, any);
+        if (!Objects.isNull(input) && input.getState().containsKey(0)) {
+            itWithPredicate.skip(input.getState(0));
+        }
+        while (itWithPredicate.hasNext()) {
+            itWithPredicate.next();
+
+            BackendIterator<NodeId, SerializableRecord> itSingleton = backend.search(city_2, parentCountry, country_17);
+            if (!Objects.isNull(input) && input.getState().containsKey(1)) {
+                itSingleton.skip(input.getState(1));
+            }
+            while (itSingleton.hasNext()) {
+                itSingleton.next();
+                output.add(null); // only +1
+
+                try {
+                    Thread.sleep(2);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                if (System.currentTimeMillis() > input.getDeadline()) {
+                    output.save(new Pair(0, itWithPredicate.previous()), new Pair(1, itSingleton.current()));
+                    return  output;
+                }
+            }
+            if (System.currentTimeMillis() > input.getDeadline()) {
+                output.save(new Pair(0, itWithPredicate.current()));
+                return  output;
+            }
+        }
+        return  output;
     }
 
     /* **************************************************************************************************** */

@@ -1,6 +1,7 @@
 package fr.gdd.sage;
 
 import java.util.Map;
+import java.util.Objects;
 
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
@@ -40,7 +41,7 @@ public class ExecuteUtils {
         SageOutput<?> results = null;
         SageInput<?>  sageInput  = new SageInput<>();
             
-        while (results == null || (results.getState() != null)) {
+        while (Objects.isNull(results)|| (!Objects.isNull(results.getState()))) {
             nbPreempt += 1;
             // sageInput = new SageInputBuilder().globalConfig(configuration).localInput(sageInput).build();
             log.debug("Starting a possibly partial execution (limit {}) (timeout {})", sageInput.getLimit(), sageInput.getTimeout());

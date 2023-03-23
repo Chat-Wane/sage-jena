@@ -55,6 +55,7 @@ public class SageOutput<SKIP extends Serializable> implements Serializable {
 
     public void merge(SageOutput<SKIP> other) {
         this.results.addAll(other.getResults());
+        this.count += other.count;
         this.state = other.state;
     }
     

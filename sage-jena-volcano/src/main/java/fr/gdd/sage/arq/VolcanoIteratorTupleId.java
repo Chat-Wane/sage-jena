@@ -41,7 +41,7 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
     @Override
     public boolean hasNext() {
-        if (!first && (System.currentTimeMillis() > input.getDeadline() || output.size() >= input.getLimit())) {
+        if (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit())) {
             Pair toSave = Objects.isNull(this.output.getState()) ?
                     new Pair(id, this.wrapped.current()):
                     new Pair(id, this.wrapped.previous());

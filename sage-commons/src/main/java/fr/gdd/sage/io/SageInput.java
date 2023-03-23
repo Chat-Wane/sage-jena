@@ -64,6 +64,12 @@ public class SageInput<SKIP extends Serializable> implements Serializable {
     }
 
     public SageInput<SKIP> setTimeout(long timeout) {
+        long checkpoint = System.currentTimeMillis();
+        if (checkpoint + timeout <= 0) { // overflow
+            this.deadline = Long.MAX_VALUE;
+        } else {
+            this.deadline = checkpoint + timeout;
+        }
         this.timeout = timeout;
         return this;
     }

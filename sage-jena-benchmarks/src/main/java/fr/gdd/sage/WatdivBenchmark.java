@@ -105,10 +105,10 @@ public class WatdivBenchmark {
                 EngineTypes.SageForceOrderTimeout60s);
 
         // testing only one query
-        /* options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
-                EngineTypes.SageTimeout1s);
+        options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10078.sparql",
+                EngineTypes.SageForceOrderTimeout1ms);
                 // EngineTypes.TDB);
-        */
+
         for (Options opt : options) {
             new Runner(opt).run();
         }
@@ -136,7 +136,7 @@ public class WatdivBenchmark {
         for (String engine : engines) {
             options.add(runCommon(watdiv, List.of(query), engine)
                     .warmupIterations(1)
-                    .forks(10)
+                    .forks(100)
                     .mode(Mode.SingleShotTime)
                     //.jvmArgsAppend("-XX:-TieredCompilation", "-XX:-BackgroundCompilation")
                     // Such option comes from an issue with `jmh` where identical run, ie forks would
