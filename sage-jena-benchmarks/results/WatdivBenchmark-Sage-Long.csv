@@ -1,6 +1,0 @@
-"Benchmark","Mode","Threads","Samples","Score","Score Error (99,9%)","Unit","Param: a_query","Param: b_engine","Param: z_dbPath"
-"fr.gdd.sage.WatdivBenchmark.execute","ss",1,2,"286,456004",NaN,"s/op",sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql,Sage,target/watdiv10M
-"fr.gdd.sage.WatdivBenchmark.execute","ss",1,2,"103,666435",NaN,"s/op",sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10082.sparql,Sage,target/watdiv10M
-"fr.gdd.sage.WatdivBenchmark.execute","ss",1,2,"101,095737",NaN,"s/op",sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10168.sparql,Sage,target/watdiv10M
-"fr.gdd.sage.WatdivBenchmark.execute","ss",1,2,"153,508516",NaN,"s/op",sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10078.sparql,Sage,target/watdiv10M
-"fr.gdd.sage.WatdivBenchmark.execute","ss",1,2,"100,795064",NaN,"s/op",sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10083.sparql,Sage,target/watdiv10M
