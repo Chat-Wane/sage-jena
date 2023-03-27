@@ -9,7 +9,6 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.QueryIterSingleton;
-import org.apache.jena.sparql.engine.iterator.RandomQueryIterConcat;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.iterator.QueryIterUnion;
 
@@ -17,7 +16,7 @@ import org.apache.jena.sparql.engine.main.iterator.QueryIterUnion;
 
 /**
  * Unions create an iterator that concatenate operation. We want this
- * iterator to be randomize, therefore, each `nextStage` randomizes
+ * iterator to be randomized, therefore, each `nextStage` randomizes
  * the list of operations. 
  **/
 public class RandomQueryIterUnion extends QueryIterUnion {

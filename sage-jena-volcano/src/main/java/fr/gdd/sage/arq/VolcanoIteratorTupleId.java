@@ -44,7 +44,7 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
     public boolean hasNext() {
         if (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit())) {
             // (TODO) cleaner
-            if (this.output.getState().containsKey(id)) {
+            if (Objects.nonNull(this.output.getState()) && this.output.getState().containsKey(id)) {
                 return false;
             }
             boolean shouldSaveCurrent = Objects.isNull(this.output.getState()) ||

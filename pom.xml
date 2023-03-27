@@ -23,6 +23,7 @@
     <module>sage-jena-volcano</module>
     <module>sage-jena-module</module>
     <module>sage-jena-benchmarks</module>
+    <module>jena-sampling</module>
   </modules>
   
 </project>
