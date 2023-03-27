@@ -10,6 +10,7 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
@@ -18,6 +19,8 @@ import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -26,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * Testing the executor by building queries by hand.
  */
 class OpExecutorSageBGPTest {
+
+    static Logger log = LoggerFactory.getLogger(OpExecutorSageBGPTest.class);
 
     static Dataset dataset = null;
 
@@ -142,7 +147,8 @@ class OpExecutorSageBGPTest {
 
         long nb_results = 0;
         while (it.hasNext()) {
-            it.next();
+            Binding b = it.next();
+            log.debug(b.toString());
             nb_results += 1;
         }
         SageOutput<SerializableRecord> output = c.get(SageConstants.output);

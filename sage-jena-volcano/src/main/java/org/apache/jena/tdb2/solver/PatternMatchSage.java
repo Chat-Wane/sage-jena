@@ -99,7 +99,7 @@ public class PatternMatchSage {
             final int scanId = numberOfScans;
 
             Tuple<Node> patternTuple = null;
-            if ( graphNode == null )
+            if ( graph == null )
                 // 3-tuples
                 patternTuple = TupleFactory.create3(triple.getSubject(), triple.getPredicate(), triple.getObject());
             else

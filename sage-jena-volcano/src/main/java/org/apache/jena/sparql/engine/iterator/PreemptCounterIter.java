@@ -16,8 +16,6 @@ public class PreemptCounterIter extends QueryIter1 {
 
     SageOutput<?> output;
 
-
-
     public PreemptCounterIter(QueryIterator cIter,
                               ExecutionContext context) {
         super(cIter, context);

@@ -11,10 +11,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.sparql.ARQInternalErrorException;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.algebra.op.OpQuadPattern;
-import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.algebra.op.OpUnion;
+import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacement;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Quad;
@@ -97,10 +94,22 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             this.output = execCxt.getContext().get(SageConstants.output);
         }
 
-        this.iteratorFactory = new VolcanoIteratorFactory(execCxt);
-
         execCxt.getContext().set(SageConstants.input, input);
+
+        this.iteratorFactory = new VolcanoIteratorFactory(execCxt);
         execCxt.getContext().set(SageConstants.scanFactory, iteratorFactory);
+    }
+
+    @Override
+    protected QueryIterator exec(Op op, QueryIterator input) {
+        log.debug(op.getName());
+        return super.exec(op, input);
+    }
+
+    @Override
+    public QueryIterator executeOp(Op op, QueryIterator input) {
+        log.debug(op.getName());
+        return super.executeOp(op, input);
     }
 
     @Override
@@ -136,20 +145,43 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     @Override
     public QueryIterator execute(OpUnion union, QueryIterator input) {
         log.info("Executing a union");
-        /*// (TODO) maybe RandomOpExecutor would be more appropriate.
-        SageInput sageInput = execCxt.getContext().get(SageConstants.input);
-        if (!sageInput.isRandomWalking()) {
-            return super.execute(union, input);
-        }
-        // copy from `OpExecutor`
-        List<Op> x = flattenUnion(union);
-        QueryIterator cIter = new RandomQueryIterUnion(input, x, execCxt);
-        return cIter;*/
-
         List<Op> x = flattenUnion(union);
         QueryIterator cIter = iteratorFactory.getUnion(input, x, execCxt);
         return cIter;
     }
+
+    @Override
+    protected QueryIterator execute(OpConditional opCondition, QueryIterator input) {
+        log.info("Executing a conditional");
+        return super.execute(opCondition, input);
+    }
+
+    @Override
+    protected QueryIterator execute(OpFilter opFilter, QueryIterator input) {
+        // If the filter does not apply to the input??
+        // Where does ARQ catch this?
+
+        // (filter (bgp ...))
+        if ( OpBGP.isBGP(opFilter.getSubOp()) ) {
+            // Still may be a TDB graph in a non-TDB dataset (e.g. a named model)
+            GraphTDB graph = (GraphTDB)execCxt.getActiveGraph();
+            OpBGP opBGP = (OpBGP)opFilter.getSubOp();
+            return executeBGP(graph, opBGP, input, opFilter.getExprs(), execCxt);
+        }
+
+        // (filter (quadpattern ...))
+        if ( opFilter.getSubOp() instanceof OpQuadPattern ) {
+            OpQuadPattern quadPattern = (OpQuadPattern)opFilter.getSubOp();
+            DatasetGraphTDB ds = (DatasetGraphTDB)execCxt.getDataset();
+            return optimizeExecuteQuads(ds, input,
+                    quadPattern.getGraphNode(), quadPattern.getBasicPattern(),
+                    opFilter.getExprs(), execCxt);
+        }
+
+        // (filter (anything else))
+        return super.execute(opFilter, input);
+    }
+
 
     /* **************************************************************************************************************/
 

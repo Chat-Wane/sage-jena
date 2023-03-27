@@ -1,6 +1,7 @@
 package fr.gdd.sage.configuration;
 
 import java.util.Map;
+import java.util.Objects;
 
 import fr.gdd.sage.io.SageInput;
 
@@ -23,12 +24,12 @@ public class SageInputBuilder {
     public SageInputBuilder() { }
 
     public SageInputBuilder globalConfig(SageServerConfiguration global) {
-        this.global = global;
+        this.global = Objects.nonNull(global) ? global : this.global;
         return this;
     }
 
     public SageInputBuilder localInput(SageInput<?> local) {
-        this.local = local;
+        this.local = Objects.nonNull(local) ? local : this.local;
         return this;
     }
 
