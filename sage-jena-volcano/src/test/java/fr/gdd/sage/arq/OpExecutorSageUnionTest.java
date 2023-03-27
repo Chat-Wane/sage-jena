@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class OpExecutorSageUnionTest {
 
@@ -49,17 +49,20 @@ class OpExecutorSageUnionTest {
         assertEquals(3, output.size());
     }
 
-    @Disabled
     @Test
-    public void preempt_at_2nd_tuple_after_the_left_hand_side_of_union() {
+    public void preempt_at_every_step_of_union_2_1() {
         Op op = SSE.parseOp("(union " +
                 "(bgp (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>)) " +
                 "(bgp (<http://db.uwaterloo.ca/~galuc/wsdbm/City0> <http://www.geonames.org/ontology#parentCountry> ?o))" +
                 ")");
 
-        SageOutput<?> output = run_to_the_limit(dataset, op, new SageInput<>().setLimit(2));
-        assertEquals(2, output.size());
-        output = run_to_the_limit(dataset, op, new SageInput<>());
+        SageOutput output = run_to_the_limit(dataset, op, new SageInput<>().setLimit(1));
+        assertEquals(1, output.size());
+        // We are still in the first part of the union
+        output = run_to_the_limit(dataset, op, new SageInput<>().setLimit(1).setState((output.getState())));
+        assertEquals(1, output.size());
+        // We are inbetween the first and second part of union
+        output = run_to_the_limit(dataset, op, new SageInput<>().setState(output.getState()));
         assertEquals(1, output.size());
     }
 }

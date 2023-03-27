@@ -12,6 +12,7 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * A Volcano Iterator that works on {@link Tuple<NodeId>} instead of
@@ -42,7 +43,15 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
     @Override
     public boolean hasNext() {
         if (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit())) {
-            Pair toSave = Objects.isNull(this.output.getState()) ?
+            // (TODO) cleaner
+            if (this.output.getState().containsKey(id)) {
+                return false;
+            }
+            boolean shouldSaveCurrent = Objects.isNull(this.output.getState()) ||
+                    this.output.getState().keySet().stream().filter(k -> k < 1000)
+                            .collect(Collectors.toUnmodifiableList()).isEmpty();
+
+            Pair toSave = shouldSaveCurrent ?
                     new Pair(id, this.wrapped.current()):
                     new Pair(id, this.wrapped.previous());
             this.output.addState(toSave);

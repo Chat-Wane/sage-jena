@@ -16,38 +16,76 @@ public class PreemptQueryIterConcat extends QueryIterConcat {
     SageOutput output;
     SageInput sageInput;
 
-    static Integer ids;
     int id;
 
-    public PreemptQueryIterConcat(ExecutionContext context) {
+    public PreemptQueryIterConcat(ExecutionContext context, int id) {
         super(context);
         output = context.getContext().get(SageConstants.output);
         sageInput  = context.getContext().get(SageConstants.input);
-        if (Objects.isNull(ids)) {
-            ids = 1000;
-        }
-        ids += 1;
-
-        id = ids;
-
-        if (this.sageInput.getState().containsKey(id)) {
-            skip((int) sageInput.getState(id));
-        }
+        this.id = id;
     }
 
     @Override
     protected boolean hasNextBinding() {
         if  (System.currentTimeMillis() >= sageInput.getDeadline() || output.size() >= sageInput.getLimit()) {
-            System.out.println("CONCAT SAVE");
-            this.output.save(new Pair(id, offset - 1));
-            return false;
+            System.out.println("CONCAT SAVE " + (offset));
+            this.output.save(new Pair(id, offset));
+            // Need to not return false since iterator will do it,
+            // otherwise, it returns an error since it `moveToNextBinding` first then
+            // check `hasNextBinding` that returns false…
+            // Instead, we empty the iterator by checking all members of union.
+            // return false;
         }
-        return super.hasNextBinding();
+
+        // Copy/pasta of `hasNextBinding` with an offset increment on
+        // `iterator.next`.
+        if ( isFinished() )
+            return false ;
+
+        init();
+        if ( currentQIter == null )
+            return false ;
+
+        while ( ! currentQIter.hasNext() )
+        {
+            // End sub iterator
+            //currentQIter.close() ;
+            currentQIter = null ;
+            if ( iterator.hasNext() ) {
+                offset += 1;
+                currentQIter = iterator.next();
+            }
+            if ( currentQIter == null )
+            {
+                // No more.
+                //close() ;
+                return false ;
+            }
+        }
+
+        return true;
     }
+
 
     public void skip(int to){
         System.out.println("CONCAT Skip to " + to);
         this.offset = to;
+        init(to);
+    }
+
+    private void init(Integer... start) {
+        if (!initialized) {
+            currentQIter = null;
+            if (iterator == null) {
+                if (Objects.nonNull(start) && start.length > 0) {
+                    iteratorList = iteratorList.subList(start[0], iteratorList.size());
+                }
+                iterator = iteratorList.listIterator();
+            }
+            if (iterator.hasNext())
+                currentQIter = iterator.next();
+            initialized = true;
+        }
     }
 
 }

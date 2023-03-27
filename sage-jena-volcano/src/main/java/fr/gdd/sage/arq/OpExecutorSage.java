@@ -65,6 +65,7 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
     
     SageOutput<?> output; // where pausing state is saved when need be.
+    VolcanoIteratorFactory iteratorFactory;
 
     /**
      * Factory to be registered in Jena ARQ. It creates an OpExecutor for
@@ -100,8 +101,10 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             this.output = execCxt.getContext().get(SageConstants.output);
         }
 
+        this.iteratorFactory = new VolcanoIteratorFactory(execCxt);
+
         execCxt.getContext().set(SageConstants.input, input);
-        execCxt.getContext().set(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
+        execCxt.getContext().set(SageConstants.scanFactory, iteratorFactory);
     }
 
     @Override
@@ -146,8 +149,9 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         List<Op> x = flattenUnion(union);
         QueryIterator cIter = new RandomQueryIterUnion(input, x, execCxt);
         return cIter;*/
+
         List<Op> x = flattenUnion(union);
-        QueryIterator cIter = new PreemptQueryIterUnion(input, x, execCxt);
+        QueryIterator cIter = iteratorFactory.getUnion(input, x, execCxt);
         return cIter;
     }
 

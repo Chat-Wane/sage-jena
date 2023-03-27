@@ -7,13 +7,17 @@ import fr.gdd.sage.jena.PreemptTupleTable;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.ExecutionContext;
+import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 
@@ -34,6 +38,8 @@ public class VolcanoIteratorFactory {
     private NodeTable tripleNodeTable;
     private PreemptTupleTable preemptableQuadTupleTable;
     private PreemptTupleTable preemptableTripleTupleTable;
+
+    private int unionIds = 1000;
     
 
     
@@ -100,6 +106,16 @@ public class VolcanoIteratorFactory {
         // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
 
         return volcanoIterator;
+    }
+
+
+    public PreemptQueryIterUnion getUnion(QueryIterator inputIt, List<Op> operations, ExecutionContext context) {
+        unionIds += 1;
+        PreemptQueryIterUnion it = new PreemptQueryIterUnion(inputIt, operations, context, unionIds);
+        if (input != null && input.getState() != null && input.getState().containsKey(unionIds)) {
+            it.skip((Integer) input.getState(unionIds));
+        }
+        return it;
     }
     
 }

@@ -23,15 +23,21 @@ import java.util.Objects;
  **/
 public class PreemptQueryIterUnion extends QueryIterUnion {
 
+    Integer id;
+    PreemptQueryIterConcat iter;
+    Integer to = null;
+
     public PreemptQueryIterUnion(QueryIterator input,
                                 List<Op> subOps,
-                                ExecutionContext context) {
+                                ExecutionContext context,
+                                 int id) {
         super(input, subOps, context);
+        this.id = id;
     }
 
     @Override
     protected QueryIterator nextStage(Binding binding) {
-        PreemptQueryIterConcat unionQIter = new PreemptQueryIterConcat(getExecContext());
+        PreemptQueryIterConcat unionQIter = new PreemptQueryIterConcat(getExecContext(), id);
         for (Op subOp : subOps) {
             subOp = QC.substitute(subOp, binding) ;
             QueryIterator parent = QueryIterSingleton.create(binding, getExecContext()) ;
@@ -39,6 +45,15 @@ public class PreemptQueryIterUnion extends QueryIterUnion {
             unionQIter.add(qIter) ;
         }
 
+        if (Objects.nonNull(to)) {
+            unionQIter.skip(to);
+            to = null;
+        }
+
         return unionQIter;
+    }
+
+    public void skip(Integer to) {
+        this.to = to;
     }
 }

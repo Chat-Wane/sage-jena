@@ -1,8 +1,8 @@
 package org.apache.jena.tdb2.solver; // In this package so it can access SolverLibTDB package functions.
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.VolcanoIteratorQuad;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
+import fr.gdd.sage.arq.VolcanoIteratorQuad;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
@@ -98,14 +98,6 @@ public class PatternMatchSage {
             // scan iterator is created.
             final int scanId = numberOfScans;
 
-            // (TODO) redo this part for star-patterns as in Jena's Solver
-            /* Function<BindingNodeId, Iterator<BindingNodeId>> step =
-                bnid -> find(bnid, nodeTupleTable, graph, triple, anyGraph, filter, context, scanId);
-
-            chain = Iter.flatMap(chain, step);
-             */
-
-
             Tuple<Node> patternTuple = null;
             if ( graphNode == null )
                 // 3-tuples
@@ -115,7 +107,6 @@ public class PatternMatchSage {
                 patternTuple = TupleFactory.create4(graph, triple.getSubject(), triple.getPredicate(), triple.getObject());
 
             chain = processAsStarPatternOrNot(chain, graph, triple, nodeTupleTable, patternTuple, anyGraph, filter, context, scanId);
-            // chain = PreemptStageMatchTuple.access(nodeTupleTable, chain, patternTuple, filter, anyGraph, context, scanId);
 
             chain = SolverLib.makeAbortable(chain, killList);
             numberOfScans += 1;

@@ -30,6 +30,9 @@ public class PreemptCounterIter extends QueryIter1 {
      **/
     @Override
     protected boolean hasNextBinding() {
+        boolean hasNext = getInput().hasNext();
+        System.out.println("hasNext binding? " + hasNext);
+        QueryIterator in = getInput();
         return getInput().hasNext();
     }
 
