@@ -26,7 +26,7 @@ import java.util.Optional;
  * benchmark. This query is special in the sense that (i) the order of triple
  * is far from optimal, and (ii) it contains fully bounded triples.
  **/
-public class Query1000Test {
+class Query1000Test {
     Logger log = LoggerFactory.getLogger(Query1000Test.class);
 
     static Dataset dataset;
@@ -51,7 +51,7 @@ public class Query1000Test {
         Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
         opExecutorTDB2ForceOrderFactory = (OpExecutorFactory) ReflectionUtils._callField(plainFactoryField, OpExecutorTDB2.class, null);
 
-        Optional dirPath_opt = Optional.of("target");
+        Optional<String> dirPath_opt = Optional.of("target");
         Watdiv10M watdiv = new Watdiv10M(dirPath_opt); // creates the db if need be
         dataset = TDB2Factory.connectDataset(watdiv.dbPath_asStr);
         dataset.begin(ReadWrite.READ);

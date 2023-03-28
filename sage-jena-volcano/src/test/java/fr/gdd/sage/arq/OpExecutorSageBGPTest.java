@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 /**
  * Testing the executor by building queries by hand.
  */
-class OpExecutorSageBGPTest {
+public class OpExecutorSageBGPTest {
 
     static Logger log = LoggerFactory.getLogger(OpExecutorSageBGPTest.class);
 

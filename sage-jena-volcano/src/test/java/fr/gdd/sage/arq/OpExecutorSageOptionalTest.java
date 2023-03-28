@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class OpExecutorSageOptionalTest {
+public class OpExecutorSageOptionalTest {
 
     static Dataset datasetWatdiv = null;
     static Dataset datasetOption = null;

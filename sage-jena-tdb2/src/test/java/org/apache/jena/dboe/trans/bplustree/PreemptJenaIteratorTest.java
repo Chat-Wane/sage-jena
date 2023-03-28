@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Testing the pausing/resuming capabilities of {@link PreemptJenaIterator}.
  * The results should always be identical to that of normal iterators.
  **/
-class PreemptJenaIteratorTest {
+public class PreemptJenaIteratorTest {
 
     static Dataset dataset = null;
     static JenaBackend backend = null;

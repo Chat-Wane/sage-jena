@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class OpExecutorSageUnionTest {
+public class OpExecutorSageUnionTest {
 
     static Dataset dataset = null;
 

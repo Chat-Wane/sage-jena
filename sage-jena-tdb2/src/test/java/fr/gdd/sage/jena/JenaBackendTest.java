@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Testing the few functions provided by {@link JenaBackend}. Name of tests are self-explanatory.
  **/
-class JenaBackendTest {
+public class JenaBackendTest {
     static Dataset dataset = null;
 
     @BeforeAll

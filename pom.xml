@@ -25,5 +25,5 @@
     <module>sage-jena-benchmarks</module>
     <module>jena-sampling</module>
   </modules>
-  
+
 </project>
