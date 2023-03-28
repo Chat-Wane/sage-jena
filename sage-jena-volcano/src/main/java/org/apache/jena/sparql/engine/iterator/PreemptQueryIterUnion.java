@@ -24,12 +24,11 @@ import java.util.Objects;
 public class PreemptQueryIterUnion extends QueryIterUnion {
 
     Integer id;
-    PreemptQueryIterConcat iter;
     Integer to = null;
 
     public PreemptQueryIterUnion(QueryIterator input,
-                                List<Op> subOps,
-                                ExecutionContext context,
+                                 List<Op> subOps,
+                                 ExecutionContext context,
                                  int id) {
         super(input, subOps, context);
         this.id = id;

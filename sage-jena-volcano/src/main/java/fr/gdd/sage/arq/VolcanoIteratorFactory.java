@@ -70,17 +70,9 @@ public class VolcanoIteratorFactory {
             volcanoIterator = new VolcanoIteratorQuad(wrapped, quadNodeTable, input, output, id);
         }
 
-        /* if (input.isRandomWalking()) {
-            ((RandomIterator) wrapped).random();
-        }*/
-
-        // Check if it is a preemptive iterator that should jump directly to its resume state.
-        // if (!iterators.containsKey(id) && !input.isRandomWalking()) {
-            if (input != null && input.getState() != null && input.getState().containsKey(id)) {
-                volcanoIterator.skip((SerializableRecord) input.getState(id));
-            }
-        // }
-        // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
+        if (input != null && input.getState() != null && input.getState().containsKey(id)) {
+            volcanoIterator.skip((SerializableRecord) input.getState(id));
+        }
 
         return volcanoIterator;
     }
@@ -97,13 +89,10 @@ public class VolcanoIteratorFactory {
         }
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
-        // if (!iterators.containsKey(id) && !input.isRandomWalking()) {
-            if (input != null && input.getState() != null && input.getState().containsKey(id)) {
-                volcanoIterator.skip((SerializableRecord) input.getState(id));
+        if (input != null && input.getState() != null && input.getState().containsKey(id)) {
+            volcanoIterator.skip((SerializableRecord) input.getState(id));
 
-            }
-        // }
-        // iterators.put(id, volcanoIterator); // register and/or erase previous iterator
+        }
 
         return volcanoIterator;
     }
