@@ -88,11 +88,10 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             .build();
 
         if (context.getContext().isUndef(SageConstants.output)) { // it may have been created by {@link SageQueryEngine}
-            this.output = new SageOutput<>();
-            execCxt.getContext().set(SageConstants.output, output);
-        } else {
-            this.output = execCxt.getContext().get(SageConstants.output);
+            execCxt.getContext().set(SageConstants.output, new SageOutput<>());
         }
+
+        this.output = execCxt.getContext().get(SageConstants.output);
 
         execCxt.getContext().set(SageConstants.input, input);
 
@@ -104,12 +103,6 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     protected QueryIterator exec(Op op, QueryIterator input) {
         log.debug(op.getName());
         return super.exec(op, input);
-    }
-
-    @Override
-    public QueryIterator executeOp(Op op, QueryIterator input) {
-        log.debug(op.getName());
-        return super.executeOp(op, input);
     }
 
     @Override
@@ -144,18 +137,22 @@ public class OpExecutorSage extends OpExecutorTDB2 {
 
     @Override
     public QueryIterator execute(OpUnion union, QueryIterator input) {
-        log.info("Executing a union");
-        List<Op> x = flattenUnion(union);
-        QueryIterator cIter = iteratorFactory.getUnion(input, x, execCxt);
-        return cIter;
+        log.info("Executing a union…");
+        List<Op> operators = flattenUnion(union);
+        return iteratorFactory.getUnion(input, operators, execCxt);
     }
 
     @Override
     protected QueryIterator execute(OpConditional opCondition, QueryIterator input) {
-        log.info("Executing a conditional");
+        log.info("Executing a conditional…");
         return super.execute(opCondition, input);
     }
 
+
+    /**
+     * Copy/Pasta from {@link OpExecutorTDB2} again. We want it to use our
+     * own `executeBGP` and `optimizeExecuteQuads`.
+     */
     @Override
     protected QueryIterator execute(OpFilter opFilter, QueryIterator input) {
         // If the filter does not apply to the input??

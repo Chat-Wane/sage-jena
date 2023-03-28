@@ -1,19 +1,18 @@
 package fr.gdd.sage.arq;
 
-import java.util.Iterator;
-import java.util.Objects;
-
+import fr.gdd.sage.generics.Pair;
+import fr.gdd.sage.interfaces.BackendIterator;
+import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageInput;
+import fr.gdd.sage.io.SageOutput;
+import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
-import fr.gdd.sage.generics.Pair;
-import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.interfaces.SPOC;
-import fr.gdd.sage.io.SageOutput;
-import fr.gdd.sage.jena.SerializableRecord;
+import java.util.Iterator;
+import java.util.Objects;
 
 
 /**
