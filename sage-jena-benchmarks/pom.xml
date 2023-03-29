@@ -37,43 +37,38 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
   <groupId>fr.gdd.sage</groupId>
   <artifactId>sage-jena-benchmarks</artifactId>
-  <version>0.0.1</version>
-  <packaging>jar</packaging>
   <name>sage-jena-benchmarks</name>
+  <packaging>jar</packaging>
+
 
   <parent>
     <groupId>fr.gdd.sage</groupId>
     <artifactId>sage-jena</artifactId>
-    <version>0.0.1</version>
+    <version>${revision}</version>
   </parent>
   
   <dependencies>
     <dependency>
       <groupId>org.apache.jena</groupId>
       <artifactId>apache-jena-libs</artifactId>
-      <version>4.7.0</version>
       <type>pom</type>
     </dependency>
     <dependency>
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-tdb2</artifactId>
-      <version>0.0.1</version>
     </dependency>
     <dependency>
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-volcano</artifactId>
-      <version>0.0.1</version>
     </dependency>
 
     <dependency> <!-- logger -->
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>2.0.6</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>2.0.6</version>
     </dependency>
 
 
@@ -100,27 +95,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
-      <version>5.9.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-    <!--
-        JMH version to use with this project.
-    -->
     <jmh.version>1.36</jmh.version>
-
-    <!--
-        Java source/target to use for compilation.
-    -->
     <javac.target>1.8</javac.target>
-
-    <!--
-        Name of the benchmark Uber-JAR to generate.
-    -->
     <uberjar.name>benchmarks</uberjar.name>
   </properties>
 
@@ -157,15 +139,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
         </configuration>
       </plugin>
       <!-- end of solution -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <configuration>
-          <mainClass>fr.gdd.sage.WatdivBenchmark</mainClass>
-        </configuration>
-      </plugin>
-
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

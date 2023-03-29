@@ -8,7 +8,7 @@
   <groupId>fr.gdd.sage</groupId>
   <artifactId>sage-jena</artifactId>
   <packaging>pom</packaging>
-  <version>0.0.1</version>
+  <version>${revision}</version> <!-- For now, shared version by all submodules -->
 
   <distributionManagement>
     <site>
@@ -16,7 +16,7 @@
       <url>${project.baseUri}</url>
     </site>
   </distributionManagement>
-  
+
   <modules>
     <module>sage-commons</module>
     <module>sage-jena-tdb2</module>
@@ -25,5 +25,118 @@
     <module>sage-jena-benchmarks</module>
     <module>jena-sampling</module>
   </modules>
+
+  <properties>
+    <revision>0.0.1</revision>
+    <junit.version>5.9.2</junit.version>
+    <jena.version>4.7.0</jena.version>
+    <slf4j.version>2.0.6</slf4j.version>
+
+    <maven.surefire.version>3.0.0</maven.surefire.version>
+    <maven.compiler.version>3.10.1</maven.compiler.version>
+    <maven.compiler.release>19</maven.compiler.release>
+    <maven.compiler.source>19</maven.compiler.source>
+    <maven.compiler.target>19</maven.compiler.target>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- module versions -->
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-jena-tdb2</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-jena-volcano</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-jena-benchmarks</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-jena-module</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>jena-sampling</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- actual dependencies -->
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.jena</groupId>
+        <artifactId>apache-jena-libs</artifactId>
+        <version>${jena.version}</version>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.jena</groupId>
+        <artifactId>jena-fuseki-webapp</artifactId>
+        <version>${jena.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.jena</groupId>
+        <artifactId>jena-fuseki-core</artifactId>
+        <version>${jena.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.jena</groupId>
+        <artifactId>jena-fuseki-main</artifactId>
+        <version>${jena.version}</version>
+      </dependency>
+
+      <dependency> <!-- logger for jena -->
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin> <!-- so junit 5 tests are properly run on GitHub -->
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven.surefire.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven.compiler.version}</version>
+          <configuration>
+            <release>${maven.compiler.release}</release>
+            <source>${maven.compiler.source}</source>
+            <target>${maven.compiler.target}</target>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 
 </project>

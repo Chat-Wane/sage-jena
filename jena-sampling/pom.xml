@@ -2,19 +2,18 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>fr.gdd.sage</groupId>
   <artifactId>jena-sampling</artifactId>
-  <version>0.0.1</version>
-
   <name>jena-sampling</name>
 
   <parent>
     <groupId>fr.gdd.sage</groupId>
     <artifactId>sage-jena</artifactId>
-    <version>0.0.1</version>
+    <version>${revision}</version>
   </parent>
 
   <dependencies>
@@ -22,30 +21,25 @@
     <dependency>
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-commons</artifactId>
-      <version>0.0.1</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.jena</groupId>
       <artifactId>apache-jena-libs</artifactId>
-      <version>4.7.0</version>
       <type>pom</type>
     </dependency>
     <dependency> <!-- logger of jena -->
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>2.0.6</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>2.0.6</version>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
-      <version>5.9.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -55,12 +49,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.10.1</version>
-        <configuration>
-          <release>11</release>
-          <source>11</source>
-          <target>11</target>
-        </configuration>
       </plugin>
     </plugins>
   </build>
