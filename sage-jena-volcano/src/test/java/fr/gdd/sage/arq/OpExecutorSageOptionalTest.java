@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import static fr.gdd.sage.arq.OpExecutorSageBGPTest.log;
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -76,7 +77,6 @@ public class OpExecutorSageOptionalTest {
         assertEquals(1, output.size());
     }
 
-    @Disabled
     @Test
     public void optional_that_stops_in_the_middle_with_a_result_before_stopping_and_none_after() {
         // so first it returns a solution <A> <OptionalB>, then pause/resume, then does not find
@@ -94,18 +94,25 @@ public class OpExecutorSageOptionalTest {
         // they are two to live in Nantes but only one is friend with a snake and dog
         assertEquals(3, output.size());
 
-        // check snake and dog precede cat (in debug mode)
+        log.debug("Check snake and dog precede cat (in debug mode)");
         Op opCatsAndDogs = SSE.parseOp("(bgp (<http://Alice> <http://own> ?animal))");
         run_to_the_limit(datasetOption, opCatsAndDogs, new SageInput<>());
 
         op = SSE.parseOp(opAsString);
         output = run_to_the_limit(datasetOption, op, new SageInput<>().setLimit(1));
-        assertEquals(1, output.size());
-        output = run_to_the_limit(datasetOption, op, new SageInput<>().setLimit(1).setState(output.getState()));
-        assertEquals(1, output.size());
-        // (TODO) here it fails while it should because identifier are not consistently set
-        output = run_to_the_limit(datasetOption, op, new SageInput<>().setState(output.getState()));
+        assertEquals(1, output.size()); // carol with no animals
 
+        output = run_to_the_limit(datasetOption, op, new SageInput<>().setLimit(1).setState(output.getState()));
+        assertEquals(1, output.size()); // alice with snake
+
+        output = run_to_the_limit(datasetOption, op, new SageInput<>().setLimit(1).setState(output.getState()));
+        assertEquals(1, output.size()); // alice with dog
+
+        output = run_to_the_limit(datasetOption, op, new SageInput<>().setState(output.getState()));
+        // Without changes, the iterator will return something wrong which is Alice without animals because
+        // at this pause/resume, the exploration starts after `dog`. Since it's optional, it will still return
+        // Alice… The `optional` must remember that it saw an animal before pausing.
+        // [main] DEBUG fr.gdd.sage.arq.OpExecutorSageBGPTest - ( ?s/[0x              56] = <http://Alice> ) -> [Root]
         assertEquals(0, output.size());
     }
 

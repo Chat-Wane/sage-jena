@@ -1,6 +1,8 @@
 package fr.gdd.sage.fuseki;
 
 import fr.gdd.sage.arq.OpExecutorSage;
+import fr.gdd.sage.arq.StageGeneratorSage;
+import fr.gdd.sage.writers.SageRowSetWriterJSON;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.fuseki.server.Endpoint;
@@ -16,11 +18,6 @@ import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.tdb2.DatabaseMgr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.StageGeneratorSage;
-import fr.gdd.sage.jena.JenaBackend;
-import fr.gdd.sage.writers.SageRowSetWriterJSON;
 
 
 
@@ -79,9 +76,6 @@ public class SageModule implements FusekiModule {
                 StageGenerator parent = ds.getContext().get(ARQ.stageGenerator) ;
                 StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
                 StageBuilder.setGenerator(ds.getContext(), stageGeneratorSage);
-                // to conveniently get interface changes already implemented
-                JenaBackend backend = new JenaBackend(ds);
-                ds.getContext().set(SageConstants.backend, backend);
             }
             
             // replacing the operation registry and the processor

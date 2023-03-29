@@ -18,10 +18,13 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterOptionalIndex;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.sparql.engine.main.iterator.QueryIterOptionalIndex;
 import org.apache.jena.sparql.engine.optimizer.reorder.ReorderProc;
 import org.apache.jena.sparql.engine.optimizer.reorder.ReorderTransformation;
 import org.apache.jena.sparql.expr.ExprList;
@@ -86,17 +89,17 @@ public class OpExecutorSage extends OpExecutorTDB2 {
             .globalConfig(configuration)
             .localInput(context.getContext().get(SageConstants.input))
             .build();
-
-        if (context.getContext().isUndef(SageConstants.output)) { // it may have been created by {@link SageQueryEngine}
-            execCxt.getContext().set(SageConstants.output, new SageOutput<>());
-        }
-
-        this.output = execCxt.getContext().get(SageConstants.output);
-
         execCxt.getContext().set(SageConstants.input, input);
 
-        this.iteratorFactory = new VolcanoIteratorFactory(execCxt);
-        execCxt.getContext().set(SageConstants.scanFactory, iteratorFactory);
+        // it may have been created by {@link SageQueryEngine}
+        execCxt.getContext().setIfUndef(SageConstants.output, new SageOutput<>());
+        this.output = execCxt.getContext().get(SageConstants.output);
+
+        execCxt.getContext().setIfUndef(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
+
+        this.iteratorFactory = execCxt.getContext().get(SageConstants.scanFactory);
+
+        execCxt.getContext().setIfUndef(SageConstants.cursor, 0); // Starting identifier of preemptive iterators
     }
 
     @Override
@@ -138,14 +141,18 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     @Override
     public QueryIterator execute(OpUnion union, QueryIterator input) {
         log.info("Executing a union…");
-        List<Op> operators = flattenUnion(union);
-        return iteratorFactory.getUnion(input, operators, execCxt);
+        // Comes from {@link OpExecutorTDB2}
+        List<Op> operations = flattenUnion(union);
+        PreemptQueryIterUnion it = new PreemptQueryIterUnion(input, operations, execCxt);
+        return it;
     }
 
     @Override
     protected QueryIterator execute(OpConditional opCondition, QueryIterator input) {
         log.info("Executing a conditional…");
-        return super.execute(opCondition, input);
+        // Comes from {@link OpExecutor}:
+        QueryIterator left = exec(opCondition.getLeft(), input);
+        return new PreemptQueryIterOptionalIndex(left, opCondition.getRight(), execCxt);
     }
 
 

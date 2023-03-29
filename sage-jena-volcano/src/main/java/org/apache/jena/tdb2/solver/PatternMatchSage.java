@@ -26,6 +26,8 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import org.apache.jena.tdb2.sys.TDBInternal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -41,6 +43,8 @@ import static org.apache.jena.sparql.engine.main.solver.SolverLib.tripleHasEmbTr
  * {@link PatternMatchTDB2} lies in the {@link VolcanoIteratorFactory} call.
  **/
 public class PatternMatchSage {
+
+    static Logger log = LoggerFactory.getLogger(PatternMatchSage.class);
 
     public static QueryIterator execute(GraphTDB graph, BasicPattern pattern, QueryIterator input, Predicate<Tuple<NodeId>> filter, ExecutionContext execCxt) {
         NodeTupleTable ntt = graph.getNodeTupleTable();
@@ -92,11 +96,13 @@ public class PatternMatchSage {
         Iterator<BindingNodeId> chain = Iter.map(input, conv);
 
         List<Abortable> killList = new ArrayList<>();
-        int numberOfScans = 0;
+
+        int scanId = context.getContext().get(SageConstants.cursor);
         for (Triple triple: pattern.getList()) {
             // create the function that will be called everytime a
             // scan iterator is created.
-            final int scanId = numberOfScans;
+            scanId += 1;
+            log.debug("Pattern {} got assigned the identifier {}.", pattern, scanId);
 
             Tuple<Node> patternTuple = null;
             if ( graph == null )
@@ -109,7 +115,6 @@ public class PatternMatchSage {
             chain = processAsStarPatternOrNot(chain, graph, triple, nodeTupleTable, patternTuple, anyGraph, filter, context, scanId);
 
             chain = SolverLib.makeAbortable(chain, killList);
-            numberOfScans += 1;
         }
         
         Iterator<Binding> iterBinding = SolverLibTDB.convertToNodes(chain, nodeTupleTable.getNodeTable());

@@ -11,17 +11,14 @@ public class SageConstants {
     public static final String systemVarNS = "https://sage.gdd.fr/Sage#";
     public static final String sageSymbolPrefix = "sage";
 
-    static public Symbol backend = allocConstantSymbol("Backend");
-    
     static public Symbol timeout = allocConstantSymbol("Timeout");
     static public Symbol limit   = allocConstantSymbol("Limit");
 
     static public Symbol scanFactory = allocVariableSymbol("ScanFactory");
-    static public Symbol deadline = allocVariableSymbol("Deadline");
     static public Symbol output   = allocVariableSymbol("Output");
     static public Symbol input    = allocVariableSymbol("Input");
 
-    static public Symbol iterators = allocVariableSymbol("Iterators");
+    static public Symbol cursor = allocVariableSymbol("cursor");
 
 
     

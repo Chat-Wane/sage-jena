@@ -40,7 +40,9 @@ public class VolcanoIteratorFactory {
     private PreemptTupleTable preemptableTripleTupleTable;
 
     private int unionIds = 1000;
-    
+
+    ExecutionContext context;
+
 
     
     public VolcanoIteratorFactory(ExecutionContext context) {
@@ -48,6 +50,8 @@ public class VolcanoIteratorFactory {
         this.input  = context.getContext().get(SageConstants.input);
 
         this.deadline = this.input.getDeadline();
+
+        this.context = context;
         
         var graph = (DatasetGraphTDB) context.getDataset();
         var nodeQuadTupleTable = graph.getQuadTable().getNodeTupleTable();
@@ -82,10 +86,10 @@ public class VolcanoIteratorFactory {
         VolcanoIteratorTupleId volcanoIterator = null;
         if (pattern.len() < 4) {
             wrapped = preemptableTripleTupleTable.preemptable_find(pattern);
-            volcanoIterator = new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id);
+            volcanoIterator = new VolcanoIteratorTupleId(wrapped, tripleNodeTable, input, output, id, context);
         } else {
             wrapped = preemptableQuadTupleTable.preemptable_find(pattern);
-            volcanoIterator = new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id);
+            volcanoIterator = new VolcanoIteratorTupleId(wrapped, quadNodeTable, input, output, id, context);
         }
 
         // Check if it is a preemptive iterator that should jump directly to its resume state.
@@ -97,14 +101,4 @@ public class VolcanoIteratorFactory {
         return volcanoIterator;
     }
 
-
-    public PreemptQueryIterUnion getUnion(QueryIterator inputIt, List<Op> operations, ExecutionContext context) {
-        unionIds += 1;
-        PreemptQueryIterUnion it = new PreemptQueryIterUnion(inputIt, operations, context, unionIds);
-        if (input != null && input.getState() != null && input.getState().containsKey(unionIds)) {
-            it.skip((Integer) input.getState(unionIds));
-        }
-        return it;
-    }
-    
 }
