@@ -18,6 +18,7 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterNestedLoopJoin;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterOptionalIndex;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
@@ -85,7 +86,9 @@ public class OpExecutorSage extends OpExecutorTDB2 {
 
     OpExecutorSage(ExecutionContext context, SageServerConfiguration configuration) {
         super(context);
-        
+
+        // (TODO) sageInputBuilder must be moved out because it resets deadline
+        // each time `QC.exec()`
         SageInput<?> input = new SageInputBuilder()
             .globalConfig(configuration)
             .localInput(context.getContext().get(SageConstants.input))
@@ -151,9 +154,10 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     @Override
     protected QueryIterator execute(OpJoin opJoin, QueryIterator input) {
         log.info("Executing a join…");
-        QueryIterator left = exec(opJoin.getLeft(), input);
-        QueryIterator right = exec(opJoin.getRight(), root());
-        return Join.nestedLoopJoin(left, right, execCxt); // Using Sage, we are bound to `NestedLoopJoin`.
+        //QueryIterator left = exec(opJoin.getLeft(), input);
+        //QueryIterator right = exec(opJoin.getRight(), root());
+        return new PreemptQueryIterNestedLoopJoin(opJoin, input, execCxt);
+        // return Join.nestedLoopJoin(opJoin.getLeft(), right, execCxt); // Using Sage, we are bound to `NestedLoopJoin`.
     }
 
     @Override

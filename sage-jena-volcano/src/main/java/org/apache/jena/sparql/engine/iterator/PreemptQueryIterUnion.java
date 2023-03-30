@@ -32,11 +32,6 @@ public class PreemptQueryIterUnion extends QueryIterUnion {
 
     @Override
     protected QueryIterator nextStage(Binding binding) {
-        System.out.println("neXt Stage ");
-        if  (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()) {
-            return new QueryIterConcat(getExecContext());
-        }
-
         Integer id = getExecContext().getContext().get(SageConstants.cursor);
         id += 1;
         getExecContext().getContext().set(SageConstants.cursor, id);

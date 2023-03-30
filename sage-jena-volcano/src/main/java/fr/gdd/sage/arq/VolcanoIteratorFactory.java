@@ -39,8 +39,6 @@ public class VolcanoIteratorFactory {
     private PreemptTupleTable preemptableQuadTupleTable;
     private PreemptTupleTable preemptableTripleTupleTable;
 
-    private int unionIds = 1000;
-
     ExecutionContext context;
 
 

@@ -6,7 +6,6 @@ import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
@@ -16,7 +15,6 @@ import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.openjdk.jmh.annotations.*;
 
 import java.lang.reflect.Field;
-import java.util.Objects;
 
 /**
  * Have the utility functions to initialize the dataset and set up the proper engine
@@ -25,14 +23,13 @@ import java.util.Objects;
 public class SetupBenchmark {
 
     @State(Scope.Benchmark)
-    public static class ExecutionContext {
+    public static class BenchmarkExecutionContext {
         volatile Dataset dataset;
-        volatile QueryExecution queryExecution;
         volatile String query = null;
     }
 
 
-    public static void setup(ExecutionContext context, String dbPath, String engine) throws Exception {
+    public static void setup(BenchmarkExecutionContext context, String dbPath, String engine) throws Exception {
         context.dataset = TDB2Factory.connectDataset(dbPath);
         if (!context.dataset.isInTransaction()) {
             context.dataset.begin(ReadWrite.READ);
@@ -73,19 +70,19 @@ public class SetupBenchmark {
                 context.dataset.getContext().remove(SageConstants.timeout);
             }
             case EngineTypes.SageForceOrderTimeout60s -> {
-                forceOrderWithTimeout(context, 60000);
+                forceOrderWithTimeout(context.dataset, 60000);
             }
             case EngineTypes.SageForceOrderTimeout30s -> {
-                forceOrderWithTimeout(context, 30000);
+                forceOrderWithTimeout(context.dataset, 30000);
             }
             case EngineTypes.SageForceOrderTimeout10s -> {
-                forceOrderWithTimeout(context, 10000);
+                forceOrderWithTimeout(context.dataset, 10000);
             }
             case EngineTypes.SageForceOrderTimeout1s -> {
-                forceOrderWithTimeout(context, 1000);
+                forceOrderWithTimeout(context.dataset, 1000);
             }
             case EngineTypes.SageForceOrderTimeout1ms -> {
-                forceOrderWithTimeout(context, 1);
+                forceOrderWithTimeout(context.dataset, 1);
             }
             case EngineTypes.SageForceOrderLimit1 -> {
                 context.dataset.getContext().set(ARQ.optimization, false);
@@ -110,13 +107,13 @@ public class SetupBenchmark {
      * Sets the context value of the dataset so Sage knows the timeout value
      * before pausing/resuming query execution (in milliseconds)
      */
-    static public void forceOrderWithTimeout(ExecutionContext context, long timeout) {
-        context.dataset.getContext().set(ARQ.optimization, false);
-        context.dataset.getContext().set(SageConstants.timeout, timeout);
-        context.dataset.getContext().remove(SageConstants.limit);
+    static public void forceOrderWithTimeout(Dataset dataset, long timeout) {
+        dataset.getContext().set(ARQ.optimization, false);
+        dataset.getContext().set(SageConstants.timeout, timeout);
+        dataset.getContext().remove(SageConstants.limit);
     }
 
-    public static void setdown(ExecutionContext context, String engine) {
+    public static void setdown(BenchmarkExecutionContext context, String engine) {
         switch (engine) {
             case EngineTypes.TDB, EngineTypes.TDBForceOrder -> QueryEngineTDB.unregister();
             case default -> QueryEngineSage.unregister(); // Sage is default because there are numerous options
@@ -128,7 +125,7 @@ public class SetupBenchmark {
     }
 
 
-    public static Pair<Long, Long> execute(ExecutionContext context, String engine) {
+    public static Pair<Long, Long> execute(BenchmarkExecutionContext context, String engine) {
         switch (engine) {
             case EngineTypes.TDB, EngineTypes.TDBForceOrder -> {
                 return ExecuteUtils.executeTDB(context.dataset, context.query);

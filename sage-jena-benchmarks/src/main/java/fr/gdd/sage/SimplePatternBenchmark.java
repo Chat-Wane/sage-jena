@@ -44,7 +44,7 @@ public class SimplePatternBenchmark {
     public String a_pattern; // prefixed with alphanumeric character to force the execution order of @Param
 
     @Setup(Level.Trial)
-    public void setup(SetupBenchmark.ExecutionContext ec) {
+    public void setup(SetupBenchmark.BenchmarkExecutionContext ec) {
         try {
             SetupBenchmark.setup(ec, z_dbPath, b_engine);
         } catch (Exception e) {
@@ -53,18 +53,18 @@ public class SimplePatternBenchmark {
     }
 
     @TearDown(Level.Trial)
-    public void setdown(SetupBenchmark.ExecutionContext ec) {
+    public void setdown(SetupBenchmark.BenchmarkExecutionContext ec) {
         SetupBenchmark.setdown(ec, b_engine);
     }
 
     @Setup(Level.Trial)
-    public void read_query(SetupBenchmark.ExecutionContext ec) {
+    public void read_query(SetupBenchmark.BenchmarkExecutionContext ec) {
         ec.query = "SELECT * WHERE {" + a_pattern + "}";
         log.debug("{}", ec.query);
     }
 
     @Benchmark
-    public long execute(SetupBenchmark.ExecutionContext ec) throws Exception {
+    public long execute(SetupBenchmark.BenchmarkExecutionContext ec) throws Exception {
         Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
         log.debug("Got {} results for this query.", nbResultsAndPreempt.left);
 

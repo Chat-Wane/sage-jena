@@ -59,6 +59,19 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
             // The first of all ids is the one to save its current
             boolean shouldSaveCurrent = Objects.isNull(this.output.getState()) ||
                     this.output.getState().keySet().stream().noneMatch(k -> k > id);
+
+            /*if (shouldSaveCurrent && ((PreemptJenaIterator) wrapped).isNullIterator()) {
+                System.out.println("Meow");
+            }*/
+
+            if (!shouldSaveCurrent && ((PreemptJenaIterator) wrapped).isNullIterator()) {
+                System.out.println("WTF? ");
+            }
+
+            /*if (shouldSaveCurrent && ((PreemptJenaIterator) wrapped).isSingletonIterator()) {
+                System.out.println("woof");
+            }*/
+
             Pair toSave = new Pair(id, shouldSaveCurrent ? this.wrapped.current() : this.wrapped.previous());
             this.output.addState(toSave);
             return false;
@@ -78,6 +91,13 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
     public void skip(SerializableRecord to) {
         first = true; // skip so first `hasNext` is mandatory
+
+        if (((PreemptJenaIterator)wrapped).isNullIterator()) {
+            if (Objects.nonNull(to) || ((Objects.nonNull(to) && Objects.nonNull(to.record)))) {
+                System.out.println("ID = "+ id);
+                System.out.println("SAGEINPUT State:  " + input.getState().toString());
+            }
+        }
         wrapped.skip(to);
     }
 }

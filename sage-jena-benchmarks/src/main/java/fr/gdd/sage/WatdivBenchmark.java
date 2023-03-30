@@ -41,7 +41,7 @@ public class WatdivBenchmark {
 
 
     @Setup(Level.Trial)
-    public void setup(SetupBenchmark.ExecutionContext ec) {
+    public void setup(SetupBenchmark.BenchmarkExecutionContext ec) {
         try {
             SetupBenchmark.setup(ec, z_dbPath, b_engine);
         } catch (Exception e) {
@@ -50,12 +50,12 @@ public class WatdivBenchmark {
     }
 
     @TearDown(Level.Trial)
-    public void setdown(SetupBenchmark.ExecutionContext ec) {
+    public void setdown(SetupBenchmark.BenchmarkExecutionContext ec) {
         SetupBenchmark.setdown(ec, b_engine);
     }
 
     @Setup(Level.Trial)
-    public void read_query(SetupBenchmark.ExecutionContext ec) {
+    public void read_query(SetupBenchmark.BenchmarkExecutionContext ec) {
         try {
             ec.query = Files.readString(Paths.get(a_query), StandardCharsets.UTF_8);
         } catch (Exception e) {
@@ -65,7 +65,7 @@ public class WatdivBenchmark {
     }
 
     @Benchmark
-    public long execute(SetupBenchmark.ExecutionContext ec) throws Exception {
+    public long execute(SetupBenchmark.BenchmarkExecutionContext ec) throws Exception {
         Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
 
         log.debug("Got {} results for this query in {} pause/resume.", nbResultsAndPreempt.left, nbResultsAndPreempt.right);
@@ -95,10 +95,10 @@ public class WatdivBenchmark {
 
         // create all the runners' options
         List<Options> options = createOptions(watdiv, List.of(QueryTypes.Short),
-                // EngineTypes.TDB,
+                EngineTypes.TDB
                 // EngineTypes.Sage,
-                EngineTypes.TDBForceOrder
-                //EngineTypes.SageForceOrder,
+                // EngineTypes.TDBForceOrder
+                // EngineTypes.SageForceOrder,
                 // EngineTypes.SageForceOrderTimeout1ms
                 //EngineTypes.SageForceOrderTimeout1s,
                 //EngineTypes.SageForceOrderTimeout30s,
@@ -106,7 +106,7 @@ public class WatdivBenchmark {
         );
 
         // testing only one query
-        /*options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
+        options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10134.sparql",
                 EngineTypes.SageForceOrderTimeout1ms);
                 // EngineTypes.TDB);*/
 
@@ -151,7 +151,7 @@ public class WatdivBenchmark {
             options.add(runCommon(watdiv, List.of(query), engine)
                     .warmupIterations(1)
                     .forks(100)
-                    .mode(Mode.SingleShotTime)
+                    //.mode(Mode.SingleShotTime)
                     .timeout(TimeValue.seconds(10000))
                     //.jvmArgsAppend("-XX:-TieredCompilation", "-XX:-BackgroundCompilation")
                     // Such option comes from an issue with `jmh` where identical run, ie forks would

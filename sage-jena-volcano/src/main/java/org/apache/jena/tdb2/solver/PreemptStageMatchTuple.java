@@ -40,9 +40,11 @@ class PreemptStageMatchTuple {
         final Var[] vars = new Var[patternTuple.len()];
 
         boolean b = prepare(nodeTupleTable.getNodeTable(), patternTuple, input, ids, vars);
-        if ( !b )
+        if ( !b ) {
             // Short cut - known unknown NodeId
+            System.out.println("In ACCESS, null iterator");
             return Iter.nullIterator(); // null iterator is not preempt
+        }
 
         // Iterator<Tuple<NodeId>> iterMatches = nodeTupleTable.find(TupleFactory.create(ids));
         VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);

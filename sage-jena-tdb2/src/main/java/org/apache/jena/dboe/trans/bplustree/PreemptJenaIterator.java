@@ -68,7 +68,7 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
     }
 
     /**
-     * Singelton Iterator, still need basic parameters since they are
+     * Singleton Iterator, still need basic parameters since they are
      * needed for `previous()`/`current()` and `skip(to)` as well.
      */
     public PreemptJenaIterator(Tuple<NodeId> pattern, BPlusTree tree, Record min, Record max,
@@ -139,19 +139,39 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
             // called on previous() therefore `null` therefore produce the pattern again, or;
             // called on current() therefore `null` if not produced then produce the pattern, or;
             // called on current() therefore `record` if produced then do not produce again.
-            wrapped = new NullIterator<>();
+            hasNext();
+            next();
             return;
         }
 
         // otherwise, we re-initialize the range iterator to
         // start at the key.
+        if (Objects.isNull(tree)) {
+            System.out.println("TREE NULL ? ");
+            System.out.println("record " + to.record.toString());
+            System.out.println("is Singleton? " + isSingletonIterator());
+            System.out.println("is Null ? " + isNullIterator());
+            System.out.println("min " + (Objects.isNull(min)? "null": min.toString()));
+            System.out.println("max " + (Objects.isNull(max)? "null": max.toString()));
+        }
         wrapped = tree.iterator(to.record, max, mapper);
 
         // We are voluntarily one step behind with the saved
         // `Record`. Calling `hasNext()` and `next()` recover
         // a clean internal state.
         hasNext();
-        next();
+        try {
+            next();
+        } catch (Exception e) {
+            System.out.println("tree " + tree.getParams().toString());
+            System.out.println("min " + tree.minKey().toString());
+            System.out.println("max " + tree.maxKey().toString());
+            System.out.println("to " + to.record.toString());
+            System.out.println("is Singleton? " + isSingletonIterator());
+            System.out.println("is Null ? " + isNullIterator());
+
+            e.printStackTrace();
+        }
     }
 
     @Override

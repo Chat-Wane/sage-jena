@@ -1,24 +1,18 @@
 package fr.gdd.sage.arq;
 
 import fr.gdd.sage.InMemoryInstanceOfTDB2;
-import fr.gdd.sage.ReflectionUtils;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
-import org.apache.jena.sparql.engine.join.Join;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,17 +85,17 @@ public class OpExecutorSageUnionTest {
     }
 
     @Test
-    public void union_in_bgp_so_it_calls_next_stage() {
+    public void union_in_bgp_so_it_is_called_by_a_join_and_have_a_nextStage() {
         String query = "(join (bgp (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>))(union " +
                 "(bgp (<http://db.uwaterloo.ca/~galuc/wsdbm/City0> ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>)) " +
                 "(bgp (<http://db.uwaterloo.ca/~galuc/wsdbm/City0> <http://www.geonames.org/ontology#parentCountry> ?o))" +
                 "))";
         Op op = SSE.parseOp(query);
-        /* SageOutput output = run_to_the_limit(dataset, op, new SageInput<>());
-        assertEquals(2, output.size());*/
+        SageOutput output = run_to_the_limit(dataset, op, new SageInput<>());
+        assertEquals(2, output.size());
 
 
-        SageOutput output = run_to_the_limit(dataset, op, new SageInput<>().setLimit(1));
+        output = run_to_the_limit(dataset, op, new SageInput<>().setLimit(1));
         assertEquals(1, output.size());
         output = run_to_the_limit(dataset, op, new SageInput<>().setState(output.getState()));
         assertEquals(1, output.size());
