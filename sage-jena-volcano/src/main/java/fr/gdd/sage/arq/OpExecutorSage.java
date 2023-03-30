@@ -21,6 +21,7 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterOptionalIndex;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
+import org.apache.jena.sparql.engine.join.Join;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
@@ -145,6 +146,14 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         List<Op> operations = flattenUnion(union);
         PreemptQueryIterUnion it = new PreemptQueryIterUnion(input, operations, execCxt);
         return it;
+    }
+
+    @Override
+    protected QueryIterator execute(OpJoin opJoin, QueryIterator input) {
+        log.info("Executing a join…");
+        QueryIterator left = exec(opJoin.getLeft(), input);
+        QueryIterator right = exec(opJoin.getRight(), root());
+        return Join.nestedLoopJoin(left, right, execCxt); // Using Sage, we are bound to `NestedLoopJoin`.
     }
 
     @Override

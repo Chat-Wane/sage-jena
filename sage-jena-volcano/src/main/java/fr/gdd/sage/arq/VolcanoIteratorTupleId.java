@@ -48,9 +48,17 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
     @Override
     public boolean hasNext() {
         if (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit())) {
+            if (Objects.nonNull(this.output.getState()) && (this.output.getState().containsKey(id))) {
+                // no saving since a priority id already saved its state.
+                // for instance, in union (bgp 1) (bgp 2), when bgp1 saves and returns false, bgp2 will also
+                // call its hasNext(), and try to save, with an identical identifier.
+                // we want that every part of the union returns false + only the first saver saves.
+                return false;
+            }
+
+            // The first of all ids is the one to save its current
             boolean shouldSaveCurrent = Objects.isNull(this.output.getState()) ||
                     this.output.getState().keySet().stream().noneMatch(k -> k > id);
-
             Pair toSave = new Pair(id, shouldSaveCurrent ? this.wrapped.current() : this.wrapped.previous());
             this.output.addState(toSave);
             return false;

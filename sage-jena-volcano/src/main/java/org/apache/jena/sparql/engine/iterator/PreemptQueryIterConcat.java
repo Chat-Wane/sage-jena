@@ -27,8 +27,9 @@ public class PreemptQueryIterConcat extends QueryIterConcat {
 
     @Override
     protected boolean hasNextBinding() {
+        System.out.println("iter concat : output size"  + output.size());
         if  (System.currentTimeMillis() >= sageInput.getDeadline() || output.size() >= sageInput.getLimit()) {
-            System.out.println("CONCAT SAVE " + (offset));
+            System.out.println("CONCAT  "+ id + " SAVE " + (offset));
             this.output.save(new Pair(id, offset));
             // Need to not return false since iterator will do it,
             // otherwise, it returns an error since it `moveToNextBinding` first then
@@ -68,9 +69,9 @@ public class PreemptQueryIterConcat extends QueryIterConcat {
 
 
     public void skip(int to){
-        System.out.println("CONCAT Skip to " + to);
+        System.out.println("CONCAT " + id + " Skip to " + to);
         this.offset = to;
-        init(to);
+        // init(to);
     }
 
     private void init(Integer... start) {

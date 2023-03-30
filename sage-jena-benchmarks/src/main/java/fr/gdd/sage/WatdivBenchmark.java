@@ -94,20 +94,21 @@ public class WatdivBenchmark {
         Watdiv10M watdiv = new Watdiv10M(dirPath_opt); // creates the db if need be
 
         // create all the runners' options
-        List<Options> options = createOptions(args, watdiv,
+        List<Options> options = createOptions(watdiv, List.of(QueryTypes.Short),
                 // EngineTypes.TDB,
                 // EngineTypes.Sage,
-                EngineTypes.TDBForceOrder,
-                EngineTypes.SageForceOrder,
-                EngineTypes.SageForceOrderTimeout1ms,
-                EngineTypes.SageForceOrderTimeout1s,
-                EngineTypes.SageForceOrderTimeout30s,
-                EngineTypes.SageForceOrderTimeout60s);
+                EngineTypes.TDBForceOrder
+                //EngineTypes.SageForceOrder,
+                // EngineTypes.SageForceOrderTimeout1ms
+                //EngineTypes.SageForceOrderTimeout1s,
+                //EngineTypes.SageForceOrderTimeout30s,
+                //EngineTypes.SageForceOrderTimeout60s);
+        );
 
         // testing only one query
-        options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
+        /*options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
                 EngineTypes.SageForceOrderTimeout1ms);
-                // EngineTypes.TDB);
+                // EngineTypes.TDB);*/
 
         for (Options opt : options) {
             new Runner(opt).run();
@@ -115,22 +116,35 @@ public class WatdivBenchmark {
 
     }
 
-
-    // (TODO) use args to run subset of benchmarks
-    public static List<Options> createOptions(String[] args, Watdiv10M watdiv, String... engines) {
+    /**
+     * Creates a list of options to run the benchmarks. It divides the benchmark into
+     * multiples runs, starting from short to long queries, and for each kind of query,
+     * every engine set. Each individual run is saved in its respective file at the end
+     * of each benchmark.
+     */
+    public static List<Options> createOptions(Watdiv10M watdiv, List<String> queryTypes, String... engines) {
         ArrayList<Options> options = new ArrayList<>();
-        /* for (String engine : engines) // run all shorts
-            options.add(runShort(watdiv, engine));
-        for (String engine : engines) // then run all mediums
-            options.add(runMedium(watdiv, engine)); */
-        for (String engine : engines) // finally run all longs
-            options.add(runLong(watdiv, engine));
+        if (queryTypes.contains(QueryTypes.Short)) {
+            for (String engine : engines) // run all shorts
+                options.add(runShort(watdiv, engine));
+        }
+
+        if (queryTypes.contains(QueryTypes.Medium)) {
+            for (String engine : engines) // then run all mediums
+                options.add(runMedium(watdiv, engine));
+        }
+
+        if (queryTypes.contains(QueryTypes.Long)) { // finally run all longs
+            for (String engine : engines)
+                options.add(runLong(watdiv, engine));
+        }
         return options.stream().filter(Objects::nonNull).toList();
-
-
     }
 
-    // no out file for debugging
+    /**
+     * Mostly for debugging purpose. Instead of running categories of queries, it runs a specific
+     * query individually, and do not export the data.
+     */
     public static List<Options> customsOptions(Watdiv10M watdiv, String query, String... engines) {
         ArrayList<Options> options = new ArrayList<>();
         for (String engine : engines) {
