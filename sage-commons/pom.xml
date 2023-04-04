@@ -7,6 +7,7 @@
   <artifactId>sage-commons</artifactId>
   <name>sage-commons</name>
   <packaging>jar</packaging>
+  <version>${revision}</version>
 
   <parent>
     <groupId>fr.gdd.sage</groupId>

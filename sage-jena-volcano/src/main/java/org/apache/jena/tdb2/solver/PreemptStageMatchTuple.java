@@ -7,10 +7,12 @@ import java.util.function.Predicate;
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
+import fr.gdd.sage.arq.VolcanoIteratorTupleId;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.StrUtils;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
+import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -34,27 +36,16 @@ class PreemptStageMatchTuple {
 
     private static Iterator<BindingNodeId> access(NodeTupleTable nodeTupleTable, BindingNodeId input, Tuple<Node> patternTuple,
                                                   Predicate<Tuple<NodeId>> filter, boolean anyGraph, ExecutionContext execCxt, Integer id) {
-        // ---- Convert to NodeIds
-        NodeId ids[] = new NodeId[patternTuple.len()];
-        // Variables for this tuple after substitution
-        final Var[] vars = new Var[patternTuple.len()];
+        NodeId ids[] = new NodeId[patternTuple.len()]; // ---- Convert to NodeIds
+        final Var[] vars = new Var[patternTuple.len()]; // Variables for this tuple after substitution
+
+        VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
 
         boolean b = prepare(nodeTupleTable.getNodeTable(), patternTuple, input, ids, vars);
-        if ( !b ) {
-            // Short cut - known unknown NodeId
-            System.out.println("In ACCESS, null iterator");
-            return Iter.nullIterator(); // null iterator is not preempt
-        }
 
-        // Iterator<Tuple<NodeId>> iterMatches = nodeTupleTable.find(TupleFactory.create(ids));
-        VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
-        Iterator<Tuple<NodeId>> iterMatches = factory.getScan(nodeTupleTable, TupleFactory.create(ids), id);
-
-        if ( false ) { // some testing from original source code
-            List<Tuple<NodeId>> x = Iter.toList(iterMatches);
-            System.out.println(x);
-            iterMatches = x.iterator();
-        }
+        Iterator<Tuple<NodeId>> iterMatches = !b ?
+                factory.getScan(id):
+                factory.getScan(nodeTupleTable, TupleFactory.create(ids), id);
 
         // ** Allow a triple or quad filter here.
         if ( filter != null )

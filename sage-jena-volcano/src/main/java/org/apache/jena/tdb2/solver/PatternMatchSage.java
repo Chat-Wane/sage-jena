@@ -3,6 +3,7 @@ package org.apache.jena.tdb2.solver; // In this package so it can access SolverL
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.arq.VolcanoIteratorFactory;
 import fr.gdd.sage.arq.VolcanoIteratorQuad;
+import fr.gdd.sage.io.SageInput;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
@@ -29,9 +30,7 @@ import org.apache.jena.tdb2.sys.TDBInternal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 

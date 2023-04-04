@@ -19,6 +19,7 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 /**
@@ -32,23 +33,18 @@ public class VolcanoIteratorFactory {
     
     SageInput<?> input;
     SageOutput<?> output;
-    long deadline;
 
-    private NodeTable quadNodeTable;
-    private NodeTable tripleNodeTable;
-    private PreemptTupleTable preemptableQuadTupleTable;
-    private PreemptTupleTable preemptableTripleTupleTable;
+    final private NodeTable quadNodeTable;
+    final private NodeTable tripleNodeTable;
+    final private PreemptTupleTable preemptableQuadTupleTable;
+    final private PreemptTupleTable preemptableTripleTupleTable;
 
     ExecutionContext context;
 
-
-    
+
     public VolcanoIteratorFactory(ExecutionContext context) {
         this.output = context.getContext().get(SageConstants.output);
         this.input  = context.getContext().get(SageConstants.input);
-
-        this.deadline = this.input.getDeadline();
-
         this.context = context;
         
         var graph = (DatasetGraphTDB) context.getDataset();
@@ -93,7 +89,17 @@ public class VolcanoIteratorFactory {
         // Check if it is a preemptive iterator that should jump directly to its resume state.
         if (input != null && input.getState() != null && input.getState().containsKey(id)) {
             volcanoIterator.skip((SerializableRecord) input.getState(id));
+        }
 
+        return volcanoIterator;
+    }
+
+    public VolcanoIteratorTupleId getScan(Integer id) {
+        VolcanoIteratorTupleId volcanoIterator = new VolcanoIteratorTupleId(input, output, id, context);
+
+        // Check if it is a preemptive iterator that should jump directly to its resume state.
+        if (input != null && input.getState() != null && input.getState().containsKey(id)) {
+            volcanoIterator.skip((SerializableRecord) input.getState(id));
         }
 
         return volcanoIterator;

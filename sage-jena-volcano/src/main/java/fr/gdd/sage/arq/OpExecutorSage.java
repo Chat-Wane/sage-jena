@@ -22,11 +22,9 @@ import org.apache.jena.sparql.engine.iterator.PreemptQueryIterNestedLoopJoin;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterOptionalIndex;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
-import org.apache.jena.sparql.engine.join.Join;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
-import org.apache.jena.sparql.engine.main.iterator.QueryIterOptionalIndex;
 import org.apache.jena.sparql.engine.optimizer.reorder.ReorderProc;
 import org.apache.jena.sparql.engine.optimizer.reorder.ReorderTransformation;
 import org.apache.jena.sparql.expr.ExprList;
@@ -42,7 +40,9 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -87,20 +87,25 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     OpExecutorSage(ExecutionContext context, SageServerConfiguration configuration) {
         super(context);
 
-        // (TODO) sageInputBuilder must be moved out because it resets deadline
-        // each time `QC.exec()`
-        SageInput<?> input = new SageInputBuilder()
-            .globalConfig(configuration)
-            .localInput(context.getContext().get(SageConstants.input))
-            .build();
-        execCxt.getContext().set(SageConstants.input, input);
+        // QC.exec creates a new `OpExecutor` and we want to keep our old values, so `SageInput`
+        // is created only on the first call.
+        if (execCxt.getContext().isUndef(SageConstants.input)) { // <=> setIfUndef
+            long limit = execCxt.getContext().getLong(SageConstants.limit, Long.MAX_VALUE);
+            long timeout = execCxt.getContext().getLong(SageConstants.timeout, Long.MAX_VALUE);
+            Map<Integer, Serializable> state = execCxt.getContext().get(SageConstants.state);
+            SageInput<?> input = new SageInputBuilder()
+                    .globalConfig(configuration)
+                    .localInput(new SageInput<>().setLimit(limit).setTimeout(timeout).setState(state))
+                    .build();
+            execCxt.getContext().set(SageConstants.input, input);
+        }
+
 
         // it may have been created by {@link SageQueryEngine}
         execCxt.getContext().setIfUndef(SageConstants.output, new SageOutput<>());
         this.output = execCxt.getContext().get(SageConstants.output);
 
         execCxt.getContext().setIfUndef(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
-
         this.iteratorFactory = execCxt.getContext().get(SageConstants.scanFactory);
 
         execCxt.getContext().setIfUndef(SageConstants.cursor, 0); // Starting identifier of preemptive iterators
@@ -146,18 +151,14 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     public QueryIterator execute(OpUnion union, QueryIterator input) {
         log.info("Executing a union…");
         // Comes from {@link OpExecutorTDB2}
-        List<Op> operations = flattenUnion(union);
-        PreemptQueryIterUnion it = new PreemptQueryIterUnion(input, operations, execCxt);
-        return it;
+        return new PreemptQueryIterUnion(input, flattenUnion(union), execCxt);
     }
 
     @Override
     protected QueryIterator execute(OpJoin opJoin, QueryIterator input) {
         log.info("Executing a join…");
-        //QueryIterator left = exec(opJoin.getLeft(), input);
-        //QueryIterator right = exec(opJoin.getRight(), root());
+        // Using Sage, we are bound to `NestedLoopJoin`. TDB2's default is hash join.
         return new PreemptQueryIterNestedLoopJoin(opJoin, input, execCxt);
-        // return Join.nestedLoopJoin(opJoin.getLeft(), right, execCxt); // Using Sage, we are bound to `NestedLoopJoin`.
     }
 
     @Override

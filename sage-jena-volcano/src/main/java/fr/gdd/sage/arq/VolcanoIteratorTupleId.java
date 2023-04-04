@@ -13,7 +13,7 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.TreeMap;
 
 /**
  * A Volcano Iterator that works on {@link Tuple<NodeId>} instead of
@@ -30,7 +30,6 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
     // Cannot pause at first execution of the `hasNext()`.
     boolean first = false;
-
     ExecutionContext context;
 
 
@@ -41,13 +40,25 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
         this.input = input;
         this.output = output;
         this.id = id;
-
         this.context = context;
+    }
+
+    /**
+     * Empty iterator. Still have arguments in case it needs to save
+     */
+    public VolcanoIteratorTupleId(SageInput<?> input, SageOutput<?> output, Integer id, ExecutionContext context) {
+        wrapped = new PreemptJenaIterator();
+        this.context = context;
+        this.input = input;
+        this.output = output;
+        this.id = id;
     }
 
     @Override
     public boolean hasNext() {
-        if (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit())) {
+        boolean someoneStartedSaving = Objects.nonNull(output.getState()) && !output.getState().isEmpty();
+        if (someoneStartedSaving ||
+                (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()))) {
             if (Objects.nonNull(this.output.getState()) && (this.output.getState().containsKey(id))) {
                 // no saving since a priority id already saved its state.
                 // for instance, in union (bgp 1) (bgp 2), when bgp1 saves and returns false, bgp2 will also
@@ -59,18 +70,6 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
             // The first of all ids is the one to save its current
             boolean shouldSaveCurrent = Objects.isNull(this.output.getState()) ||
                     this.output.getState().keySet().stream().noneMatch(k -> k > id);
-
-            /*if (shouldSaveCurrent && ((PreemptJenaIterator) wrapped).isNullIterator()) {
-                System.out.println("Meow");
-            }*/
-
-            if (!shouldSaveCurrent && ((PreemptJenaIterator) wrapped).isNullIterator()) {
-                System.out.println("WTF? ");
-            }
-
-            /*if (shouldSaveCurrent && ((PreemptJenaIterator) wrapped).isSingletonIterator()) {
-                System.out.println("woof");
-            }*/
 
             Pair toSave = new Pair(id, shouldSaveCurrent ? this.wrapped.current() : this.wrapped.previous());
             this.output.addState(toSave);
@@ -91,13 +90,6 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
     public void skip(SerializableRecord to) {
         first = true; // skip so first `hasNext` is mandatory
-
-        if (((PreemptJenaIterator)wrapped).isNullIterator()) {
-            if (Objects.nonNull(to) || ((Objects.nonNull(to) && Objects.nonNull(to.record)))) {
-                System.out.println("ID = "+ id);
-                System.out.println("SAGEINPUT State:  " + input.getState().toString());
-            }
-        }
         wrapped.skip(to);
     }
 }

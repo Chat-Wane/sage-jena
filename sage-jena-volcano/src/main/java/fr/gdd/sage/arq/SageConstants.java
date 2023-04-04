@@ -13,14 +13,13 @@ public class SageConstants {
 
     static public Symbol timeout = allocConstantSymbol("Timeout");
     static public Symbol limit   = allocConstantSymbol("Limit");
+    static public Symbol state   = allocConstantSymbol("State");
 
     static public Symbol scanFactory = allocVariableSymbol("ScanFactory");
     static public Symbol output   = allocVariableSymbol("Output");
     static public Symbol input    = allocVariableSymbol("Input");
 
-    static public Symbol cursor = allocVariableSymbol("cursor");
-
-
+    static public Symbol cursor = allocVariableSymbol("Cursor");
     
     /**
      * Symbol in use in the global context.

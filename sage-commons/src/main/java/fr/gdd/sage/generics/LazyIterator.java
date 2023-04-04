@@ -97,25 +97,25 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP>, Random
         switch (code) {
         case SPOC.SUBJECT:
             if (subject_has_changed) {
-                subject = backend.getValue(subject_id);
+                subject = backend.getValue(subject_id, code);
                 subject_has_changed = false;
             }
             return subject;
         case SPOC.PREDICATE:
             if (predicate_has_changed) {
-                predicate = backend.getValue(predicate_id);
+                predicate = backend.getValue(predicate_id, code);
                 predicate_has_changed = false;
             }
             return predicate;
         case SPOC.OBJECT:
             if (object_has_changed) {
-                object = backend.getValue(object_id);
+                object = backend.getValue(object_id, code);
                 object_has_changed = false;
             }
             return object;
         case SPOC.CONTEXT:
             if (context_has_changed) {
-                context = backend.getValue(context_id);
+                context = backend.getValue(context_id, code);
                 context_has_changed = false;
             }
             return context;

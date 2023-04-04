@@ -1,18 +1,17 @@
 package fr.gdd.sage;
 
-import java.util.Map;
-import java.util.Objects;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.file.Files;
+import java.util.*;
 
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.generics.Pair;
-import org.apache.jena.query.ARQ;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ResultSet;
+import org.apache.jena.base.Sys;
+import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
@@ -32,6 +31,9 @@ import fr.gdd.sage.io.SageOutput;
 public class ExecuteUtils {
     static Logger log = LoggerFactory.getLogger(ExecuteUtils.class);
 
+    static Integer expectedNumResults = null;
+
+
     /**
      * @return A pair <number of results, number of pauses>
      */
@@ -39,15 +41,11 @@ public class ExecuteUtils {
         long nbPreempt = -1; // the first execution is not a preempt
         long sum = 0;
         SageOutput<?> results = null;
-        SageInput<?>  sageInput  = new SageInput<>();
-            
+
+        Map<Integer, Serializable> state = Map.of();
         while (Objects.isNull(results)|| (!Objects.isNull(results.getState()))) {
             nbPreempt += 1;
-            // sageInput = new SageInputBuilder().globalConfig(configuration).localInput(sageInput).build();
-            log.debug("Starting a possibly partial execution (limit {}) (timeout {})", sageInput.getLimit(), sageInput.getTimeout());
-            log.debug("Input state: {}", sageInput.getState());
-
-            Context c = dataset.getContext().copy().set(SageConstants.input, sageInput);
+            Context c = dataset.getContext().copy().set(SageConstants.state, state);
             QueryExecution qe = null; //    QueryExecution qe = QueryExecutionFactory.create(query, dataset);
 
             try {
@@ -59,19 +57,15 @@ public class ExecuteUtils {
                 e.printStackTrace();
             }
 
-            qe.getContext().put(SageConstants.input, sageInput);
-            qe.getContext().put(SageConstants.output, new SageOutput<>());
-
             ResultSet result_set = qe.execSelect();
-            
             while (result_set.hasNext()) { // must enumerate to actually execute
-                result_set.next();
+                QuerySolution solution = result_set.next();
                 sum += 1;
             }
             log.debug("Got {} results so far…" , sum);
 
             results = qe.getContext().get(SageConstants.output);
-            sageInput.setState((Map)results.getState());
+            state = (Map) results.getState();
             qe.close();
 
             log.debug("Saved state {}", results.getState());

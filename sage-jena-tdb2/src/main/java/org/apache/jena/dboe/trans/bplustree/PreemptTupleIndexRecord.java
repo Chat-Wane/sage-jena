@@ -1,6 +1,5 @@
 package org.apache.jena.dboe.trans.bplustree;
 
-import fr.gdd.sage.ReflectionUtils;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
@@ -10,10 +9,7 @@ import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.dboe.index.RangeIndex;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.NodeIdFactory;
-import org.apache.jena.tdb2.store.tupletable.TupleIndexBase;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
-
-import java.lang.reflect.Field;
 
 import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
 
@@ -25,16 +21,15 @@ public class PreemptTupleIndexRecord {
     TupleMap tupleMap;
     
     public TupleIndexRecord tir;
+    BPlusTree bpt;
 
     private final RecordMapper<Tuple<NodeId>> recordMapper;
 
-
-    
+
     public PreemptTupleIndexRecord(TupleIndexRecord tir) {
-        Field factoryField = ReflectionUtils._getField(TupleIndexRecord.class, "factory");
-        this.factory = (RecordFactory) ReflectionUtils._callField(factoryField, tir.getClass(), tir);
-        Field tupleMapField = ReflectionUtils._getField(TupleIndexBase.class, "tupleMap");
-        this.tupleMap = (TupleMap) ReflectionUtils._callField(tupleMapField, TupleIndexBase.class, tir);
+        bpt = (BPlusTree) tir.getRangeIndex();
+        factory = bpt.getRecordFactory();
+        tupleMap = tir.getMapping();
 
         final int keyLen = factory.keyLength();
         final int numNodeIds = factory.keyLength() / NodeId.SIZE;
@@ -107,8 +102,6 @@ public class PreemptTupleIndexRecord {
              if ( index.contains(minRec) ) {
                  // We slightly lose in efficiency here by searching into the btree instead of
                  // creating a `SingletonIterator` but it enables easy pause/resume.
-                 RangeIndex rIndex = tir.getRangeIndex();
-                 BPlusTree bpt = (BPlusTree) rIndex;
                  NodeId X = pattern.get(leadingIdx);
                  // Set the max Record to the leading NodeIds, +1.
                  // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
@@ -127,8 +120,6 @@ public class PreemptTupleIndexRecord {
             // if ( ! fullScanAllowed )
             // return null;
             // Full scan necessary
-            RangeIndex rIndex = tir.getRangeIndex();
-            BPlusTree bpt = (BPlusTree) rIndex;
             tuples = new PreemptJenaIterator(bpt, null, null, recordMapper, factory, tupleMap);
         } else {
             // Adjust the maxRec.
@@ -136,11 +127,6 @@ public class PreemptTupleIndexRecord {
             // Set the max Record to the leading NodeIds, +1.
             // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
             NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
-
-            // tuples = index.iterator(minRec, maxRec, recordMapper);
-
-            RangeIndex rIndex = tir.getRangeIndex();
-            BPlusTree bpt = (BPlusTree) rIndex;
 
             tuples = new PreemptJenaIterator(bpt, minRec, maxRec, recordMapper, factory, tupleMap);
         }
@@ -158,8 +144,6 @@ public class PreemptTupleIndexRecord {
             // tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
             // tuples, patternNaturalOrder);
             // (TODO) double check this part.
-            RangeIndex rIndex = tir.getRangeIndex();
-            BPlusTree bpt = (BPlusTree) rIndex;
             tuples = new PreemptJenaIterator(bpt, null, null, recordMapper, factory, tupleMap);
         }
         
