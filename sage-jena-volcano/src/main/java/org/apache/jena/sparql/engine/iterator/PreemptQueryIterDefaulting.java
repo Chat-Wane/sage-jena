@@ -8,6 +8,14 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 
+/**
+ * Such an iterator can represent optionals in SPARQL queries. When the optional statement does not find
+ * any result, the mandatory statement must return nonetheless, with the optional part set as None.
+ * Otherwise, it returns results normally.
+ *
+ * A preemptive version must get a unique identifier to save/resume its execution, i.e. it must remember
+ * if up till then, it had found a result for this mandatory statement.
+ */
 public class PreemptQueryIterDefaulting extends QueryIterDefaulting {
 
     Integer id;
@@ -26,7 +34,6 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting {
     @Override
     protected boolean hasNextBinding() {
         if  (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()) {
-            System.out.println("DEFAULT SAVE " + (haveReturnedSomeObject));
             this.output.save(new Pair(id, haveReturnedSomeObject));
             // Need to not return false since iterator will do it,
             // otherwise, it returns an error since it `moveToNextBinding` first then

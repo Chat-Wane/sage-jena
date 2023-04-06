@@ -33,8 +33,6 @@ import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
 
-
-
 /** Write results in {@code application/sparql-results+json} format. */
 public class SageRowSetWriterJSON implements RowSetWriter {
 

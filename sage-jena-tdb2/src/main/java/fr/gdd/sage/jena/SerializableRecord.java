@@ -26,7 +26,10 @@ public class SerializableRecord implements Serializable {
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        byte[] key = (byte[]) in.readObject();
+        //System.out.println("meow");
+        // byte[] key = (byte[]) in.readObject();
+        byte[] key = in.readAllBytes();
+        //System.out.println("miaw");
         record = new Record(key, new byte[0]);
     }
     

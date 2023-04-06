@@ -12,7 +12,8 @@ import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
 
 import java.lang.reflect.Field;
 
@@ -131,7 +132,7 @@ public class SetupBenchmark {
                 return ExecuteUtils.executeTDB(context.dataset, context.query);
             }
             case default -> {
-                return ExecuteUtils.executeTillTheEnd(context.dataset, context.query);
+                return ExecuteUtils.executeTillTheEnd(context.dataset, context.query, true);
             }
         }
 

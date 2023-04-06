@@ -13,7 +13,6 @@ import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.log;

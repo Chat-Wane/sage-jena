@@ -10,6 +10,7 @@ import java.util.*;
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.generics.Pair;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.base.Sys;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.QC;
@@ -35,16 +36,28 @@ public class ExecuteUtils {
 
 
     /**
+     * Execute a parsed query on a dataset until all results are produced.
+     * @param dataset The dataset to execute on.
+     * @param query The query to execute on the dataset.
+     * @param withSerialize An optional serialization parameter that state whether time for serialize should be
+     *                      included or not.
      * @return A pair <number of results, number of pauses>
      */
-    public static Pair<Long, Long> executeQueryTillTheEnd(Dataset dataset, Query query) {
+    public static Pair<Long, Long> executeQueryTillTheEnd(Dataset dataset, Query query, boolean... withSerialize) {
         long nbPreempt = -1; // the first execution is not a preempt
         long sum = 0;
         SageOutput<?> results = null;
 
         Map<Integer, Serializable> state = Map.of();
+        byte[] serialized = null;
         while (Objects.isNull(results)|| (!Objects.isNull(results.getState()))) {
             nbPreempt += 1;
+
+            if (Objects.nonNull(withSerialize) && withSerialize.length > 0 && withSerialize[0] && Objects.nonNull(serialized)) {
+                SageOutput meow = SerializationUtils.deserialize(serialized);
+                state = meow.getState();
+            }
+
             Context c = dataset.getContext().copy().set(SageConstants.state, state);
             QueryExecution qe = null; //    QueryExecution qe = QueryExecutionFactory.create(query, dataset);
 
@@ -65,6 +78,10 @@ public class ExecuteUtils {
             log.debug("Got {} results so far…" , sum);
 
             results = qe.getContext().get(SageConstants.output);
+
+            if (Objects.nonNull(withSerialize) && withSerialize.length > 0 && withSerialize[0]) {
+                serialized = SerializationUtils.serialize(results);
+            }
             state = (Map) results.getState();
             qe.close();
 
@@ -74,11 +91,25 @@ public class ExecuteUtils {
         return new Pair<>(sum, nbPreempt);
     }
 
-    public static Pair<Long, Long> executeTillTheEnd(Dataset dataset, String query) {
+    /**
+     * Execute a query represented as a string on a dataset until all results are produced.
+     * @param dataset The dataset to execute on.
+     * @param query The query to execute on the dataset.
+     * @param withSerialize An optional serialization parameter that state whether time for serialize should be
+     *                      included or not.
+     * @return A pair <number of results, number of pauses>
+     */
+    public static Pair<Long, Long> executeTillTheEnd(Dataset dataset, String query, boolean... withSerialize) {
         Query q = QueryFactory.create(query);
-        return executeQueryTillTheEnd(dataset, q);
+        return executeQueryTillTheEnd(dataset, q, withSerialize);
     }
 
+    /**
+     * Execute a query represented as a string on a TDB2 dataset with a TDB2 query engine.
+     * @param dataset The dataset to execute on.
+     * @param query The query to execute on the dataset.
+     * @return A pair <number of results, 0>, since the number of pause is always 0.
+     */
     public static Pair<Long, Long> executeTDB(Dataset dataset, String query) {
         QueryExecution queryExecution = null;
         try {

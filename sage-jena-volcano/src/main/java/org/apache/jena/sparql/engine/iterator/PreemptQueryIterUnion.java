@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * Unions create an iterator that concatenate operation. We want this
  * iterator to remember the state it was on before pausing so it can resume
- * and execute in the same state. (TODO) update text
+ * and execute in the same state.
  **/
 public class PreemptQueryIterUnion extends QueryIterUnion {
 

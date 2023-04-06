@@ -8,6 +8,13 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.main.QC;
 
+/**
+ * A nested loop join operator. In the {@link PreemptQueryIterNestedLoopJoin}, the iterator saves the results of
+ * the left hand side as it goes.
+ *
+ * In a preemptive version, such state is not allowed. Therefore, every iterator
+ * must be recreated when needed.
+ */
 public class PreemptQueryIterNestedLoopJoin extends QueryIter {
 
     Op leftOp;
