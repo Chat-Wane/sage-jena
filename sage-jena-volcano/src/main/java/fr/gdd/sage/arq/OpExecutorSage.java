@@ -18,10 +18,7 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.iterator.PreemptQueryIterNestedLoopJoin;
-import org.apache.jena.sparql.engine.iterator.PreemptQueryIterOptionalIndex;
-import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
-import org.apache.jena.sparql.engine.iterator.QueryIterPeek;
+import org.apache.jena.sparql.engine.iterator.*;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
@@ -41,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -61,9 +57,6 @@ import java.util.function.Predicate;
  **/
 public class OpExecutorSage extends OpExecutorTDB2 {
     static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
-    
-    SageOutput<?> output; // where pausing state is saved when need be.
-    VolcanoIteratorFactory iteratorFactory;
 
     /**
      * Factory to be registered in Jena ARQ. It creates an OpExecutor for
@@ -101,13 +94,9 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         }
 
 
-        // it may have been created by {@link SageQueryEngine}
+        // It may have been created by {@link SageQueryEngine} when {@link OpExecutorSage} is not standalone
         execCxt.getContext().setIfUndef(SageConstants.output, new SageOutput<>());
-        this.output = execCxt.getContext().get(SageConstants.output);
-
-        execCxt.getContext().setIfUndef(SageConstants.scanFactory, new VolcanoIteratorFactory(execCxt));
-        this.iteratorFactory = execCxt.getContext().get(SageConstants.scanFactory);
-
+        execCxt.getContext().setIfUndef(SageConstants.scanFactory, new PreemptScanIteratorFactory(execCxt));
         execCxt.getContext().setIfUndef(SageConstants.cursor, 0); // Starting identifier of preemptive iterators
     }
 
@@ -294,7 +283,7 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     /**
      * This is a copy/pasta of the inner factory classes of {@link OpExecutorTDB2}.
      * The only difference with the original is the use of a different {@link PatternMatchTDB2}
-     * that will create {@link VolcanoIteratorQuad} that enable pausing/resuming of query execution.
+     * that will create {@link PreemptScanIteratorQuad} that enable pausing/resuming of query execution.
      **/
     static OpExecutorFactory plainFactory = new OpExecutorPlainFactorySage();
 

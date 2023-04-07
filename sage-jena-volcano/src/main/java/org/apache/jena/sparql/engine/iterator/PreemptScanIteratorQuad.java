@@ -1,4 +1,4 @@
-package fr.gdd.sage.arq;
+package org.apache.jena.sparql.engine.iterator;
 
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
@@ -23,7 +23,7 @@ import java.util.Objects;
  * reached the timeout before saving into the shared
  * {@link SageOutput}.
  */
-public class VolcanoIteratorQuad implements Iterator<Quad> {
+public class PreemptScanIteratorQuad implements Iterator<Quad> {
 
     public BackendIterator<NodeId, SerializableRecord> wrapped;
     NodeTable nodeTable;
@@ -37,8 +37,8 @@ public class VolcanoIteratorQuad implements Iterator<Quad> {
 
 
     
-    public VolcanoIteratorQuad(BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
-                               SageInput<?> input, SageOutput<?> output, Integer id) {
+    public PreemptScanIteratorQuad(BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
+                                   SageInput<?> input, SageOutput<?> output, Integer id) {
         this.wrapped = wrapped;
         this.nodeTable = nodeTable;
         this.input = input;

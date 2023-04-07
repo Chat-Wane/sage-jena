@@ -2,8 +2,6 @@ package org.apache.jena.sparql.engine.iterator;
 
 import org.apache.jena.sparql.engine.ExecutionContext;
 
-
-
 public class RandomQueryIterConcat extends QueryIterConcat {
 
     public RandomQueryIterConcat(ExecutionContext context) {

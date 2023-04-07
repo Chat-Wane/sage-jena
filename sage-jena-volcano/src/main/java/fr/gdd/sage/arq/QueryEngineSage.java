@@ -79,34 +79,15 @@ public class QueryEngineSage extends QueryEngineTDB {
     public static QueryEngineFactory factory = new QueryEngineSage.QueryEngineFactorySage();
 
     /**
-     * True copy/pasta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
-     * replacing
+     * Mostly identical to {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
+     * but calling {@link QueryEngineSage} instead of {@link QueryEngineTDB} to build plans.
      */
     public static class QueryEngineFactorySage extends QueryEngineFactoryTDB {
-
-        protected DatasetGraphTDB dsgToQuery(DatasetGraph dataset) {
-            try {
-                return TDBInternal.requireStorage(dataset);
-            } catch (TDBException ex) {
-                // Check to a more specific message.
-                throw new TDBException("Internal inconsistency: trying to execute query on unrecognized kind of DatasetGraph: "+ Lib.className(dataset));
-            }
-        }
-
-        @Override
-        public boolean accept(Query query, DatasetGraph dataset, Context context) {
-            return TDBInternal.isBackedByTDB(dataset);
-        }
 
         @Override
         public Plan create(Query query, DatasetGraph dataset, Binding input, Context context) {
             QueryEngineSage engine = new QueryEngineSage(query, dsgToQuery(dataset), input, context);
             return engine.getPlan();
-        }
-
-        @Override
-        public boolean accept(Op op, DatasetGraph dataset, Context context) {
-            return TDBInternal.isBackedByTDB(dataset);
         }
 
         @Override

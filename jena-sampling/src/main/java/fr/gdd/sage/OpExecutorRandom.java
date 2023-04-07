@@ -1,22 +1,44 @@
 package fr.gdd.sage;
 
 import fr.gdd.sage.arq.OpExecutorSage;
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.arq.ScanIteratorFactory;
 import fr.gdd.sage.configuration.SageServerConfiguration;
-import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.main.OpExecutor;
+import org.apache.jena.sparql.engine.main.OpExecutorFactory;
+import org.apache.jena.sparql.util.Context;
+
+import java.util.Objects;
 
 /**
- * (TODO) Overload every `execute` function of interest. Bgps, triple, quads ones are modified using the scan factory.
+ * Executes a random branch of the tree that represents a query.
  */
 public class OpExecutorRandom extends OpExecutorSage {
 
-    // (TODO) factory
+    public static class OpExecutorRandomFactory implements OpExecutorFactory {
+        SageServerConfiguration configuration;
+
+        public OpExecutorRandomFactory(Context context) {
+            configuration = new SageServerConfiguration(context);
+        }
+
+        @Override
+        public OpExecutor create(ExecutionContext context) {
+            return new OpExecutorRandom(context, configuration);
+        }
+    }
 
     public OpExecutorRandom(ExecutionContext context, SageServerConfiguration configuration) {
         super(context, configuration);
+        ScanIteratorFactory scanFactory = context.getContext().get(SageConstants.scanFactory);
+        if (Objects.isNull(scanFactory) || !(scanFactory instanceof RandomScanIteratorFactory)) {
+            // since it inherits from Sage, it may be already set to preemptScanIteratorFactory, so we reset
+            context.getContext().set(SageConstants.scanFactory, new RandomScanIteratorFactory(context));
+        }
     }
 
     @Override

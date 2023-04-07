@@ -6,13 +6,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.VolcanoIteratorFactory;
-import fr.gdd.sage.arq.VolcanoIteratorTupleId;
+import org.apache.jena.sparql.engine.iterator.PreemptScanIteratorFactory;
+import fr.gdd.sage.arq.ScanIteratorFactory;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.StrUtils;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
-import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -21,7 +20,7 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
 /**
- * Copy/Pasta of {@link StageMatchTuple} but calling {@link VolcanoIteratorFactory} instead of
+ * Copy/Pasta of {@link StageMatchTuple} but calling {@link PreemptScanIteratorFactory} instead of
  * creating basic iterators.
  **/
 class PreemptStageMatchTuple {
@@ -39,7 +38,7 @@ class PreemptStageMatchTuple {
         NodeId ids[] = new NodeId[patternTuple.len()]; // ---- Convert to NodeIds
         final Var[] vars = new Var[patternTuple.len()]; // Variables for this tuple after substitution
 
-        VolcanoIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
+        ScanIteratorFactory factory = execCxt.getContext().get(SageConstants.scanFactory);
 
         boolean b = prepare(nodeTupleTable.getNodeTable(), patternTuple, input, ids, vars);
 
@@ -79,7 +78,7 @@ class PreemptStageMatchTuple {
     }
 
     private static BindingNodeId tupleToBinding(BindingNodeId input, Tuple<NodeId> tuple, Var[] var) {
-        // Reuseable BindingNodeId builder?
+        // Reusable BindingNodeId builder?
         BindingNodeId output = new BindingNodeId(input);
         for ( int i = 0 ; i < var.length ; i++ ) {
             Var v = var[i];

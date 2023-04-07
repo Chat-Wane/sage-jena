@@ -76,10 +76,10 @@ public class JenaBackend implements Backend<NodeId, SerializableRecord> {
     public BackendIterator<NodeId, SerializableRecord> search(final NodeId s, final NodeId p, final NodeId o, final NodeId... c) {
         if (c.length == 0) {
             Tuple<NodeId> pattern = TupleFactory.tuple(s, p, o);
-            return new LazyIterator<>(this, preemptableTripleTupleTable.preemptable_find(pattern));
+            return new LazyIterator<>(this, preemptableTripleTupleTable.preemptFind(pattern));
         } else {
             Tuple<NodeId> pattern = TupleFactory.tuple(c[0], s, p, o);
-            return new LazyIterator<>(this, preemptableQuadTupleTable.preemptable_find(pattern));
+            return new LazyIterator<>(this, preemptableQuadTupleTable.preemptFind(pattern));
         }
     }
 

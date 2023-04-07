@@ -10,6 +10,7 @@ import org.apache.jena.dboe.base.record.RecordFactory;
 import org.apache.jena.dboe.base.record.RecordMapper;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 import org.apache.jena.util.iterator.NullIterator;
 import org.apache.jena.util.iterator.SingletonIterator;
 
@@ -25,41 +26,32 @@ import java.util.Objects;
  * it.
  **/
 public class PreemptJenaIterator implements BackendIterator<NodeId, SerializableRecord> {
-    final BPlusTree tree;
-    Record min;
-    Record max;
-    final RecordMapper<Tuple<NodeId>> mapper;
-    final RecordFactory factory;
-    final TupleMap tupleMap;
+    BPlusTree tree = null;
+    Record min = null;
+    Record max = null;
+    RecordMapper<Tuple<NodeId>> mapper = null;
+    RecordFactory recordFactory = null;
+    TupleMap tupleMap = null;
 
     Tuple<NodeId> current = null;
     Tuple<NodeId> previous = null;
 
     Iterator<Tuple<NodeId>> wrapped;
 
-
-
-    public PreemptJenaIterator(BPlusTree tree, Record min, Record max,
-                               RecordMapper<Tuple<NodeId>> mapper, RecordFactory factory, TupleMap tupleMap) {
+    public PreemptJenaIterator(PreemptTupleIndexRecord ptir, Record min, Record max) {
         this.min = min;
         this.max = max;
-        this.tree = tree;
-        this.mapper = mapper;
-        this.factory = factory;
-        this.tupleMap = tupleMap;
-        wrapped = tree.iterator(min, max, mapper);
+        this.tree = ptir.bpt;
+        this.mapper = ptir.getRecordMapper();
+        this.recordFactory = ptir.recordFactory;
+        this.tupleMap = ptir.tupleMap;
+        wrapped = tree.iterator(min, max, this.mapper);
     }
 
     /**
      * Null Iterator, does not need any preemptive behavior.
      **/
     public PreemptJenaIterator() {
-        this.min = null;
-        this.max = null;
-        this.tree = null;
-        this.mapper = null;
-        this.factory = null;
-        this.tupleMap = null;
         this.wrapped = new NullIterator<>();
     }
 
@@ -71,14 +63,11 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
      * Singleton Iterator, still need basic parameters since they are
      * needed for `previous()`/`current()` and `skip(to)` as well.
      */
-    public PreemptJenaIterator(Tuple<NodeId> pattern, BPlusTree tree, Record min, Record max,
-                               RecordMapper<Tuple<NodeId>> mapper, RecordFactory factory, TupleMap tupleMap) {
-        this.min = min;
-        this.max = max;
-        this.tree = tree;
-        this.mapper = mapper;
-        this.factory = factory;
-        this.tupleMap = tupleMap;
+    public PreemptJenaIterator(PreemptTupleIndexRecord ptir, Tuple<NodeId> pattern) {
+        this.tree = ptir.bpt;
+        this.mapper = ptir.getRecordMapper();
+        this.recordFactory = ptir.recordFactory;
+        this.tupleMap = ptir.tupleMap;
         wrapped = new SingletonIterator<>(pattern);
     }
 
@@ -144,44 +133,23 @@ public class PreemptJenaIterator implements BackendIterator<NodeId, Serializable
             return;
         }
 
-        // otherwise, we re-initialize the range iterator to
-        // start at the key.
-        if (Objects.isNull(tree)) {
-            System.out.println("TREE NULL ? ");
-            System.out.println("record " + to.record.toString());
-            System.out.println("is Singleton? " + isSingletonIterator());
-            System.out.println("is Null ? " + isNullIterator());
-            System.out.println("min " + (Objects.isNull(min)? "null": min.toString()));
-            System.out.println("max " + (Objects.isNull(max)? "null": max.toString()));
-        }
         wrapped = tree.iterator(to.record, max, mapper);
 
         // We are voluntarily one step behind with the saved
         // `Record`. Calling `hasNext()` and `next()` recover
         // a clean internal state.
         hasNext();
-        try {
-            next();
-        } catch (Exception e) {
-            System.out.println("tree " + tree.getParams().toString());
-            System.out.println("min " + tree.minKey().toString());
-            System.out.println("max " + tree.maxKey().toString());
-            System.out.println("to " + to.record.toString());
-            System.out.println("is Singleton? " + isSingletonIterator());
-            System.out.println("is Null ? " + isNullIterator());
-
-            e.printStackTrace();
-        }
+        next();
     }
 
     @Override
     public SerializableRecord current() {
-        return Objects.isNull(current) ? null : new SerializableRecord(TupleLib.record(factory, current, tupleMap));
+        return Objects.isNull(current) ? null : new SerializableRecord(TupleLib.record(recordFactory, current, tupleMap));
     }
 
     @Override
     public SerializableRecord previous() {
-        return Objects.isNull(previous) ? null : new SerializableRecord(TupleLib.record(factory, previous, tupleMap));
+        return Objects.isNull(previous) ? null : new SerializableRecord(TupleLib.record(recordFactory, previous, tupleMap));
     }
     
     @Override

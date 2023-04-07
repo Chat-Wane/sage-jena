@@ -1,9 +1,8 @@
 package org.apache.jena.tdb2.solver; // In this package so it can access SolverLibTDB package functions.
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.VolcanoIteratorFactory;
-import fr.gdd.sage.arq.VolcanoIteratorQuad;
-import fr.gdd.sage.io.SageInput;
+import org.apache.jena.sparql.engine.iterator.PreemptScanIteratorFactory;
+import fr.gdd.sage.arq.ScanIteratorFactory;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
@@ -39,7 +38,7 @@ import static org.apache.jena.sparql.engine.main.solver.SolverLib.tripleHasEmbTr
 
 /**
  * Utility class dedicated to the pattern matching with Sage over TDB2. The main difference with
- * {@link PatternMatchTDB2} lies in the {@link VolcanoIteratorFactory} call.
+ * {@link PatternMatchTDB2} lies in the {@link PreemptScanIteratorFactory} call.
  **/
 public class PatternMatchSage {
 
@@ -179,10 +178,10 @@ public class PatternMatchSage {
         Tuple<NodeId> patternTupleId = TupleLib.tupleNodeIds(nodeTable, patternTuple);
 
         // We call our factory instead of creating basic iterators.
-        VolcanoIteratorFactory factory = context.getContext().get(SageConstants.scanFactory);        
-        VolcanoIteratorQuad volcanoIterator = factory.getScan(patternTupleId, id);
+        ScanIteratorFactory factory = context.getContext().get(SageConstants.scanFactory);
+        Iterator<Quad> scanIterator = factory.getScan(patternTupleId, id);
 
-        Iterator<Binding> matched = Iter.iter(volcanoIterator)
+        Iterator<Binding> matched = Iter.iter(scanIterator)
             .map(dQuad->SolverRX4.matchQuad(input, dQuad, tGraphNode, tPattern))
             .removeNulls();
         return SolverLibTDB.convFromBinding(matched, nodeTable);

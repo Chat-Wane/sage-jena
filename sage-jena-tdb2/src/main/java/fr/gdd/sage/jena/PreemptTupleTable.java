@@ -14,15 +14,11 @@ import java.util.List;
 
 import static java.lang.String.format;
 
-
-
 public class PreemptTupleTable extends TupleTable {
 
     private final PreemptTupleIndexRecord scanAllIndex;
-    private final List<PreemptTupleIndexRecord> preemptable_indexes = new ArrayList<>(); // wrapped indexes
+    private final List<PreemptTupleIndexRecord> preemptIndexes = new ArrayList<>(); // wrapped indexes
 
-
-    
     // by default, we get:
     // SPO POS OSP
     // GSPO GPOS GOSP
@@ -37,7 +33,7 @@ public class PreemptTupleTable extends TupleTable {
         for (TupleIndex idx: super.getIndexes()) {
             TupleIndexRecord tir = (TupleIndexRecord) idx;
             PreemptTupleIndexRecord ptir = new PreemptTupleIndexRecord(tir);
-            preemptable_indexes.add(ptir);
+            preemptIndexes.add(ptir);
         }
     }
 
@@ -69,7 +65,7 @@ public class PreemptTupleTable extends TupleTable {
     
 
     // <https://github.com/apache/jena/blob/c4e999d633b2532b504b35937db4bec9a7c2e539/jena-tdb2/src/main/java/org/apache/jena/tdb2/store/tupletable/TupleTable.java#L133>
-    private PreemptTupleIndexRecord findIndex(Tuple<NodeId> pattern) {
+    public PreemptTupleIndexRecord findIndex(Tuple<NodeId> pattern) {
         if ( super.getTupleLen() != pattern.len() )
             throw new TDBException(format("Mismatch: finding tuple of length %d in a table of tuples of length %d", pattern.len(), super.getTupleLen()));
         
@@ -90,7 +86,7 @@ public class PreemptTupleTable extends TupleTable {
         
         int indexNumSlots = 0;
         PreemptTupleIndexRecord index = null;
-        for ( PreemptTupleIndexRecord ptir : preemptable_indexes ) {
+        for ( PreemptTupleIndexRecord ptir : preemptIndexes) {
             TupleIndex idx = ptir.tir;
             if ( idx != null ) {
                 int w = idx.weight( pattern );
@@ -103,12 +99,12 @@ public class PreemptTupleTable extends TupleTable {
 
         if ( index == null )
             // No index at all.  Scan.
-            index = preemptable_indexes.get(0);
+            index = preemptIndexes.get(0);
         
         return index;
     }
 
-    public PreemptJenaIterator preemptable_find(Tuple<NodeId> pattern) {
+    public PreemptJenaIterator preemptFind(Tuple<NodeId> pattern) {
         PreemptTupleIndexRecord ptir = this.findIndex(pattern);
         // (TODO) if a term does not exist, ptir is null and should be treated
         return ptir.scan(pattern);

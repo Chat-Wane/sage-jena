@@ -1,5 +1,6 @@
-package fr.gdd.sage.arq;
+package org.apache.jena.sparql.engine.iterator;
 
+import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.io.SageInput;
@@ -13,13 +14,12 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.TreeMap;
 
 /**
  * A Volcano Iterator that works on {@link Tuple<NodeId>} instead of
  * {@link  org.apache.jena.sparql.core.Quad}. They are supposedly more efficient.
  */
-public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
+public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
     public BackendIterator<NodeId, SerializableRecord> wrapped;
     NodeTable nodeTable;
@@ -33,8 +33,8 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
     ExecutionContext context;
 
 
-    public VolcanoIteratorTupleId(BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
-                                  SageInput<?> input, SageOutput<?> output, Integer id, ExecutionContext context) {
+    public PreemptScanIteratorTupleId(BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
+                                      SageInput<?> input, SageOutput<?> output, Integer id, ExecutionContext context) {
         this.wrapped = wrapped;
         this.nodeTable = nodeTable;
         this.input = input;
@@ -46,7 +46,7 @@ public class VolcanoIteratorTupleId implements Iterator<Tuple<NodeId>> {
     /**
      * Empty iterator. Still have arguments in case it needs to save
      */
-    public VolcanoIteratorTupleId(SageInput<?> input, SageOutput<?> output, Integer id, ExecutionContext context) {
+    public PreemptScanIteratorTupleId(SageInput<?> input, SageOutput<?> output, Integer id, ExecutionContext context) {
         wrapped = new PreemptJenaIterator();
         this.context = context;
         this.input = input;

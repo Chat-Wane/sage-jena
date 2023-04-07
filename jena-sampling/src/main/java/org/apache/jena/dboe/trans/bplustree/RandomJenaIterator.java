@@ -8,9 +8,9 @@ import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
+import org.apache.jena.tdb2.store.NodeIdFactory;
 
 import java.util.*;
-
 
 /**
  * This {@link RandomJenaIterator} enables random exploration of patterns.
@@ -19,149 +19,40 @@ import java.util.*;
  * find out the boundary of the scan and draw a random element from
  * it.
  *
- * (TODO) This is an upcoming work.
- *
  * This is inspired from {@link BPTreeRangeIterator}.
  **/
 public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterator {
-    // Convert path to a stack of iterators
-    private final Deque<Iterator<BPTreePage>> stack = new ArrayDeque<Iterator<BPTreePage>>();
+
     final private Record minRecord;
     final private Record maxRecord;
-    // private Iterator<Tuple<NodeId>> current;
-    private Iterator<Record> current; // current page
-    private Tuple<NodeId> slot = null;
-    private Tuple<NodeId> r = null;
-    public boolean finished = false;
 
-    // double iterator to get record. temporary until using mapper on
-    // records instead of iteratormapper.
-    // private Iterator<Tuple<Record>> currentRecord;
-    private Record currentRecord;
+    private Tuple<NodeId> current;
     private TupleMap tupleMap;
-    BPTreeNode root;
+    private BPTreeNode root;
 
-    private BPTreeRecords firstPage;
-    
-    // (TODO) probably an argument to state if it is the root or not
-    public RandomJenaIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec) {
-        this.root = node;
-        this.tupleMap = tupleMap;
+    boolean first = true;
+
+    public RandomJenaIterator(PreemptTupleIndexRecord ptir, Record minRec, Record maxRec) {
+        this.root = ptir.bpt.getNodeManager().getRead(ptir.bpt.getRootId());
+        this.tupleMap = ptir.tupleMap;
         this.minRecord = minRec;
         this.maxRecord = maxRec;
-        firstPage = loadStack(node, null);
-        current = getRecordsIterator(firstPage, minRecord, maxRecord);
-    }
-
-    public Tuple<NodeId> getCurrentTupleId() {
-        return r;
     }
 
     @Override
     public boolean hasNext() {
-        if (finished)
-            return false;
-        if (slot != null)
+        if (first) {
+            first = false;
             return true;
-        while (current != null && !current.hasNext()) {
-            current = moveOnCurrent();
-        }
-        if (current == null) {
+        } else {
             return false;
         }
-
-        currentRecord = current.next();
-        slot = TupleLib.tuple(currentRecord, tupleMap);
-        
-        return true;
-    }
-    
-    // Move across the head of the stack until empty - then move next level.
-    private Iterator<Record> moveOnCurrent() {
-        Iterator<BPTreePage> iter = null;
-        while (!stack.isEmpty()) {
-            iter = stack.peek();
-            if (iter.hasNext())
-                break;
-            stack.pop();
-        }
-
-        if (iter == null || !iter.hasNext()) return null;
-        
-        BPTreePage p = iter.next();
-        BPTreeRecords r = null;
-        if (p instanceof BPTreeNode) {
-            r = loadStack((BPTreeNode) p, null);
-        } else {
-            r = (BPTreeRecords) p;
-        }
-        return getRecordsIterator(r, minRecord, maxRecord);
-    }
-    
-    // ---- Places we touch blocks.
-
-    private static Iterator<Record> getRecordsIterator(BPTreeRecords records,
-                                                       Record minRecord, Record maxRecord) {
-        records.bpTree.startReadBlkMgr();
-        Iterator<Record> iter = records.getRecordBuffer().iterator(minRecord, maxRecord);
-        records.bpTree.finishReadBlkMgr();
-        return iter;
-    }
-
-    private BPTreeRecords loadStack(BPTreeNode node, Record from) {
-        AccessPath path = new AccessPath(null);
-        node.bpTree.startReadBlkMgr();
-
-        if (from != null) { // for the resuming the preemptable iterator
-            node.internalSearch(path, from);
-        } else if (minRecord == null) {
-            node.internalMinRecord(path);
-        } else {
-            node.internalSearch(path, minRecord);
-        };
-        
-        var steps = path.getPath();
-        
-        for (AccessPath.AccessStep step_o : steps) {
-            BPTreeNode n = step_o.node;
-            
-            Iterator<BPTreePage> it = null;
-            // (TODO) better way to do that, i.e. `from` and
-            // (TODO) `minRecord` seem more related than expected.
-            if (from != null) {
-                it = n.iterator(from, maxRecord);
-            } else {
-                it = n.iterator(minRecord, maxRecord);
-            }
-            if (it == null || !it.hasNext())
-                continue;
-            BPTreePage p = it.next();
-            stack.push(it);
-        }
-        BPTreePage p = steps.get(steps.size() - 1).page;
-        
-        if (!(p instanceof BPTreeRecords))
-            throw new InternalErrorException("Last path step not to a records block");
-        
-        node.bpTree.finishReadBlkMgr();
-        return (BPTreeRecords) p;
     }
 
     @Override
     public Tuple<NodeId> next() {
-        // (TODO) (TODO)
-        if (!hasNext())
-            throw new NoSuchElementException();
-
-        this.r = slot;
-        if (r == null)
-            throw new InternalErrorException("Null slot after hasNext is true");
-        // slotRecord = null;
-        slot = null; // consumed
-        // return r;
         random();
-        // (TODO) (TODO)
-        return null;
+        return current;
     }
 
     /**
@@ -225,7 +116,6 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
      **/
     @Override
     public void random() {
-        // (TODO) rework for it to work standalone now.
         AccessPath minPath = new AccessPath(null);
         root.internalSearch(minPath, minRecord);
         AccessPath maxPath = new AccessPath(null);
@@ -261,8 +151,6 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
         if (!done && lastMinNode.getId() == lastMaxNode.getId()) {
             int idxMin  = minStep.idx;
             int idxMax  = maxStep.idx; 
-            // (TODO) seeded random for the sake of reproducibility
-            // (TODO) better casts
             int found_idx = (int) ((double)idxMin + Math.random() * ((double)(idxMax - idxMin)));
             
             BPTreePage chosenPage = lastMinNode.get(found_idx);
@@ -296,17 +184,12 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
             // finished = true;
             // finished = false; // (XXX)
             return ;
-        } else {
-            // Go on, proceed
-            // finished = false;
         }
 
         int randomInRecords = ((int) ((double) min + Math.random()*((double) max - min)));
         Record currentRecord = recordBuffer._get(randomInRecords);
-        
-        stack.clear();
-        firstPage = loadStack(root, currentRecord);
-        this.current = getRecordsIterator(firstPage, currentRecord, maxRecord);
+
+        current = TupleLib.tuple(currentRecord, tupleMap);
     }
 
     /**
