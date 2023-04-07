@@ -84,7 +84,7 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     }
 
 
-    OpExecutorSage(ExecutionContext context, SageServerConfiguration configuration) {
+    public OpExecutorSage(ExecutionContext context, SageServerConfiguration configuration) {
         super(context);
 
         // QC.exec creates a new `OpExecutor` and we want to keep our old values, so `SageInput`

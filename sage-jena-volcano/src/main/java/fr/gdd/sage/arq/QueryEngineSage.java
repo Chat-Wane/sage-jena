@@ -79,7 +79,7 @@ public class QueryEngineSage extends QueryEngineTDB {
     public static QueryEngineFactory factory = new QueryEngineSage.QueryEngineFactorySage();
 
     /**
-     * True copy /asta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
+     * True copy/pasta of {@link org.apache.jena.tdb2.solver.QueryEngineTDB.QueryEngineFactoryTDB}
      * replacing
      */
     public static class QueryEngineFactorySage extends QueryEngineFactoryTDB {

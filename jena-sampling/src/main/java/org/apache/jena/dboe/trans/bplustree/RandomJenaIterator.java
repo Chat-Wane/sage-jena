@@ -42,9 +42,7 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
     BPTreeNode root;
 
     private BPTreeRecords firstPage;
-
-
-
+    
     // (TODO) probably an argument to state if it is the root or not
     public RandomJenaIterator(TupleMap tupleMap, BPTreeNode node, Record minRec, Record maxRec) {
         this.root = node;
