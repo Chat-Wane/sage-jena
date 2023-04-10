@@ -44,7 +44,6 @@ class QueryEngineRandomTest {
 
         QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), dataset.getContext());
         assertTrue(factory instanceof QueryEngineRandom.QueryEngineRandomFactory);
-
     }
 
 

@@ -41,7 +41,7 @@ public class RandomScanIteratorFactory extends PreemptScanIteratorFactory implem
             PreemptTupleIndexRecord ptir = preemptTripleTupleTable.findIndex(pattern);
             builder = ptir.genericScan(pattern);
         } else {
-            PreemptTupleIndexRecord ptir = preemptTripleTupleTable.findIndex(pattern);
+            PreemptTupleIndexRecord ptir = preemptQuadTupleTable.findIndex(pattern);
             builder = ptir.genericScan(pattern);
         }
         if (Objects.isNull(builder.ptir)) {
