@@ -74,7 +74,11 @@ public class RandomCounterIter extends QueryIterRepeatApply {
     protected void requestSubCancel() {/* nothing */}
 
     @Override
-    protected void closeSubIterator() {/* nothing */}
+    protected void closeSubIterator() {
+        if (Objects.nonNull(current)) {
+            performClose(current);
+        }
+    }
 }
 
 

@@ -180,8 +180,6 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
 
         if (min == max) {
             // No result for the random step, case closed.
-            // finished = true;
-            // finished = false; // (XXX)
             return false;
         }
 

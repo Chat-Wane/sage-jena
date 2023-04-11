@@ -10,6 +10,8 @@ import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
+import org.apache.jena.sparql.engine.iterator.RandomQueryIterUnion;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.util.Context;
@@ -47,8 +49,7 @@ public class OpExecutorRandom extends OpExecutorSage {
 
     @Override
     public QueryIterator execute(OpUnion union, QueryIterator input) {
-        // (TODO)
-        return super.execute(union, input);
+        return new RandomQueryIterUnion(input, flattenUnion(union), execCxt);
     }
 
     @Override

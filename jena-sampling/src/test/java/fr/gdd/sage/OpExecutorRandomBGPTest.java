@@ -11,8 +11,10 @@ import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
@@ -48,7 +50,7 @@ class OpExecutorRandomBGPTest {
     @Test
     public void get_a_random_from_a_triple_pattern() {
         Op op = SSE.parseOp("(bgp (?s <http://address> ?o))");
-        Set<Binding> allBindings = generateResults(op);
+        Set<Binding> allBindings = generateResults(op, dataset);
 
         Context c = dataset.getContext().copy().set(SageConstants.limit, 1);
         QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
@@ -66,7 +68,7 @@ class OpExecutorRandomBGPTest {
     @Test
     public void get_1000_randoms_from_a_triple_pattern() {
         Op op = SSE.parseOp("(bgp (?s <http://address> ?o))");
-        Set<Binding> allBindings = generateResults(op);
+        Set<Binding> allBindings = generateResults(op, dataset);
 
         final long LIMIT = 1000;
         Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
@@ -92,7 +94,7 @@ class OpExecutorRandomBGPTest {
     @Test
     public void get_a_random_from_a_bgp_of_two_triple_patterns() {
         Op op = SSE.parseOp("(bgp (?s <http://address> ?o) (?s <http://own> ?a))");
-        Set<Binding> allBindings = generateResults(op);
+        Set<Binding> allBindings = generateResults(op, dataset);
 
 
         Context c = dataset.getContext().copy().set(SageConstants.limit, 1);
@@ -111,7 +113,7 @@ class OpExecutorRandomBGPTest {
     @Test
     public void get_1000_randoms_from_a_bgp_of_two_triple_patterns() {
         Op op = SSE.parseOp("(bgp (?s <http://address> ?o) (?s <http://own> ?a))");
-        Set<Binding> allBindings = generateResults(op);
+        Set<Binding> allBindings = generateResults(op, dataset);
 
         final long LIMIT = 1000;
         Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
@@ -137,7 +139,7 @@ class OpExecutorRandomBGPTest {
     @Test
     public void get_1000_randoms_but_timeout_is_too_small_so_we_get_less() throws InterruptedException {
         Op op = SSE.parseOp("(bgp (?s <http://address> ?o) (?s <http://own> ?a))");
-        Set<Binding> allBindings = generateResults(op);
+        Set<Binding> allBindings = generateResults(op, dataset);
 
         final long LIMIT = 1000;
         final long TIMEOUT = 100; // ms
@@ -161,7 +163,7 @@ class OpExecutorRandomBGPTest {
     @Test
     public void get_randoms_but_the_triple_pattern_has_no_results() {
         Op op = SSE.parseOp("(bgp (?s <http://wrong_predicate> ?o))");
-        Set<Binding> allBindings = generateResults(op);
+        Set<Binding> allBindings = generateResults(op, dataset);
         assertEquals(0, allBindings.size());
 
         final long LIMIT = 1000;
@@ -192,8 +194,10 @@ class OpExecutorRandomBGPTest {
      * @param op The operation to execute.
      * @return A set of bindings.
      */
-    static Set<Binding> generateResults(Op op){
-        Plan planTDB = QueryEngineTDB.getFactory().create(op, dataset.asDatasetGraph(), BindingRoot.create(), dataset.getContext());
+    static Set<Binding> generateResults(Op op, Dataset dataset) {
+        // must erase factory for dataset…
+        QC.setFactory(dataset.getContext(), OpExecutorTDB2.OpExecFactoryTDB);
+        Plan planTDB = QueryEngineTDB.getFactory().create(op, dataset.asDatasetGraph(), BindingRoot.create(), dataset.getContext().copy());
         HashSet<Binding> bindings = new HashSet<>();
         QueryIterator iteratorTDB = planTDB.iterator();
         while (iteratorTDB.hasNext()) {
