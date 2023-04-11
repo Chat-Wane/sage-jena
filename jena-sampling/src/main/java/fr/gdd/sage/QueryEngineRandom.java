@@ -1,6 +1,9 @@
 package fr.gdd.sage;
 
 import fr.gdd.sage.arq.QueryEngineSage;
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.configuration.SageInputBuilder;
+import fr.gdd.sage.io.SageInput;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
 import org.apache.jena.sparql.algebra.Op;
@@ -8,16 +11,16 @@ import org.apache.jena.sparql.algebra.OpLib;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.engine.*;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.iterator.PreemptCounterIter;
-import org.apache.jena.sparql.engine.iterator.QueryIterRoot;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorCheck;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorTiming;
+import org.apache.jena.sparql.engine.iterator.*;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.mgt.Explain;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
+
+import java.io.Serializable;
+import java.util.Map;
 
 /**
  * (TODO) instead of a {@link org.apache.jena.sparql.engine.iterator.PreemptCounterIter}, we have
@@ -62,18 +65,29 @@ public class QueryEngineRandom extends QueryEngineSage {
         }
 
         // #2 comes from {@link QueryEngineBase}
-        ExecutionContext execCxt = new ExecutionContext(context, dsg.getDefaultGraph(), dsg, QC.getFactory(context)) ;
-        QueryIterator qIter1 =
+        ExecutionContext execCxt = new ExecutionContext(context, dsg.getDefaultGraph(), dsg,
+                new OpExecutorRandom.OpExecutorRandomFactory(context));
+
+        if (execCxt.getContext().isUndef(SageConstants.input)) { // <=> setIfUndef
+            // (TODO) improve
+            long limit = execCxt.getContext().getLong(SageConstants.limit, Long.MAX_VALUE);
+            long timeout = execCxt.getContext().getLong(SageConstants.timeout, Long.MAX_VALUE);
+            Map<Integer, Serializable> state = execCxt.getContext().get(SageConstants.state);
+            SageInput<?> sageInput = new SageInput<>().setLimit(limit).setTimeout(timeout).setState(state);
+
+            execCxt.getContext().set(SageConstants.input, sageInput);
+        }
+
+        /* QueryIterator qIter1 =
                 ( input.isEmpty() ) ? QueryIterRoot.create(execCxt)
                         : QueryIterRoot.create(input, execCxt);
-        QueryIterator qIter = QC.execute(op, qIter1, execCxt) ;
+        QueryIterator qIter = QC.execute(op, qIter1, execCxt) ;*/
 
         // #3 inbetween we add our home-made counter iterator :)
-        // (TODO) (TODO) (TODO)
-        PreemptCounterIter counterIter = new PreemptCounterIter(qIter, execCxt);
+        RandomCounterIter counterIter = new RandomCounterIter(op, input, execCxt);
 
         // Wrap with something to check for closed iterators.
-        qIter = QueryIteratorCheck.check(counterIter, execCxt) ;
+        QueryIterator qIter = QueryIteratorCheck.check(counterIter, execCxt) ;
         // Need call back.
         if ( context.isTrue(ARQ.enableExecutionTimeLogging) )
             qIter = QueryIteratorTiming.time(qIter) ;

@@ -141,8 +141,9 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP>, Random
 
     
     @Override
-    public void random() {
+    public boolean random() {
         ((RandomIterator) iterator).random();
+        return false;
     }
 
     @Override

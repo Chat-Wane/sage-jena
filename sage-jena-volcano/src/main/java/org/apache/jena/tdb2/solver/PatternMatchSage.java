@@ -100,7 +100,7 @@ public class PatternMatchSage {
             // create the function that will be called everytime a
             // scan iterator is created.
             scanId += 1;
-            log.debug("Pattern {} got assigned the identifier {}.", pattern, scanId);
+            log.debug("Pattern <{}> got assigned the identifier {}.", triple, scanId);
 
             Tuple<Node> patternTuple = null;
             if ( graph == null )

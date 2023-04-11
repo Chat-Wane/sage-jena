@@ -25,7 +25,7 @@ public class RandomQueryIterUnion extends QueryIterUnion {
                                 List<Op> subOps,
                                 ExecutionContext context) {
         super(input, subOps, context);
-        initialOps = new ArrayList<Op>(subOps);
+        initialOps = new ArrayList<>(subOps);
     }
 
     @Override

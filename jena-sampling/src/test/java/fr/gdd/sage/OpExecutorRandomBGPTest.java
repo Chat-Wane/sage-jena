@@ -20,6 +20,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -61,7 +63,6 @@ class OpExecutorRandomBGPTest {
         assertEquals(1, sum);
     }
 
-    @Disabled
     @Test
     public void get_1000_randoms_from_a_triple_pattern() {
         Op op = SSE.parseOp("(bgp (?s <http://address> ?o))");
@@ -74,12 +75,116 @@ class OpExecutorRandomBGPTest {
 
         QueryIterator iterator = plan.iterator();
         long sum = 0;
+        Set<Binding> randomSetOfBindings = new HashSet<>();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+            sum += 1;
+        }
+        assertEquals(LIMIT, sum);
+        assertEquals(allBindings.size(), randomSetOfBindings.size());
+        for (Binding existingBinding : allBindings) {
+            randomSetOfBindings.contains(existingBinding);
+        }
+    }
+
+    @Test
+    public void get_a_random_from_a_bgp_of_two_triple_patterns() {
+        Op op = SSE.parseOp("(bgp (?s <http://address> ?o) (?s <http://own> ?a))");
+        Set<Binding> allBindings = generateResults(op);
+
+
+        Context c = dataset.getContext().copy().set(SageConstants.limit, 1);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        long sum = 0;
         while (iterator.hasNext()) {
             assertTrue(allBindings.contains(iterator.next()));
             sum += 1;
         }
+        assertEquals(1, sum);
+    }
+
+    @Test
+    public void get_1000_randoms_from_a_bgp_of_two_triple_patterns() {
+        Op op = SSE.parseOp("(bgp (?s <http://address> ?o) (?s <http://own> ?a))");
+        Set<Binding> allBindings = generateResults(op);
+
+        final long LIMIT = 1000;
+        Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        long sum = 0;
+        Set<Binding> randomSetOfBindings = new HashSet<>();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+            sum += 1;
+        }
         assertEquals(LIMIT, sum);
-        // (TODO) assert that every binding of the result has a random binding, (with a high probability)
+        assertEquals(allBindings.size(), randomSetOfBindings.size());
+        for (Binding existingBinding : allBindings) {
+            randomSetOfBindings.contains(existingBinding);
+        }
+    }
+
+    @Test
+    public void get_1000_randoms_but_timeout_is_too_small_so_we_get_less() throws InterruptedException {
+        Op op = SSE.parseOp("(bgp (?s <http://address> ?o) (?s <http://own> ?a))");
+        Set<Binding> allBindings = generateResults(op);
+
+        final long LIMIT = 1000;
+        final long TIMEOUT = 100; // ms
+        Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT).set(SageConstants.timeout, TIMEOUT);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        long sum = 0;
+        Set<Binding> randomSetOfBindings = new HashSet<>();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+            Thread.sleep(Duration.ofMillis(1));
+            sum += 1;
+        }
+        assertTrue(sum <= TIMEOUT); // cannot have more results than the timeout
+    }
+
+    @Test
+    public void get_randoms_but_the_triple_pattern_has_no_results() {
+        Op op = SSE.parseOp("(bgp (?s <http://wrong_predicate> ?o))");
+        Set<Binding> allBindings = generateResults(op);
+        assertEquals(0, allBindings.size());
+
+        final long LIMIT = 1000;
+        final long TIMEOUT = 100; // ms
+        long startExecution = System.currentTimeMillis();
+        Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT).set(SageConstants.timeout, TIMEOUT);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        long sum = 0;
+        Set<Binding> randomSetOfBindings = new HashSet<>();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+            sum += 1;
+        }
+
+        long elapsedExecution = System.currentTimeMillis() - startExecution;
+        assertTrue(elapsedExecution >= TIMEOUT); // it stopped because of timeout
+        assertEquals(0, randomSetOfBindings.size());
+        assertEquals(0, sum); // no loop turn.
     }
 
     /**

@@ -1,14 +1,12 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.interfaces.RandomIterator;
-import org.apache.jena.atlas.lib.InternalErrorException;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
-import org.apache.jena.tdb2.store.NodeIdFactory;
 
 import java.util.*;
 
@@ -41,7 +39,7 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
 
     @Override
     public boolean hasNext() {
-        if (first) {
+        if (first && random()) {
             first = false;
             return true;
         } else {
@@ -51,7 +49,6 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
 
     @Override
     public Tuple<NodeId> next() {
-        random();
         return current;
     }
 
@@ -108,14 +105,16 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
     /**
      * `random()` modifies the behavior of the iterator so that each
      * `next()` provides a new random binding within the
-     * interval. Beware that it does not terminate nor it ensures
+     * interval. Beware that it does not terminate nor ensure
      * distinct bindings.
      *
      * As for `cardinality()`, it uses the underlying balanced tree to
      * efficiently reach a Record between two access paths.
-     **/
+     *
+     * @return True if the random can return a solution, false otherwise.
+     */
     @Override
-    public void random() {
+    public boolean random() {
         AccessPath minPath = new AccessPath(null);
         root.internalSearch(minPath, minRecord);
         AccessPath maxPath = new AccessPath(null);
@@ -183,13 +182,14 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
             // No result for the random step, case closed.
             // finished = true;
             // finished = false; // (XXX)
-            return ;
+            return false;
         }
 
         int randomInRecords = ((int) ((double) min + Math.random()*((double) max - min)));
         Record currentRecord = recordBuffer._get(randomInRecords);
 
         current = TupleLib.tuple(currentRecord, tupleMap);
+        return true;
     }
 
     /**

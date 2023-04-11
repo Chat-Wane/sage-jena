@@ -13,8 +13,10 @@ public interface RandomIterator {
      * call `it.getId(SPOC.SUBJECT)`, `it.getId(SPOC.PREDICATE)`,
      * `it.getId(SPOC.OBJECT)` to which we add `it.getId(SPOC.GRAPH)`
      * for quads.
+     *
+     * @return
      */
-    void random();
+    boolean random();
 
     /**
      * @return A -- possibly estimated -- cardinality of the pattern.
