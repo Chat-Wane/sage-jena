@@ -90,4 +90,32 @@ class OpExecutorRandomUnionTest {
         }
     }
 
+    @Test
+    public void get_1000_randoms_from_a_union_inside_bgp() {
+        Op op = SSE.parseOp("(join (bgp (?a <http://species> ?s)) (union (bgp (?n <http://address> ?o)) (bgp (?n <http://own> ?a))))");
+        Set<Binding> allBindings = OpExecutorRandomBGPTest.generateResults(op, dataset);
+
+        final long LIMIT = 1000;
+        Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        Multiset<Binding> randomSetOfBindings = HashMultiset.create();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+        }
+        assertEquals(LIMIT, randomSetOfBindings.size());
+        assertEquals(allBindings.size(), randomSetOfBindings.elementSet().size());
+        for (Binding existingBinding : allBindings) {
+            randomSetOfBindings.contains(existingBinding);
+        }
+
+        for (Binding binding : randomSetOfBindings.elementSet()) {
+            log.debug("{} -> {}", binding, randomSetOfBindings.count(binding));
+        }
+    }
+
 }

@@ -40,38 +40,36 @@ public class RandomQueryIterUnion extends QueryIter1 {
         initialOps = new ArrayList<>(subOps);
         this.input = context.getContext().get(SageConstants.input);
         initialBinding = getInput().next();
+
+        Collections.shuffle(initialOps); // each new instance get a different order
+        Op subOp = QC.substitute(initialOps.get(0), initialBinding) ;
+        QueryIterator parent = QueryIterSingleton.create(initialBinding, getExecContext()) ;
+        current = QC.execute(subOp, parent, getExecContext()) ;
     }
 
     @Override
     protected boolean hasNextBinding() {
-        if (Objects.nonNull(current)) {
-            performClose(current);
-        }
         if (!isFirstExecution || System.currentTimeMillis() >= input.getDeadline()) {
-            performClose(getInput());
             return false;
         }
-        return true;
+
+        return current.hasNext();
     }
 
     @Override
     protected Binding moveToNextBinding() {
-        if (Objects.nonNull(current)) {
-            performClose(current);
-        }
+        isFirstExecution = false;
 
-        Collections.shuffle(initialOps);
-        Op subOp = QC.substitute(initialOps.get(0), initialBinding) ;
-        QueryIterator parent = QueryIterSingleton.create(initialBinding, getExecContext()) ;
-        current = QC.execute(subOp, parent, getExecContext()) ;
         return current.next();
     }
 
     @Override
     protected void requestSubCancel() {
+        performRequestCancel(current);
     }
 
     @Override
     protected void closeSubIterator() {
+        performClose(current);
     }
 }

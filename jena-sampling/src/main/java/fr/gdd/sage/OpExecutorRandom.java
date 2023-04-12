@@ -6,13 +6,12 @@ import fr.gdd.sage.arq.ScanIteratorFactory;
 import fr.gdd.sage.configuration.SageInputBuilder;
 import fr.gdd.sage.configuration.SageServerConfiguration;
 import fr.gdd.sage.io.SageInput;
+import org.apache.jena.sparql.algebra.op.OpConditional;
 import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
-import org.apache.jena.sparql.engine.iterator.RandQueryIterNestedLoopJoin;
-import org.apache.jena.sparql.engine.iterator.RandomQueryIterUnion;
+import org.apache.jena.sparql.engine.iterator.*;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.util.Context;
@@ -58,4 +57,8 @@ public class OpExecutorRandom extends OpExecutorSage {
         return new RandQueryIterNestedLoopJoin(opJoin, input, execCxt);
     }
 
+    @Override
+    protected QueryIterator execute(OpConditional opCondition, QueryIterator input) {
+        return new RandomQueryIterOptionalIndex(exec(opCondition.getLeft(), input), opCondition.getRight(), execCxt);
+    }
 }

@@ -32,7 +32,11 @@ public class InMemoryInstanceOfTDB2ForRandom {
                     "<http://Carol> <http://address> <http://nantes> .",
                     "<http://Alice> <http://own>     <http://cat> .",
                     "<http://Alice> <http://own>     <http://dog> .",
-                    "<http://Alice> <http://own>     <http://snake> ."
+                    "<http://Alice> <http://own>     <http://snake> .",
+
+                    "<http://cat>   <http://species> <http://feline> .",
+                    "<http://dog>   <http://species> <http://canine> .",
+                    "<http://snake> <http://species> <http://reptile> ."
         );
 
         InputStream statementsStream = new ByteArrayInputStream(String.join("\n", statements).getBytes());

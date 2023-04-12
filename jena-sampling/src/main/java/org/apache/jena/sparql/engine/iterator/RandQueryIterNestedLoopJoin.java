@@ -21,47 +21,46 @@ public class RandQueryIterNestedLoopJoin extends QueryIter1 {
     boolean isFirstExecution = true;
 
     Binding left;
+    Binding right;
     QueryIterator leftIterator;
     QueryIterator rightIterator;
-    OpJoin op;
 
     SageInput<?> input;
 
     public RandQueryIterNestedLoopJoin(OpJoin opJoin, QueryIterator input, ExecutionContext context) {
         super(input, context);
         leftIterator = QC.execute(opJoin.getLeft(), QueryIterRoot.create(getExecContext()), context);
-        left = leftIterator.hasNext() ? leftIterator.next(): null;
-        this.op = opJoin;
+        left = leftIterator.hasNext() ? leftIterator.next() : null;
+        rightIterator = QC.execute(opJoin.getRight(), input.nextBinding(), getExecContext());
+        right = rightIterator.hasNext() ? rightIterator.next() : null;
         this.input = context.getContext().get(SageConstants.input);
     }
 
     @Override
     protected boolean hasNextBinding() {
-        if (!isFirstExecution || System.currentTimeMillis() >= input.getDeadline() || Objects.isNull(left)) {
+        if (!isFirstExecution || System.currentTimeMillis() >= input.getDeadline()) {
             return false;
         }
-        isFirstExecution = false;
 
-        rightIterator = QC.execute(op.getRight(), getInput(), getExecContext());
-        return rightIterator.hasNext();
+        return Objects.nonNull(left) && Objects.nonNull(right) && Objects.nonNull(Algebra.merge(left, right));
     }
 
     @Override
     protected Binding moveToNextBinding() {
-        return Algebra.merge(left, rightIterator.next());
+        isFirstExecution = false;
+
+        return Algebra.merge(left, right);
     }
 
 
     @Override
     protected void requestSubCancel() {
-        requestSubCancel() ;
         performRequestCancel(leftIterator);
         performRequestCancel(rightIterator);
     }
 
     @Override
     protected void closeSubIterator() {
-        closeSubIterator();
         performClose(leftIterator);
         performClose(rightIterator);
     }
