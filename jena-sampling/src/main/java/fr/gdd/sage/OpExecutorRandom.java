@@ -11,6 +11,7 @@ import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
+import org.apache.jena.sparql.engine.iterator.RandQueryIterNestedLoopJoin;
 import org.apache.jena.sparql.engine.iterator.RandomQueryIterUnion;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
@@ -54,8 +55,7 @@ public class OpExecutorRandom extends OpExecutorSage {
 
     @Override
     protected QueryIterator execute(OpJoin opJoin, QueryIterator input) {
-        // (TODO)
-        return super.execute(opJoin, input);
+        return new RandQueryIterNestedLoopJoin(opJoin, input, execCxt);
     }
 
 }

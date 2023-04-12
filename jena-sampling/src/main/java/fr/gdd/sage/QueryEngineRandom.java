@@ -69,19 +69,15 @@ public class QueryEngineRandom extends QueryEngineSage {
                 new OpExecutorRandom.OpExecutorRandomFactory(context));
 
         if (execCxt.getContext().isUndef(SageConstants.input)) { // <=> setIfUndef
-            // (TODO) improve
+            // (TODO) improve , should this be here? should this have Sage ref' removed ?
             long limit = execCxt.getContext().getLong(SageConstants.limit, Long.MAX_VALUE);
-            long timeout = execCxt.getContext().getLong(SageConstants.timeout, Long.MAX_VALUE);
+            // always have a timeout otherwise could be infinite looping. Here arbitrarily set to 60s.
+            long timeout = execCxt.getContext().getLong(SageConstants.timeout, 60000);
             Map<Integer, Serializable> state = execCxt.getContext().get(SageConstants.state);
             SageInput<?> sageInput = new SageInput<>().setLimit(limit).setTimeout(timeout).setState(state);
 
             execCxt.getContext().set(SageConstants.input, sageInput);
         }
-
-        /* QueryIterator qIter1 =
-                ( input.isEmpty() ) ? QueryIterRoot.create(execCxt)
-                        : QueryIterRoot.create(input, execCxt);
-        QueryIterator qIter = QC.execute(op, qIter1, execCxt) ;*/
 
         // #3 inbetween we add our home-made counter iterator :)
         RandomCounterIter counterIter = new RandomCounterIter(op, input, execCxt);

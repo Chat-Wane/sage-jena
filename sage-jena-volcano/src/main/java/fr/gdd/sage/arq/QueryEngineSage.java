@@ -63,8 +63,7 @@ public class QueryEngineSage extends QueryEngineTDB {
                         : QueryIterRoot.create(input, execCxt);
         QueryIterator qIter = QC.execute(op, qIter1, execCxt) ;
 
-        // #3 inbetween we add our home-made counter iterator :)
-        // PreemptQueryIterSlice sliceIter = new PreemptQueryIterSlice(qIter, 0, 5, execCxt);
+        // #3 in between we add our home-made counter iterator :)
         PreemptCounterIter counterIter = new PreemptCounterIter(qIter, execCxt);
 
         // Wrap with something to check for closed iterators.

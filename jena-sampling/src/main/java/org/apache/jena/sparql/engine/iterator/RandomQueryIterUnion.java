@@ -47,7 +47,7 @@ public class RandomQueryIterUnion extends QueryIter1 {
         if (Objects.nonNull(current)) {
             performClose(current);
         }
-        if (System.currentTimeMillis() >= input.getDeadline() || !isFirstExecution) {
+        if (!isFirstExecution || System.currentTimeMillis() >= input.getDeadline()) {
             performClose(getInput());
             return false;
         }
