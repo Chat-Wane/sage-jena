@@ -7,12 +7,11 @@
   <artifactId>sage-commons</artifactId>
   <name>sage-commons</name>
   <packaging>jar</packaging>
-  <version>${revision}</version>
 
   <parent>
     <groupId>fr.gdd.sage</groupId>
     <artifactId>sage-jena</artifactId>
-    <version>${revision}</version>
+    <version>0.0.1</version>
   </parent>
   
   <dependencies>

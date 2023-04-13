@@ -44,9 +44,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
   <parent>
     <groupId>fr.gdd.sage</groupId>
     <artifactId>sage-jena</artifactId>
-    <version>${revision}</version>
+    <version>0.0.1</version>
   </parent>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.apache.jena</groupId>
@@ -145,10 +145,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.0</version>
         <configuration>
-          <compilerVersion>${javac.target}</compilerVersion>
-          <source>19</source>
-          <target>19</target>
-            <compilerArgs>--enable-preview</compilerArgs>
+          <compilerVersion>${maven.compiler.version}</compilerVersion>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
+          <compilerArgs>--enable-preview</compilerArgs> <!-- to get patterns in switch statements -->
         </configuration>
       </plugin>
       <plugin>

@@ -90,7 +90,7 @@ public class SetupBenchmark {
                 context.dataset.getContext().set(SageConstants.limit, 1);
                 context.dataset.getContext().remove(SageConstants.timeout);
             }
-            case default -> {
+            default -> {
                 throw new Exception("The configuration such an engine does not exist");
             }
         }
@@ -117,7 +117,7 @@ public class SetupBenchmark {
     public static void setdown(BenchmarkExecutionContext context, String engine) {
         switch (engine) {
             case EngineTypes.TDB, EngineTypes.TDBForceOrder -> QueryEngineTDB.unregister();
-            case default -> QueryEngineSage.unregister(); // Sage is default because there are numerous options
+            default -> QueryEngineSage.unregister(); // Sage is default because there are numerous options
         }
 
         if (context.dataset.isInTransaction()) {
@@ -131,7 +131,7 @@ public class SetupBenchmark {
             case EngineTypes.TDB, EngineTypes.TDBForceOrder -> {
                 return ExecuteUtils.executeTDB(context.dataset, context.query);
             }
-            case default -> {
+            default -> {
                 return ExecuteUtils.executeTillTheEnd(context.dataset, context.query, true);
             }
         }
