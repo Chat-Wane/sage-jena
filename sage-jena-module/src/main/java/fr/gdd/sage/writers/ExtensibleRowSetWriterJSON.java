@@ -1,18 +1,9 @@
 package fr.gdd.sage.writers;
 
-import static org.apache.jena.riot.rowset.rw.JSONResultsKW.*;
-
-import java.io.OutputStream;
-import java.io.Writer;
-import java.util.Iterator;
-import java.util.Objects;
-
-import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.atlas.io.IO;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.atlas.json.io.JSWriter;
 import org.apache.jena.atlas.logging.Log;
-import org.apache.jena.ext.xerces.impl.dv.util.Base64;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ARQ;
@@ -29,20 +20,23 @@ import org.apache.jena.sparql.exec.RowSet;
 import org.apache.jena.sparql.resultset.ResultSetException;
 import org.apache.jena.sparql.util.Context;
 
-import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.io.SageOutput;
-import fr.gdd.sage.jena.SerializableRecord;
+import java.io.OutputStream;
+import java.io.Writer;
+import java.util.Iterator;
+import java.util.Objects;
+
+import static org.apache.jena.riot.rowset.rw.JSONResultsKW.*;
 
 /** Write results in {@code application/sparql-results+json} format. */
-public class SageRowSetWriterJSON implements RowSetWriter {
+public class ExtensibleRowSetWriterJSON implements RowSetWriter {
 
     public static RowSetWriterFactory factory = lang -> {
         if (!Objects.equals(lang, ResultSetLang.RS_JSON ) )
             throw new ResultSetException("ResultSetWriter for JSON asked for a "+lang);
-        return new SageRowSetWriterJSON();
+        return new ExtensibleRowSetWriterJSON();
     };
 
-    private SageRowSetWriterJSON() { }
+    private ExtensibleRowSetWriterJSON() { }
 
     // We use an inner object for writing of one result set so that the
     // ResultSetWriter has no per-write state variables.
@@ -123,24 +117,13 @@ public class SageRowSetWriterJSON implements RowSetWriter {
             
             writeRows(rowSet);
 
-            writeSaveState(context.get(SageConstants.output));
+            // every module can add their own output
+            for (ModuleOutputWriter writer: ModuleOutputRegistry.getWriters(ResultSetLang.RS_JSON)) {
+                writer.write(out, context);
+            }
             
             out.decIndent(OuterIndent);
             println(out, "}");      // top level {}
-        }
-
-        // newly added part to send the saved state in order
-        // to resume the query execution later on.
-        private void writeSaveState(SageOutput<SerializableRecord> output) {
-            if (output == null || output.getState()==null) {
-                return;
-            }
-            print(out, " ,");
-            println(out, quoteName("sageOutput") , " : ");
-            
-            var serialized = SerializationUtils.serialize(output);
-            var encoded = Base64.encode(serialized);
-            println(out, quoteName(encoded));
         }
 
         private void writeRows(RowSet rowSet) {

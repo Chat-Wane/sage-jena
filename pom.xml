@@ -8,11 +8,6 @@
   <groupId>fr.gdd.sage</groupId>
   <artifactId>sage-jena</artifactId>
   <packaging>pom</packaging>
-  <!-- For now, shared version by all submodules. Unfortunately ${revision} in
-       children
-       does not work well… For instance, `mvn exec:java -pl sage-jena-module`
-       look for sage-jena:pom:${revision} instead of sage-jena:pom:0.0.1 Thus
-       fails. Hardcoded version of parent works… -->
   <version>0.0.1</version>
 
 
@@ -33,10 +28,16 @@
   </modules>
 
   <properties>
-    <revision>0.0.1</revision>
+    <!-- For now, shared version by all submodules. Unfortunately ${revision} in
+     children
+     does not work well… For instance, `mvn exec:java -pl sage-jena-module`
+     look for sage-jena:pom:${revision} instead of sage-jena:pom:0.0.1 Thus
+     fails. Hardcoded version of parent works… -->
+    <!-- <revision>0.0.1</revision> -->
     <junit.version>5.9.2</junit.version>
     <jena.version>4.7.0</jena.version>
     <slf4j.version>2.0.6</slf4j.version>
+    <args4j.version>2.33</args4j.version>
 
     <maven.surefire.version>3.0.0</maven.surefire.version>
     <maven.compiler.version>3.10.1</maven.compiler.version>

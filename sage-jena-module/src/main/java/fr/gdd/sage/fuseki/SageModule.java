@@ -1,8 +1,12 @@
 package fr.gdd.sage.fuseki;
 
 import fr.gdd.sage.arq.OpExecutorSage;
+import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.StageGeneratorSage;
-import fr.gdd.sage.writers.SageRowSetWriterJSON;
+import fr.gdd.sage.writers.ExtensibleRowSetWriterJSON;
+import fr.gdd.sage.writers.ModuleOutputRegistry;
+import fr.gdd.sage.writers.ModuleOutputWriter;
+import fr.gdd.sage.writers.OutputWriterJSONSage;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.fuseki.main.sys.FusekiModule;
 import org.apache.jena.fuseki.server.Endpoint;
@@ -12,6 +16,7 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.rowset.RowSetWriterRegistry;
+import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
@@ -52,11 +57,13 @@ public class SageModule implements FusekiModule {
         StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
         StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
         StageBuilder.setGenerator(ARQ.getContext(), stageGeneratorSage);
+        QueryEngineRegistry.addFactory(QueryEngineSage.factory);
 
         // replace the output by ours to include the saved state.
         // all writers are here : <https://github.com/apache/jena/tree/main/jena-arq/src/main/java/org/apache/jena/riot/rowset/rw>
         // (TODO) get them all
-        RowSetWriterRegistry.register(ResultSetLang.RS_JSON, SageRowSetWriterJSON.factory);
+        RowSetWriterRegistry.register(ResultSetLang.RS_JSON, ExtensibleRowSetWriterJSON.factory);
+        ModuleOutputRegistry.register(ResultSetLang.RS_JSON, new OutputWriterJSONSage());
     }
 
     /**

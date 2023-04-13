@@ -18,6 +18,10 @@
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-volcano</artifactId>
     </dependency>
+    <dependency> <!-- makes use of already implem'd for compilation targeting jena -->
+      <groupId>fr.gdd.sage</groupId>
+      <artifactId>sage-jena-benchmarks</artifactId>
+    </dependency>
 
     <dependency>
       <!-- to get ShiroEnvironmentLoader; or 
@@ -97,7 +101,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>fr.gdd.sage.FusekiApp</mainClass>
+              <mainClass>fr.gdd.sage.SageFusekiServer</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -107,7 +111,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <mainClass>fr.gdd.sage.FusekiApp</mainClass>
+          <mainClass>fr.gdd.sage.SageFusekiServer</mainClass>
         </configuration>
       </plugin>
     </plugins>

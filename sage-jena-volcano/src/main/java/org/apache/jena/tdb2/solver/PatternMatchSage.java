@@ -19,6 +19,7 @@ import org.apache.jena.sparql.engine.iterator.Abortable;
 import org.apache.jena.sparql.engine.iterator.QueryIterAbortable;
 import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
+import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.GraphTDB;
@@ -87,7 +88,7 @@ public class PatternMatchSage {
         NodeTupleTable nodeTupleTable = (graph == null) ?
             activeGraph.getTripleTable().getNodeTupleTable() : 
             activeGraph.getQuadTable().getNodeTupleTable();
-        
+
         Predicate<Tuple<NodeId>> filter = QC2.getFilter(context.getContext());
         
         var conv = SolverLibTDB.convFromBinding(nodeTupleTable.getNodeTable());

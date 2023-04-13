@@ -136,6 +136,8 @@ public class Watdiv10M {
         if (!Files.exists(path)) {
             log.info("Starting the download…");
 
+            path.toFile().getParentFile().mkdirs(); // creating parents folder if they do not exist
+
             try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream());
                  FileOutputStream fileOutputStream = new FileOutputStream(path.toString())) {
                 byte dataBuffer[] = new byte[1024];
@@ -216,7 +218,7 @@ public class Watdiv10M {
             dataset.getDefaultModel().read(entryExtractPath.toString()); // (TODO) model: default or union ?
         }
         dataset.commit();
-
+        log.info("Done ingesting…");
         dataset.end();
     }
 
