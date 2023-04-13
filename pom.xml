@@ -13,7 +13,7 @@
        does not work well… For instance, `mvn exec:java -pl sage-jena-module`
        look for sage-jena:pom:${revision} instead of sage-jena:pom:0.0.1 Thus
        fails. Hardcoded version of parent works… -->
-  <version>${revision}</version>
+  <version>0.0.1</version>
 
 
   <distributionManagement>
