@@ -75,7 +75,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
     <dependency> <!-- to unzip downloaded files -->
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
-      <version>1.22</version>
+      <version>${common.compress.version}</version>
     </dependency>
 
 

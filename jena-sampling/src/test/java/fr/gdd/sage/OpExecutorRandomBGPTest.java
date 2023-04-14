@@ -196,7 +196,7 @@ class OpExecutorRandomBGPTest {
         Set<Binding> allBindings = generateResults(op, dataset);
         assertEquals(1, allBindings.size());
 
-        final long LIMIT = 1000;
+        final long LIMIT = 10;
         Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
         QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
         Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);

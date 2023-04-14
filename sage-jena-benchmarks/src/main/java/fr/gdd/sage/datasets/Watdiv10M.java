@@ -27,7 +27,7 @@ import java.util.Optional;
  *
  * (TODO) abstract this class so others can be built on the same pattern.
  */
-public class Watdiv10M {
+public class Watdiv10M extends BenchmarkDataset {
     static Logger log = LoggerFactory.getLogger(Watdiv10M.class);
 
     public static final String ARCHIVE_NAME = "watdiv.10M.tar.bz2";
@@ -42,7 +42,6 @@ public class Watdiv10M {
     // fails or too time-consuming because no limit
     public static final List<String> blacklist = List.of("query_10069.sparql", "query_10150.sparql", "query_10091.sparql");
 
-    public final String dbPath_asStr;
     public final List<Pair<String, String>> queries;
 
     // above 100s
@@ -57,23 +56,7 @@ public class Watdiv10M {
     public List<String> shortQueries = new ArrayList<>();
 
     public Watdiv10M(Optional<String> dbPath_opt) {
-
-        Path dirPath = dbPath_opt.map(Paths::get).orElseGet(() -> Paths.get(DEFAULT_DB_PATH));
-        Path dbPath = Paths.get(dirPath.toString(), DB_NAME);
-        Path filePath = Paths.get(dirPath.toString(), ARCHIVE_NAME);
-        Path extractPath = Paths.get(dirPath.toString(), EXTRACT_PATH);
-
-        if (Files.exists(dbPath)) {
-            log.info("Database already exists, skipping creation.");
-        } else {
-            log.info("Database does not exist, creating it…");
-            download(filePath, DOWNLOAD_URL);
-            extract(filePath, extractPath, whitelist);
-            ingest(dbPath, extractPath, whitelist);
-            log.info("Done with the database {}.", dbPath);
-        }
-
-        this.dbPath_asStr = dbPath.toString();
+        super(dbPath_opt, DEFAULT_DB_PATH, DB_NAME, ARCHIVE_NAME, EXTRACT_PATH, DOWNLOAD_URL, whitelist, blacklist);
 
         log.info("Reading queries…");
         this.queries = getQueries(QUERIES_PATH, blacklist);
@@ -125,101 +108,6 @@ public class Watdiv10M {
             }
         }
         return queries;
-    }
-
-    /**
-     * Download the dataset from remote URL.
-     * @param path The file location to download to.
-     * @param url The URL of the content to download.
-     */
-    static public void download(Path path, String url) {
-        if (!Files.exists(path)) {
-            log.info("Starting the download…");
-
-            path.toFile().getParentFile().mkdirs(); // creating parents folder if they do not exist
-
-            try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream());
-                 FileOutputStream fileOutputStream = new FileOutputStream(path.toString())) {
-                byte dataBuffer[] = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
-                    fileOutputStream.write(dataBuffer, 0, bytesRead);
-                }
-                fileOutputStream.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Extract the dataset archive and keep the whitelisted files.
-     * @param archive The archive file location.
-     * @param outDir The directory to extract to.
-     * @param whitelist The whitelisted files to extract.
-     */
-    static public void extract(Path archive, Path outDir, List<String> whitelist) {
-        log.info("Starting the unarchiving…");
-        try {
-            FileInputStream in = new FileInputStream(archive.toString());
-            InputStream bin = new BufferedInputStream(in);
-            BZip2CompressorInputStream bzIn = new BZip2CompressorInputStream(bin);
-            TarArchiveInputStream tarIn = new TarArchiveInputStream(bzIn);
-
-            ArchiveEntry entry;
-
-            if (!Files.exists(outDir)) {
-                Files.createDirectory(outDir);
-            }
-            while (!Objects.isNull(entry = tarIn.getNextEntry())) {
-                if (entry.getSize() < 1) {
-                    continue;
-                }
-                Path entryExtractPath = Paths.get(outDir.toString(), entry.getName());
-                if (Files.exists(entryExtractPath) || !whitelist.contains(entry.getName())) {
-                    log.info("Skipping file {}…", entryExtractPath);
-                    // still slows… for it must read the bytes to skip them
-                    tarIn.skip(entry.getSize());
-                    continue;
-                }
-                log.info("Extracting file {}…", entryExtractPath);
-                entryExtractPath.toFile().createNewFile();
-                try (FileOutputStream writer = new FileOutputStream(entryExtractPath.toFile())) {
-                    byte dataBuffer[] = new byte[1024];
-                    int bytesRead;
-                    while ((bytesRead = tarIn.read(dataBuffer, 0, 1024)) != -1) {
-                        writer.write(dataBuffer, 0, bytesRead);
-                    }
-                    writer.flush();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            tarIn.close();
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-
-    }
-
-    /**
-     * Ingest the whitelisted files in the Jena database.
-     * @param dbPath The path to the database.
-     * @param extractedPath The directory location of extracted files.
-     * @param whitelist The whitelisted files to ingest.
-     */
-    static public void ingest(Path dbPath, Path extractedPath, List<String> whitelist) {
-        log.info("Starting to ingest in a Jena TDB2 database…");
-        Dataset dataset = TDB2Factory.connectDataset(dbPath.toString());
-        dataset.begin(ReadWrite.WRITE);
-
-        for (String whitelisted : whitelist) {
-            Path entryExtractPath = Paths.get(extractedPath.toString(), whitelisted);
-            dataset.getDefaultModel().read(entryExtractPath.toString()); // (TODO) model: default or union ?
-        }
-        dataset.commit();
-        log.info("Done ingesting…");
-        dataset.end();
     }
 
 }
