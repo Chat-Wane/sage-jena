@@ -189,6 +189,33 @@ class OpExecutorRandomBGPTest {
         assertEquals(0, sum); // no loop turn.
     }
 
+
+    @Test
+    public void get_randoms_from_a_triple_pattern_that_has_one_result() {
+        Op op = SSE.parseOp("(bgp (?s ?p <http://cat>))");
+        Set<Binding> allBindings = generateResults(op, dataset);
+        assertEquals(1, allBindings.size());
+
+        final long LIMIT = 1000;
+        Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        long sum = 0;
+        Set<Binding> randomSetOfBindings = new HashSet<>();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+            sum += 1;
+        }
+
+        assertEquals(1, randomSetOfBindings.size());
+        assertEquals(LIMIT, sum); // no loop turn.
+    }
+
+
     /**
      * Generates all bindings of an operation in order to check if random results belong to it.
      * @param op The operation to execute.
