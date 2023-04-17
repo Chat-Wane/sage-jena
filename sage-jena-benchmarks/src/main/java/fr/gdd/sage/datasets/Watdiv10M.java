@@ -57,10 +57,17 @@ public class Watdiv10M extends BenchmarkDataset {
 
     public Watdiv10M(Optional<String> dbPath_opt) {
         super(dbPath_opt, DEFAULT_DB_PATH, DB_NAME, ARCHIVE_NAME, EXTRACT_PATH, DOWNLOAD_URL, whitelist, blacklist);
+        log.info("The download requires 56 MB.");
+        log.info("Decompressing requires 1.4 GB.");
+        log.info("Database requires 1.4 GB.");
+        try {
+            create();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         log.info("Reading queries…");
         this.queries = getQueries(QUERIES_PATH, blacklist);
-
         categorizeQueries(queries);
     }
 

@@ -1,6 +1,5 @@
 package fr.gdd.sage;
 
-
 import fr.gdd.sage.datasets.Watdiv10M;
 import fr.gdd.sage.generics.Pair;
 import org.openjdk.jmh.annotations.*;
@@ -22,8 +21,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-// (TODO) different Mode depending on the time spent by queries. Need to run them once
-// at least though.
 @State(Scope.Benchmark)
 public class WatdivBenchmark {
     static Logger log = LoggerFactory.getLogger(WatdivBenchmark.class);

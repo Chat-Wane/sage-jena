@@ -1,12 +1,14 @@
 package fr.gdd.sage.datasets;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.loader.DataLoader;
+import org.apache.jena.tdb2.loader.LoaderFactory;
+import org.apache.jena.tdb2.loader.base.LoaderOps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +27,8 @@ import java.util.Optional;
 public class BenchmarkDataset {
     static Logger log = LoggerFactory.getLogger(BenchmarkDataset.class);
 
+    final static int DEFAULT_BUFFER_SIZE = 1024;
+
     private String defaultDbPath;
     private String dbName;
     private String archiveName;
@@ -32,6 +36,14 @@ public class BenchmarkDataset {
     private String downloadURL;
 
     public String dbPath_asStr;
+    private Path dirPath;
+    private Path dbPath;
+
+    public Path fullExtractPath;
+    public Path pathToArchive;
+
+    private List<String> whitelist;
+    private List<String> blacklist;
 
     public BenchmarkDataset(Optional<String> dbPath_opt,
                             String defaultDbPath, String dbName, String archiveName, String extractPath,
@@ -43,23 +55,31 @@ public class BenchmarkDataset {
         this.archiveName = archiveName;
         this.extractPath = extractPath;
         this.downloadURL = downloadURL;
+        this.dirPath = dbPath_opt.map(Paths::get).orElseGet(() -> Paths.get(defaultDbPath));
 
-        Path dirPath = dbPath_opt.map(Paths::get).orElseGet(() -> Paths.get(defaultDbPath));
-        Path dbPath = Paths.get(dirPath.toString(), dbName);
-        Path filePath = Paths.get(dirPath.toString(), archiveName);
-        Path fullExtractPath = Paths.get(dirPath.toString(), extractPath);
+        this.dbPath = Paths.get(dirPath.toString(), dbName);
+        this.dbPath_asStr = dbPath.toString();
 
+        this.whitelist = whitelist;
+        this.blacklist = blacklist;
+
+        this.pathToArchive = Paths.get(dirPath.toString(), archiveName);
+        this.fullExtractPath = Paths.get(dirPath.toString(), extractPath);
+    }
+
+
+    public void create() throws IOException {
         if (Files.exists(dbPath)) {
             log.info("Database already exists, skipping creation.");
         } else {
             log.info("Database does not exist, creating it…");
-            download(filePath, downloadURL);
-            extract(filePath, fullExtractPath, whitelist);
+            download(pathToArchive, downloadURL);
+            extract(pathToArchive, fullExtractPath, whitelist);
+            FileUtils.delete(pathToArchive.toFile());
             ingest(dbPath, fullExtractPath, whitelist);
+            FileUtils.deleteDirectory(fullExtractPath.toFile());
             log.info("Done with the database {}.", dbPath);
         }
-
-        this.dbPath_asStr = dbPath.toString();
 
         // log.info("Reading queries…");
         // this.queries = getQueries(QUERIES_PATH, blacklist);
@@ -81,9 +101,9 @@ public class BenchmarkDataset {
 
             try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream());
                  FileOutputStream fileOutputStream = new FileOutputStream(path.toString())) {
-                byte dataBuffer[] = new byte[1024];
+                byte dataBuffer[] = new byte[DEFAULT_BUFFER_SIZE];
                 int bytesRead;
-                while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
+                while ((bytesRead = in.read(dataBuffer, 0, dataBuffer.length)) != -1) {
                     fileOutputStream.write(dataBuffer, 0, bytesRead);
                 }
                 fileOutputStream.flush();
@@ -97,10 +117,60 @@ public class BenchmarkDataset {
      * Extract the dataset archive and keep the whitelisted files.
      * @param archive The archive file location.
      * @param outDir The directory to extract to.
-     * @param whitelist The whitelisted files to extract.
+     * @param whitelist The whitelisted files to extract that serve as file output names.
      */
     static public void extract(Path archive, Path outDir, List<String> whitelist) {
-        log.info("Starting the unarchiving…");
+        log.info("Starting the unarchiving. This process may take time…");
+        try {
+            extractTARBZ2(archive, outDir, whitelist);
+        } catch (Exception e) {
+            extractBZ2only(archive, outDir, whitelist);
+        }
+    }
+
+    /**
+     * Sometimes, even with extension `tar.bz2`, the archive does not contain `tar`
+     * headers and metadata which will crash the execution. Instead, `bz2` only must
+     * run. In such case, the outfile is the only whitelisted name.
+     * @param archive The path to the archive containing compressed triples.
+     * @param outDir The path to the directory where to uncompress.
+     * @param whitelist The list containing one name, that of the extracted file.
+     */
+    static public void extractBZ2only(Path archive, Path outDir, List<String> whitelist) {
+        Path entryExtractPath = Paths.get(outDir.toString(), whitelist.get(0));
+        if (entryExtractPath.toFile().exists()) {
+            log.info("Skipping the extraction of {}", whitelist.get(0));
+            return;
+        }
+
+        try {
+            FileInputStream in = new FileInputStream(archive.toString());
+            InputStream bin = new BufferedInputStream(in);
+            BZip2CompressorInputStream bzIn = new BZip2CompressorInputStream(bin);
+
+            try (FileOutputStream writer = new FileOutputStream(entryExtractPath.toFile())) {
+                byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+                int readCount = -1;
+                while ((readCount = bzIn.read(buffer, 0, buffer.length)) > 0) {
+                    writer.write(buffer, 0, readCount);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
+    }
+
+
+
+    /**
+     * Extract the dataset `tar.bz2` archive and keep the whitelisted files.
+     * @param archive The archive file location.
+     * @param outDir The directory to extract to.
+     * @param whitelist The whitelisted files to extract.
+     */
+    static public void extractTARBZ2(Path archive, Path outDir, List<String> whitelist) throws IOException {
+
         try {
             FileInputStream in = new FileInputStream(archive.toString());
             InputStream bin = new BufferedInputStream(in);
@@ -112,21 +182,18 @@ public class BenchmarkDataset {
                 Files.createDirectory(outDir);
             }
 
-            System.out.println("size  " + tarIn.getRecordSize());
-
             ArchiveEntry entry = tarIn.getNextEntry();
             while (!Objects.isNull(entry)) {
                 if (entry.getSize() < 1) {
                     continue;
                 }
 
-                System.out.println("NAME " + entry.getName());
-
                 Path entryExtractPath = Paths.get(outDir.toString(), entry.getName());
                 if (Files.exists(entryExtractPath) || !whitelist.contains(entry.getName())) {
                     log.info("Skipping file {}…", entryExtractPath);
                     // still slows… for it must read the bytes to skip them
                     tarIn.skip(entry.getSize());
+                    entry = tarIn.getNextEntry();
                     continue;
                 }
                 log.info("Extracting file {}…", entryExtractPath);
@@ -146,7 +213,8 @@ public class BenchmarkDataset {
             }
             tarIn.close();
         } catch (Exception e){
-            e.printStackTrace();
+            // e.printStackTrace();
+            throw e;
         }
 
     }
@@ -158,16 +226,17 @@ public class BenchmarkDataset {
      * @param whitelist The whitelisted files to ingest.
      */
     static public void ingest(Path dbPath, Path extractedPath, List<String> whitelist) {
-        log.info("Starting to ingest in a Jena TDB2 database…");
+        log.info("Starting to ingest in a Jena TDB2 database. This may take even more time.");
         Dataset dataset = TDB2Factory.connectDataset(dbPath.toString());
-        dataset.begin(ReadWrite.WRITE);
 
         for (String whitelisted : whitelist) {
             Path entryExtractPath = Paths.get(extractedPath.toString(), whitelisted);
-            dataset.getDefaultModel().read(entryExtractPath.toString()); // (TODO) model: default or union ?
+            // (TODO) model: default or union ?
+            DataLoader loader = LoaderFactory.parallelLoader(dataset.asDatasetGraph(), LoaderOps.outputToLog());
+            loader.startBulk();
+            loader.load(entryExtractPath.toString());
+            loader.finishBulk();
         }
-        dataset.commit();
         log.info("Done ingesting…");
-        dataset.end();
     }
 }
