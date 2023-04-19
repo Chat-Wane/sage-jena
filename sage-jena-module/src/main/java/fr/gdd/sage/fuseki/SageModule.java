@@ -20,6 +20,7 @@ import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
+import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.DatabaseMgr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * for every dataset and endpoint.
  *
  * For this to work, either set full class name in a
- * `META-INF/…/…FusekiModule` file as per say in documentation, or
+ * `META-INF/…/…FusekiModule` file as per se in documentation, or
  * work with `addModule`.
  */
 public class SageModule implements FusekiModule {
@@ -52,12 +53,8 @@ public class SageModule implements FusekiModule {
     @Override
     public void start() {
         logger.info("start !");
-        // replace the default engine behavior by ours.
-        QC.setFactory(ARQ.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
-        StageGenerator parent = ARQ.getContext().get(ARQ.stageGenerator) ;
-        StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
-        StageBuilder.setGenerator(ARQ.getContext(), stageGeneratorSage);
-        QueryEngineRegistry.addFactory(QueryEngineSage.factory);
+        // for now, we simply register our preemptive query engine.
+        QueryEngineSage.register();
 
         // replace the output by ours to include the saved state.
         // all writers are here : <https://github.com/apache/jena/tree/main/jena-arq/src/main/java/org/apache/jena/riot/rowset/rw>
@@ -73,24 +70,24 @@ public class SageModule implements FusekiModule {
     public void serverBeforeStarting(FusekiServer server) {
         logger.info("Patching the processor for query operations…");
 
-        var dapr = server.getDataAccessPointRegistry();
-
-        for (var dap : dapr.accessPoints()) {
+        for (var dap : server.getDataAccessPointRegistry().accessPoints()) {
             if (DatabaseMgr.isTDB2(dap.getDataService().getDataset())) {
                 // register the new executors for every dataset that is TDB2
+                logger.info("Creating the executor of {}…", dap.getName());
                 Dataset ds =  DatasetFactory.wrap(dap.getDataService().getDataset());
-                QC.setFactory(ds.getContext(), QC.getFactory(ARQ.getContext()));
-                StageGenerator parent = ds.getContext().get(ARQ.stageGenerator) ;
-                StageGeneratorSage stageGeneratorSage = new StageGeneratorSage(parent);
-                StageBuilder.setGenerator(ds.getContext(), stageGeneratorSage);
+                // ARQ context is erased by Dataset specific context
+                Context sageContext = ARQ.getContext().copy();
+                sageContext.putAll(ds.getContext());
+                QC.setFactory(ds.getContext(), new OpExecutorSage.OpExecutorSageFactory(sageContext));
             }
             
             // replacing the operation registry and the processor
             server.getOperationRegistry().register(Operation.Query, new Sage_QueryDataset());
             for (Endpoint ep : dap.getDataService().getEndpoints(Operation.Query)) {
+                logger.info("Patching the QUERY processor for {}", ep.getName());
                 ep.setProcessor(server.getOperationRegistry().findHandler(ep.getOperation()));
             }
-        }        
+        }
     }
     
     @Override
@@ -100,6 +97,7 @@ public class SageModule implements FusekiModule {
 
     @Override
     public void stop() {
+        QueryEngineSage.unregister();
         logger.info("Stop! Have a good day!");
     }
 

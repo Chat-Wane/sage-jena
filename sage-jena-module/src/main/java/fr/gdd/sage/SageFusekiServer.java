@@ -1,5 +1,6 @@
 package fr.gdd.sage;
 
+import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.datasets.Watdiv10M;
 import org.apache.jena.fuseki.auth.Auth;
 import org.apache.jena.fuseki.main.FusekiServer;
@@ -12,7 +13,6 @@ import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.logging.log4j.core.tools.picocli.CommandLine;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -53,23 +53,31 @@ public class SageFusekiServer {
             serverOptions.database = watdiv.dbPath_asStr;
         }
 
-        switch (serverOptions.verbosity) {
-            case "ALL"  -> ARQ.setExecutionLogging(InfoLevel.ALL);
-            case "INFO" -> ARQ.setExecutionLogging(InfoLevel.INFO);
-            case "FINE" -> ARQ.setExecutionLogging(InfoLevel.FINE);
-            default     -> ARQ.setExecutionLogging(InfoLevel.NONE);
+        if (Objects.isNull(serverOptions.verbosity)) {
+            ARQ.setExecutionLogging(InfoLevel.NONE);
+        } else {
+            switch (serverOptions.verbosity) {
+                case "ALL" -> ARQ.setExecutionLogging(InfoLevel.ALL);
+                case "INFO" -> ARQ.setExecutionLogging(InfoLevel.INFO);
+                case "FINE" -> ARQ.setExecutionLogging(InfoLevel.FINE);
+                default -> {
+                    System.out.println("Option for verbosity not recognized.");
+                    System.exit(1);
+                }
+            }
         }
-        
+
         Dataset dataset = TDB2Factory.connectDataset(serverOptions.database);
+        // dataset.getContext().set(SageConstants.limit, 1);
 
         // already in META-INF/services/…FusekiModule so starts from there
         // FusekiModules.add(new SageModule());
-        
+
         FusekiServer.Builder serverBuilder = FusekiServer.create()
             // .parseConfigFile("configurations/sage.ttl")
             .enablePing(true)
             .enableCompact(true)
-            // .enableCors(true)
+                // .enableCors(true)
             .enableStats(true)
             .enableTasks(true)
             .enableMetrics(true)
