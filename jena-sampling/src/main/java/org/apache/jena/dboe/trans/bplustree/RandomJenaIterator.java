@@ -63,43 +63,68 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
      */
     @Override
     public long cardinality() {
-        // (TODO) revamp the whole thing
-        /*
-        RandomJenaIterator ji = new RandomJenaIterator(tupleMap, root, minRecord, maxRecord);
-        long sum = 0;
-        
-        for (Iterator<BPTreePage> ji_it : ji.getStack()) {
-            while (ji_it.hasNext()) {
-                BPTreePage node_or_record = ji_it.next();
-                if (node_or_record == null) {
-                    continue;
-                }
-            
-                if (node_or_record != null && node_or_record instanceof BPTreeNode) {
-                    BPTreeNode node = (BPTreeNode) node_or_record;
-                    sum += node.getCount();
-                    // (TODO) multiply by depth
-                } else {
-                    BPTreeRecords records = (BPTreeRecords) node_or_record;
-                    sum += records.getCount();
-                }
-            }
-        };
-        
-        RecordBuffer recordBuffer = firstPage.getRecordBuffer();
-        // (TODO) see `random()` for when min and max are actually found
-        var min = recordBuffer.find(minRecord);
-        var max = recordBuffer.find(maxRecord);
-        
-        sum += (min-max); // (max-min);
-        */
-        // (TODO) remove last iterator to get exact cardinality.
+        AccessPath minPath = new AccessPath(null);
+        root.internalSearch(minPath, minRecord);
+        AccessPath maxPath = new AccessPath(null);
+        root.internalSearch(maxPath, maxRecord);
 
-        // (TODO) if on more than 3 pages
-        // (TODO) if on 2 pages firstPage + lastPage
-        // (TODO) if on 1 page firstPage
-        
-        return -1;
+        AccessPath randomPath = new AccessPath(null); // to build
+        // #1 process common branch
+        var minSteps = minPath.getPath();
+        var maxSteps = maxPath.getPath();
+
+        int i = 0;
+        AccessPath.AccessStep minStep = minSteps.get(i);
+        AccessPath.AccessStep maxStep = maxSteps.get(i);
+
+        boolean done = false;
+        while (i < minSteps.size() && i < maxSteps.size() && equalsStep(minStep, maxStep)) {
+            randomPath.add(minStep.node, minStep.idx, minStep.page);
+            ++i;
+            if (i < minSteps.size() && i < maxSteps.size()) { // ugly
+                minStep = minSteps.get(i);
+                maxStep = maxSteps.get(i);
+            } else {
+                done = true;
+            }
+        }
+
+        // done with common branch
+        // #2 random between the remainder of the branches
+        BPTreeNode lastMinNode = minStep.node;
+        BPTreeNode lastMaxNode = maxStep.node;
+
+        // #A if last was same node but different pages
+        long sum = 0;
+        BPTreePage minPage = minStep.page;
+        BPTreePage maxPage = maxStep.page;
+        if (!done && lastMinNode.getId() == lastMaxNode.getId()) {
+            int idxMin  = minStep.idx;
+            int idxMax  = maxStep.idx;
+            sum = idxMax - idxMin;
+
+            minPage = minStep.page;
+            maxPage = maxStep.page;
+
+            // #B random among the whole range of the underlying branch
+            while (!(minPage instanceof BPTreeRecords)) {
+                i = i + 1;
+                minStep = minSteps.get(i);
+                maxStep = maxSteps.get(i);
+
+                sum = (sum - 2)*root.getMaxSize() + minStep.node.getMaxSize() - minStep.idx + maxStep.idx;
+                minPage = minStep.page;
+                maxPage = maxStep.page;
+            }
+        }
+
+        if (minPage.getId() == maxPage.getId()) {
+            sum = maxStep.idx - minStep.idx;
+        } else {
+            sum = (sum - 2)*root.getMaxSize() + minStep.page.getCount() - minStep.idx + maxStep.idx;
+        }
+
+        return sum;
     }
 
     /**

@@ -158,7 +158,9 @@ public class PatternMatchSage {
                                                 ExecutionContext context,
                                                 int id) {
         // (TODO) add filter when on NodeId
-        // System.out.printf("filter %s \n", filter.toString());
+        if (Objects.nonNull(filter)) {
+            throw new UnsupportedOperationException("Filter not supported yet.");
+        }
         
         NodeTable nodeTable = nodeTupleTable.getNodeTable();
         Binding input = bnid.isEmpty() ? BindingFactory.empty() : new BindingTDB(bnid, nodeTable);

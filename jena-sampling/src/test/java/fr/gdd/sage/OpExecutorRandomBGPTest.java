@@ -2,8 +2,6 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.arq.SageConstants;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.reasoner.rulesys.impl.BindingVectorMultiSet;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineFactory;
@@ -19,12 +17,9 @@ import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.time.temporal.TemporalUnit;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 

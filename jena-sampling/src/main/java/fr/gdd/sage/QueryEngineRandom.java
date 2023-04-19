@@ -22,15 +22,6 @@ import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import java.io.Serializable;
 import java.util.Map;
 
-/**
- * (TODO) instead of a {@link org.apache.jena.sparql.engine.iterator.PreemptCounterIter}, we have
- * never ending random walks. Can also count to get the number of root retries.
- *
- * (TODO) also register the scan factory here, that will be used in the {@link org.apache.jena.tdb2.solver.PatternMatchSage}
- * and {@link org.apache.jena.tdb2.solver.PreemptStageMatchTuple}
- *
- * (TODO) register {@link OpExecutorRandom}
- */
 public class QueryEngineRandom extends QueryEngineSage {
 
     protected QueryEngineRandom(Op op, DatasetGraphTDB dataset, Binding input, Context context) {

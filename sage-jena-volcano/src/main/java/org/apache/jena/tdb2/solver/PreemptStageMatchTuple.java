@@ -23,7 +23,7 @@ import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
  * Copy/Pasta of {@link StageMatchTuple} but calling {@link PreemptScanIteratorFactory} instead of
  * creating basic iterators.
  **/
-class PreemptStageMatchTuple {
+public class PreemptStageMatchTuple {
 
     /* Entry point */
     static Iterator<BindingNodeId> access(NodeTupleTable nodeTupleTable, Iterator<BindingNodeId> input, Tuple<Node> patternTuple,
@@ -98,7 +98,7 @@ class PreemptStageMatchTuple {
      * null in the NodeIds. A variable that is not bound by the binding is placed in
      * the var array. Return false if preparation detects the pattern can not match.
      */
-    private static boolean prepare(NodeTable nodeTable, Tuple<Node> patternTuple, BindingNodeId input, NodeId ids[], Var[] var) {
+    public static boolean prepare(NodeTable nodeTable, Tuple<Node> patternTuple, BindingNodeId input, NodeId ids[], Var[] var) {
         // Process the Node to NodeId conversion ourselves because
         // we wish to abort if an unknown node is seen.
         for ( int i = 0 ; i < patternTuple.len() ; i++ ) {
