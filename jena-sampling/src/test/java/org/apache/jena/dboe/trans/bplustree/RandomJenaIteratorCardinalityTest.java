@@ -55,12 +55,37 @@ class RandomJenaIteratorCardinalityTest {
     @Disabled
     @Test
     public void cardinality_of_nothing() {
-        // (TODO)
+        OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://licorne>))");
+        RandomJenaIterator it = getRandomJenaIterator(op);
+
+        assertEquals(0, it.cardinality());
     }
 
     @Disabled
     @Test
-    public void cardinality_of_a_small_triple_pattern() {
+    public void cardinality_of_a_one_tuple_triple_pattern() {
+        OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://cat>))");
+        RandomJenaIterator it = getRandomJenaIterator(op);
+
+        assertEquals(1, it.cardinality());
+    }
+
+    @Disabled
+    @Test
+    public void cardinality_of_a_few_tuples_triple_pattern() {
+        OpBGP op = (OpBGP) SSE.parseOp("(bgp (<http://Alice> ?p ?o))");
+        RandomJenaIterator it = getRandomJenaIterator(op);
+        assertEquals(4, it.cardinality());
+    }
+
+    @Disabled
+    @Test
+    public void cardinality_of_larger_triple_pattern_above_leaf_size() {
+
+    }
+
+
+    public static RandomJenaIterator getRandomJenaIterator(OpBGP op) {
         DatasetGraphTDB activeGraph = TDBInternal.getDatasetGraphTDB(dataset);
 
         ExecutionContext execCxt = new ExecutionContext(
@@ -69,7 +94,6 @@ class RandomJenaIteratorCardinalityTest {
                 activeGraph,
                 new OpExecutorRandom.OpExecutorRandomFactory(dataset.getContext()));
 
-        OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://cat>))");
         Tuple<Node>  patternTuple = TupleFactory.create3(
                 op.getPattern().get(0).getSubject(),
                 op.getPattern().get(0).getPredicate(),
@@ -82,13 +106,8 @@ class RandomJenaIteratorCardinalityTest {
         PreemptStageMatchTuple.prepare(nodeTupleTable.getNodeTable(), patternTuple, BindingNodeId.root, ids, vars);
 
         RandomScanIteratorFactory f = new RandomScanIteratorFactory(execCxt);
-        RandomJenaIterator it =  (RandomJenaIterator) f.getScan(nodeTupleTable, TupleFactory.create(ids), 12);
-        assertEquals(1, it.cardinality());
+        return (RandomJenaIterator) f.getScan(nodeTupleTable, TupleFactory.create(ids), 12);
     }
 
-    @Disabled
-    @Test
-    public void cardinality_of_larger_triple_pattern_above_leaf_size() {
 
-    }
 }

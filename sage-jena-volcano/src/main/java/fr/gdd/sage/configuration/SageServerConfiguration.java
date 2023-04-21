@@ -5,8 +5,6 @@ import org.apache.jena.sparql.util.Context;
 
 import java.util.Objects;
 
-
-
 /**
  * A basic Sage configuration that will define the conditions of query
  * execution.
@@ -19,10 +17,6 @@ public class SageServerConfiguration {
         returning the possibly partial results. **/
     long timeout = Long.MAX_VALUE;
 
-    // (TODO) maybe add allowed collecting modules
-    
-
-    
     public SageServerConfiguration() { }
 
     public SageServerConfiguration(Context context) {

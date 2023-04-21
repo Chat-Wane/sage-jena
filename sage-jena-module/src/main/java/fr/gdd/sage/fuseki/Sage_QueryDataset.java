@@ -9,8 +9,11 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.ext.xerces.impl.dv.util.Base64;
 import org.apache.jena.fuseki.servlets.HttpAction;
 import org.apache.jena.fuseki.servlets.SPARQL_QueryDataset;
+import org.slf4j.LoggerFactory;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -22,33 +25,44 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
 
     @Override
     protected void execute(String queryString, HttpAction action) {
-        var req = action.getRequest();
 
-        // #1 create a `SageInput` with the headers of the incoming
-        // request.
-        // #A all parameters of the execution
-        Optional<String> sageInputHeader  = Optional.ofNullable(req.getHeader(SageConstants.input.getSymbol()));
+
+        // #1 create a `SageInput` with the incoming request
+        String inputRetrievedFromRequest = getFromBodyOrHeader(SageConstants.input.getSymbol(), action);
+
+        // Deserialize from JSON
         SageInput<Serializable> sageInput = new SageInput<>();
-        if (sageInputHeader.isPresent()) {
+        if (Objects.nonNull(inputRetrievedFromRequest)) {
             ObjectMapper mapper = new ObjectMapper();
             try {
-                sageInput = mapper.readValue(sageInputHeader.get(), SageInput.class);
+                sageInput = mapper.readValue(inputRetrievedFromRequest, SageInput.class);
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
         }
 
-        // #B the resuming state of the query execution if present
-        Optional<String> sageOutputHeader = Optional.ofNullable(req.getHeader(SageConstants.output.getSymbol()));        
-        if (sageOutputHeader.isPresent()) {
-            byte[] decoded = Base64.decode(sageOutputHeader.get());
+        // #B the resuming state of the query execution if present in body
+        String outputRetrievedFromRequest = getFromBodyOrHeader(SageConstants.output.getSymbol(), action);
+
+        // base64 -> deserialize
+        if (Objects.nonNull(outputRetrievedFromRequest)) {
+            byte[] decoded = Base64.decode(outputRetrievedFromRequest);
             SageOutput<Serializable> sagePreviousOutput = SerializationUtils.deserialize(decoded);
             sageInput.setState(sagePreviousOutput.getState());
         }
 
         // #2 put the deserialized input in the execution context
-        action.getContext().set(SageConstants.limit, sageInput.getTimeout());
-        action.getContext().set(SageConstants.timeout, sageInput.getTimeout());
+        if (Objects.nonNull(inputRetrievedFromRequest)) {
+            action.getContext().set(SageConstants.limit, sageInput.getLimit());
+            action.getContext().set(SageConstants.timeout, sageInput.getTimeout());
+        }
+        if (Objects.nonNull(outputRetrievedFromRequest)) {
+            action.getContext().set(SageConstants.state, sageInput.getState());
+        }
+        // cleanup context
+        action.getContext().remove(SageConstants.input);
+        action.getContext().remove(SageConstants.output);
+
         super.execute(queryString, action);
     }
 
@@ -56,4 +70,20 @@ public class Sage_QueryDataset extends SPARQL_QueryDataset {
     // headers, it could be done by @overriding
     // `sendResults(HttpAction action, SPARQLResult result, Prologue
     // qPrologue)`
+
+
+    static public String getFromBodyOrHeader(String key, HttpAction action) {
+        HttpServletRequest req = action.getRequest();
+        // With the body of the request
+        String retrievedFromRequest = null;
+        if (Objects.nonNull(req.getParameter(key))) {
+            retrievedFromRequest = req.getParameter(key);
+        }
+        // or with the header
+        if (Objects.nonNull(req.getHeader(key))) {
+            retrievedFromRequest = req.getHeader(key);
+        }
+        // (TODO) check if exclusive: header xor body
+        return retrievedFromRequest;
+    }
 }

@@ -18,9 +18,13 @@
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-volcano</artifactId>
     </dependency>
-    <dependency> <!-- makes use of already implem'd for compilation targeting jena -->
+    <dependency>
       <groupId>fr.gdd.sage</groupId>
       <artifactId>sage-jena-benchmarks</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>fr.gdd.sage</groupId>
+      <artifactId>jena-sampling</artifactId>
     </dependency>
 
     <dependency>

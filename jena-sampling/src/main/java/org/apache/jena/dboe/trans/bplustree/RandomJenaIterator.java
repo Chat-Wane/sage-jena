@@ -1,5 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
+import com.github.jsonldjava.utils.Obj;
 import fr.gdd.sage.interfaces.RandomIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
@@ -63,6 +64,10 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
      */
     @Override
     public long cardinality() {
+        if (Objects.isNull(minRecord) && Objects.isNull(maxRecord)) {
+            return 0; // empty iterator
+        }
+
         AccessPath minPath = new AccessPath(null);
         root.internalSearch(minPath, minRecord);
         AccessPath maxPath = new AccessPath(null);
@@ -118,10 +123,23 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
             }
         }
 
+
+        BPTreeRecords minBPTreeRecord = (BPTreeRecords) minPage;
+        BPTreeRecords maxBPTreeRecord = (BPTreeRecords) maxPage;
+
+        RecordBuffer minRecordBuffer = minBPTreeRecord.getRecordBuffer();
+        RecordBuffer maxRecordBuffer = maxBPTreeRecord.getRecordBuffer();
+
+        int min = minRecordBuffer.find(minRecord);
+        int max = maxRecordBuffer.find(maxRecord);
+
+        min = min < 0 ? -min-1 : min;
+        max = max < 0 ? -max-1 : max;
+
         if (minPage.getId() == maxPage.getId()) {
-            sum = maxStep.idx - minStep.idx;
+            sum = max - min;
         } else {
-            sum = (sum - 2)*root.getMaxSize() + minStep.page.getCount() - minStep.idx + maxStep.idx;
+            sum = (sum - 2)*root.getMaxSize() + minStep.page.getCount() - min + max;
         }
 
         return sum;

@@ -72,7 +72,7 @@ public class BenchmarkDataset {
         if (Files.exists(dbPath)) {
             log.info("Database already exists, skipping creation.");
         } else {
-            log.info("Database does not exist, creating it…");
+            log.info("Database does not exist, creating it at {}…", dbPath.toAbsolutePath().toString());
             download(pathToArchive, downloadURL);
             extract(pathToArchive, fullExtractPath, whitelist);
             FileUtils.delete(pathToArchive.toFile());

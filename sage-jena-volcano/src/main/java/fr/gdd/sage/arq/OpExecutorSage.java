@@ -108,7 +108,6 @@ public class OpExecutorSage extends OpExecutorTDB2 {
 
     @Override
     protected QueryIterator execute(OpBGP opBGP, QueryIterator input) {
-        log.info("Executing a BGP…");
         if (execCxt.getContext().isFalse(ARQ.optimization)) { // force order
             return PatternMatchSage.matchTriplePattern(opBGP.getPattern(), input, execCxt);
         } else { // order of TDB2
@@ -119,13 +118,11 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     
     @Override
     protected QueryIterator execute(OpTriple opTriple, QueryIterator input) {
-        log.info("Executing a triple…");
         return PatternMatchSage.matchTriplePattern(opTriple.asBGP().getPattern(), input, execCxt);
     }
     
     @Override
     protected QueryIterator execute(OpQuadPattern quadPattern, QueryIterator input) {
-        log.info("Executing a quad…");
         if (execCxt.getContext().isFalse(ARQ.optimization)) { // force order
             return PatternMatchSage.matchQuadPattern(quadPattern.getBasicPattern(), quadPattern.getGraphNode(), input, execCxt);
         } else { // order of TDB2
@@ -138,21 +135,18 @@ public class OpExecutorSage extends OpExecutorTDB2 {
 
     @Override
     public QueryIterator execute(OpUnion union, QueryIterator input) {
-        log.info("Executing a union…");
         // Comes from {@link OpExecutorTDB2}
         return new PreemptQueryIterUnion(input, flattenUnion(union), execCxt);
     }
 
     @Override
     protected QueryIterator execute(OpJoin opJoin, QueryIterator input) {
-        log.info("Executing a join…");
         // Using Sage, we are bound to `NestedLoopJoin`. TDB2's default is hash join.
         return new PreemptQueryIterNestedLoopJoin(opJoin, input, execCxt);
     }
 
     @Override
     protected QueryIterator execute(OpConditional opCondition, QueryIterator input) {
-        log.info("Executing a conditional…");
         // Comes from {@link OpExecutor}:
         QueryIterator left = exec(opCondition.getLeft(), input);
         return new PreemptQueryIterOptionalIndex(left, opCondition.getRight(), execCxt);

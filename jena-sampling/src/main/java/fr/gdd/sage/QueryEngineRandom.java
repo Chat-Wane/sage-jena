@@ -64,8 +64,7 @@ public class QueryEngineRandom extends QueryEngineSage {
             long limit = execCxt.getContext().getLong(SageConstants.limit, Long.MAX_VALUE);
             // always have a timeout otherwise could be infinite looping. Here arbitrarily set to 60s.
             long timeout = execCxt.getContext().getLong(SageConstants.timeout, 60000);
-            Map<Integer, Serializable> state = execCxt.getContext().get(SageConstants.state);
-            SageInput<?> sageInput = new SageInput<>().setLimit(limit).setTimeout(timeout).setState(state);
+            SageInput<?> sageInput = new SageInput<>().setLimit(limit).setTimeout(timeout);
 
             execCxt.getContext().set(SageConstants.input, sageInput);
         }
