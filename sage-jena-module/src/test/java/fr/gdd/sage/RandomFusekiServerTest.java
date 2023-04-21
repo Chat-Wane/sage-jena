@@ -53,7 +53,7 @@ class RandomFusekiServerTest {
 
         // creating the post request piggybacking query and sage-specific input
         HttpPost post = new HttpPost(url_asString);
-        SageInput<?> sageInput = new SageInput<>().setLimit(LIMIT); // only get one random walk please
+        SageInput<?> sageInput = new SageInput<>().setLimit(LIMIT); // only get LIMIT random walk(s) please
 
 
         var mapper = new ObjectMapper();
@@ -63,7 +63,7 @@ class RandomFusekiServerTest {
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
-        log.debug("Sage input to send: {}", sageInput_asJson);
+        log.debug("Input to random walk server to send: {}", sageInput_asJson);
 
 
         List<NameValuePair> urlParameters = new ArrayList<>();

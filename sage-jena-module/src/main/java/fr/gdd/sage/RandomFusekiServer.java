@@ -71,7 +71,6 @@ public class RandomFusekiServer {
         }
 
         FusekiServer server = buildServer(serverOptions.database, serverOptions.ui);
-
         server.start();
     }
 

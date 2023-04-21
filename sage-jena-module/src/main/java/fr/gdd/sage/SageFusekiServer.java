@@ -2,6 +2,7 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.fuseki.RandomModule;
 import fr.gdd.sage.fuseki.SageModule;
 import org.apache.jena.fuseki.auth.Auth;
 import org.apache.jena.fuseki.main.FusekiServer;
@@ -69,36 +70,47 @@ public class SageFusekiServer {
             }
         }
 
-        Dataset dataset = TDB2Factory.connectDataset(serverOptions.database);
-        // dataset.getContext().set(SageConstants.limit, 1);
+        FusekiServer server = buildServer(serverOptions.database, serverOptions.ui);
+        server.start();
+    }
 
-        // already in META-INF/services/…FusekiModule so starts from there
+    /**
+     * Build a Sage fuseki server.
+     * @param database The path to the TDB2 database.
+     * @param ui The path to the ui.
+     * @return A fuseki server not yet running.
+     */
+    static FusekiServer buildServer(String database, String ui) {
+        Dataset dataset = TDB2Factory.connectDataset(database);
+        dataset.getContext().set(SageConstants.limit, 100000);
+        dataset.getContext().set(SageConstants.timeout, 5000);
+
         FusekiModules.add(new SageModule());
 
         FusekiServer.Builder serverBuilder = FusekiServer.create()
-            // .parseConfigFile("configurations/sage.ttl")
-            .enablePing(true)
-            .enableCompact(true)
+                // .parseConfigFile("configurations/sage.ttl")
+                .enablePing(true)
+                .enableCompact(true)
                 // .enableCors(true)
-            .enableStats(true)
-            .enableTasks(true)
-            .enableMetrics(true)
-            .numServerThreads(1, 10)
-            // .loopback(false)
-            .serverAuthPolicy(Auth.ANY_ANON)
-            .addProcessor("/$/server", new ActionServerStatus())
-            //.addProcessor("/$/datasets/*", new ActionDatasets())
-            .add(Path.of(serverOptions.database).getFileName().toString(), dataset)
-            // .auth(AuthScheme.BASIC)
-            .addEndpoint(Path.of(serverOptions.database).getFileName().toString(),
-                    Path.of(serverOptions.database).getFileName().toString(),
-                    Operation.Query, Auth.ANY_ANON);
+                .enableStats(true)
+                .enableTasks(true)
+                .enableMetrics(true)
+                .numServerThreads(1, 10)
+                // .loopback(false)
+                .serverAuthPolicy(Auth.ANY_ANON)
+                .addProcessor("/$/server", new ActionServerStatus())
+                //.addProcessor("/$/datasets/*", new ActionDatasets())
+                .add(Path.of(database).getFileName().toString(), dataset)
+                // .auth(AuthScheme.BASIC)
+                .addEndpoint(Path.of(database).getFileName().toString(),
+                        Path.of(database).getFileName().toString(),
+                        Operation.Query, Auth.ANY_ANON);
 
-        if (Objects.nonNull(serverOptions.ui)) { // add UI if need be
-            serverBuilder.staticFileBase(serverOptions.ui);
+        if (Objects.nonNull(ui)) { // add UI if need be
+            serverBuilder.staticFileBase(ui);
         }
 
-        FusekiServer server = serverBuilder.build();
-        server.start();
+        return serverBuilder.build();
+
     }
 }
