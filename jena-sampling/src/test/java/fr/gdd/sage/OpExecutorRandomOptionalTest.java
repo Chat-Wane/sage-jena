@@ -129,4 +129,25 @@ class OpExecutorRandomOptionalTest {
         }
     }
 
+    @Test
+    public void mandatory_part_of_optional_is_empty() {
+        Op op = SSE.parseOp("(conditional (bgp (?s <http://nothing> ?o)) (bgp (?s <http://own> ?a)))");
+
+        final long LIMIT = 100;
+        final long TIMEOUT = 100; // 1s
+        Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT).set(SageConstants.timeout, TIMEOUT);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        Multiset<Binding> randomSetOfBindings = HashMultiset.create();
+        while (iterator.hasNext()) {
+            Binding randomBinding = iterator.next();
+            // cannot assert since mandatory alone is sometime not in the results set
+            // assertTrue(allBindings.contains(randomBinding));
+            randomSetOfBindings.add(randomBinding);
+        }
+        assertEquals(0, randomSetOfBindings.size());
+    }
+
 }

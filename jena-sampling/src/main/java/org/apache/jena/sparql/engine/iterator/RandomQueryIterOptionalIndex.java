@@ -29,8 +29,10 @@ public class RandomQueryIterOptionalIndex extends QueryIter1 {
 
     public RandomQueryIterOptionalIndex(QueryIterator input, Op rightOp, ExecutionContext execCxt) {
         super(input, execCxt);
-        mandatory = input.nextBinding();
-        rightIterator = QC.execute(rightOp, mandatory, execCxt);
+        if (input.hasNext()) {
+            mandatory = input.nextBinding();
+            rightIterator = QC.execute(rightOp, mandatory, execCxt);
+        }
         this.input = execCxt.getContext().get(SageConstants.input);
     }
 
