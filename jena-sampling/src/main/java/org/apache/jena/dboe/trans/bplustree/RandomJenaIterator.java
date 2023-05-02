@@ -193,7 +193,7 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
         if (!done && lastMinNode.getId() == lastMaxNode.getId()) {
             int idxMin  = minStep.idx;
             int idxMax  = maxStep.idx; 
-            int found_idx = (int) ((double)idxMin + Math.random() * ((double)(idxMax - idxMin)));
+            int found_idx = (int) ((double)idxMin + Math.random() * ((double)(idxMax - idxMin + 1)));
             
             BPTreePage chosenPage = lastMinNode.get(found_idx);
             randomPath.add(lastMinNode, found_idx, chosenPage);
@@ -201,8 +201,13 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
             // #B random among the whole range of the underlying branch
             while (!(chosenPage instanceof BPTreeRecords)) {
                 BPTreeNode chosenNode = (BPTreeNode) chosenPage;
-                idxMax = chosenNode.getCount();
-                found_idx = (int) (Math.random() * ((double)(idxMax)));
+                int min = chosenNode.findSlot(minRecord);
+                int max = chosenNode.findSlot(maxRecord);
+
+                min = min < 0 ? -min-1 : min;
+                max = max < 0 ? -max-1 : max;
+
+                found_idx = ((int) ((double) min + Math.random()*((double) max - min + 1)));
                 chosenPage = ((BPTreeNode) chosenPage).get(found_idx);
                 randomPath.add(chosenNode, found_idx, chosenPage);
             }
@@ -226,7 +231,7 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
             return false;
         }
 
-        int randomInRecords = ((int) ((double) min + Math.random()*((double) max - min)));
+        int randomInRecords = ((int) ((double) min + Math.random()*((double) max - min))); // no need for -1 in record
         Record currentRecord = recordBuffer._get(randomInRecords);
 
         current = TupleLib.tuple(currentRecord, tupleMap);
