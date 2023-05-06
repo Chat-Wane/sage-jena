@@ -2,6 +2,7 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.arq.SageConstants;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineFactory;
@@ -12,21 +13,31 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpExecutorRandomBGPTest {
+
+    Logger log = LoggerFactory.getLogger(OpExecutorRandomBGPTest.class);
 
     static Dataset dataset;
 
@@ -40,6 +51,25 @@ class OpExecutorRandomBGPTest {
     public static void closeDB() {
         dataset.abort();
         TDBInternal.expel(dataset.asDatasetGraph());
+    }
+
+    @Disabled
+    @Test
+    public void get_random_from_spo() {
+        Op op = SSE.parseOp("(bgp (?s ?p ?o))");
+        Set<Binding> allBindings = generateResults(op, dataset);
+
+        Context c = dataset.getContext().copy().set(SageConstants.limit, 1);
+        QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+        Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+        QueryIterator iterator = plan.iterator();
+        long sum = 0;
+        while (iterator.hasNext()) {
+            assertTrue(allBindings.contains(iterator.next()));
+            sum += 1;
+        }
+        assertEquals(1, sum);
     }
 
     @Test
@@ -209,6 +239,45 @@ class OpExecutorRandomBGPTest {
         assertEquals(1, randomSetOfBindings.size());
         assertEquals(LIMIT, sum); // no loop turn.
     }
+
+    @Disabled
+    @Test
+    public void test_concurrent_execution_to_profile_perf() throws InterruptedException {
+        Dataset dataset = TDB2Factory.connectDataset("../target/watdiv10M");
+
+        int numberOfThreads = 1;
+        ExecutorService service = Executors.newFixedThreadPool(numberOfThreads);
+        CountDownLatch latch = new CountDownLatch(numberOfThreads);
+        Op op = SSE.parseOp("(bgp (?s <http://db.uwaterloo.ca/~galuc/wsdbm/gender> ?o))");
+
+        for (int i = 0; i < numberOfThreads; i++) {
+            service.execute(() -> {
+                // final long LIMIT = 10000;
+                final long TIMEOUT = 10000;
+
+                dataset.begin(ReadWrite.READ);
+                // Context c = dataset.getContext().copy().set(SageConstants.limit, LIMIT);
+                Context c = dataset.getContext().copy().set(SageConstants.timeout, TIMEOUT);
+                QueryEngineFactory factory = QueryEngineRegistry.findFactory(op, dataset.asDatasetGraph(), c);
+                Plan plan = factory.create(op, dataset.asDatasetGraph(), BindingRoot.create(), c);
+
+                QueryIterator iterator = plan.iterator();
+                long sum = 0;
+                Set<Binding> randomSetOfBindings = new HashSet<>();
+                while (iterator.hasNext()) {
+                    Binding randomBinding = iterator.next();
+                    randomSetOfBindings.add(randomBinding);
+                    sum += 1;
+                }
+                // assertEquals(LIMIT, sum);
+
+                log.info("Number of random walks performed by a thread: {}", sum);
+                latch.countDown();
+            });
+        }
+        latch.await();
+    }
+
 
 
     /**

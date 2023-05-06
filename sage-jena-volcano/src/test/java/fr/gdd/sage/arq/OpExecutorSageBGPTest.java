@@ -6,8 +6,10 @@ import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
+import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
@@ -15,12 +17,20 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -134,13 +144,51 @@ public class OpExecutorSageBGPTest {
         assertEquals(9, rest.size());
     }
 
+    @Disabled
+    @Test
+    public void test_concurrent_execution_to_profile_perf() throws InterruptedException {
+        Dataset dataset = TDB2Factory.connectDataset("../target/watdiv10M");
+
+        int numberOfThreads = 1;
+        ExecutorService service = Executors.newFixedThreadPool(numberOfThreads);
+        CountDownLatch latch = new CountDownLatch(numberOfThreads);
+        Op op = SSE.parseOp("(bgp (?s <http://db.uwaterloo.ca/~galuc/wsdbm/gender> ?o))");
+
+        for (int i = 0; i < numberOfThreads; i++) {
+            service.execute(() -> {
+                QC.setFactory(dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
+                QueryEngineRegistry.addFactory(QueryEngineSage.factory);
+
+                final long TIMEOUT = 10000;
+                final long DEADLINE = System.currentTimeMillis() + TIMEOUT;
+
+                dataset.begin(ReadWrite.READ);
+                long sum = 0;
+                while (System.currentTimeMillis() < DEADLINE) {
+                    run_to_the_limit(dataset, op, new SageInput<>().setLimit(1));
+                    sum += 1;
+                }
+                // assertEquals(LIMIT, sum);
+
+                log.info("Number of random walks performed by a thread: {}", sum);
+                latch.countDown();
+            });
+        }
+        latch.await();
+    }
+
+
     /**
      * Runs the query until there are no result anymore.
      */
     public static SageOutput<SerializableRecord> run_to_the_limit(Dataset dataset, Op query, SageInput<?> input) {
         boolean limitIsSet = input.getLimit() != Long.MAX_VALUE;
         Context c = dataset.getContext().copy()
-                .set(SageConstants.input, input)
+                // .set(SageConstants.input, input)
+                .set(SageConstants.limit, input.getLimit())
+                .set(SageConstants.timeout, input.getTimeout())
+                .set(SageConstants.state, input.getState())
+                // .set(SageConstants.output, new SageOutput<>())
                 .set(ARQ.optimization, false); // we don't want reordering of triples for tests
         Plan plan = QueryEngineSage.factory.create(query, dataset.asDatasetGraph(), BindingRoot.create(), c);
         QueryIterator it = plan.iterator();
