@@ -45,6 +45,8 @@ public class BenchmarkDataset {
     private List<String> whitelist;
     private List<String> blacklist;
 
+    private List<String> queries;
+
     public BenchmarkDataset(Optional<String> dbPath_opt,
                             String defaultDbPath, String dbName, String archiveName, String extractPath,
                             String downloadURL,
@@ -67,6 +69,14 @@ public class BenchmarkDataset {
         this.fullExtractPath = Paths.get(dirPath.toString(), extractPath);
     }
 
+    public void setQueries(String pathToQueries) {
+        this.queries = Watdiv10M.getQueries(pathToQueries, this.blacklist).stream().map(e -> e.left).toList();
+    }
+
+    public List<String> getQueries() {
+        return this.queries;
+    }
+
 
     public void create() throws IOException {
         if (Files.exists(dbPath)) {
@@ -86,7 +96,6 @@ public class BenchmarkDataset {
 
         // categorizeQueries(queries);
     }
-
 
     /**
      * Download the dataset from remote URL.

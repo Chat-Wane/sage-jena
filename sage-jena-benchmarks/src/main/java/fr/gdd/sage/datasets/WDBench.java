@@ -29,7 +29,7 @@ public class WDBench extends BenchmarkDataset {
         super(dbPath_opt, DEFAULT_DB_PATH, DB_NAME, ARCHIVE_NAME, EXTRACT_PATH, DOWNLOAD_URL, WHITELIST, BLACKLIST);
         log.info("The download requires 8.52 GB.");
         log.info("Decompressing requires 146 GB.");
-        log.info("The final database requires 110 GB.");
+        log.info("The final database requires 162 GB.");
         log.warn("The ingestion may take a while. Consider ingesting on a dedicated machine using Jena's binary tdb2.xloader with parallel bulk loading, then download the database afterwards.");
         try {
             create();
