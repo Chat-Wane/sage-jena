@@ -73,8 +73,7 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
         AccessPath maxPath = new AccessPath(null);
         root.internalSearch(maxPath, maxRecord);
 
-        AccessPath randomPath = new AccessPath(null); // to build
-        // #1 process common branch
+        // #1 process common branch. While strictly equal, cardinality = 0
         var minSteps = minPath.getPath();
         var maxSteps = maxPath.getPath();
 
@@ -84,7 +83,6 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
 
         boolean done = false;
         while (i < minSteps.size() && i < maxSteps.size() && equalsStep(minStep, maxStep)) {
-            randomPath.add(minStep.node, minStep.idx, minStep.page);
             ++i;
             if (i < minSteps.size() && i < maxSteps.size()) { // ugly
                 minStep = minSteps.get(i);
@@ -101,34 +99,30 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
 
         // #A if last was same node but different pages
         long sum = 0;
+        int avg = 0; // avg number of nodes on path explored
         BPTreePage minPage = minStep.page;
         BPTreePage maxPage = maxStep.page;
         if (!done && lastMinNode.getId() == lastMaxNode.getId()) {
-            int idxMin  = minStep.idx;
-            int idxMax  = maxStep.idx;
-            sum = idxMax - idxMin;
+            sum = maxStep.idx - minStep.idx + 1;
 
             minPage = minStep.page;
             maxPage = maxStep.page;
+            avg += minPage.getCount() + maxPage.getCount();
 
             // #B random among the whole range of the underlying branch
-            while (!(minPage instanceof BPTreeRecords)) {
+            while (!(minPage instanceof BPTreeRecords) && !(maxPage instanceof BPTreeRecords)) {
                 i = i + 1;
                 minStep = minSteps.get(i);
                 maxStep = maxSteps.get(i);
-
-                sum = (sum - 2)*root.getMaxSize() + minStep.node.getMaxSize() - minStep.idx + maxStep.idx;
+                avg += minPage.getCount() + maxPage.getCount();
+                sum = (sum - 2) * (avg/(2*(i+1))) + minStep.node.getCount() - minStep.idx + maxStep.idx + 1;
                 minPage = minStep.page;
                 maxPage = maxStep.page;
             }
         }
 
-
-        BPTreeRecords minBPTreeRecord = (BPTreeRecords) minPage;
-        BPTreeRecords maxBPTreeRecord = (BPTreeRecords) maxPage;
-
-        RecordBuffer minRecordBuffer = minBPTreeRecord.getRecordBuffer();
-        RecordBuffer maxRecordBuffer = maxBPTreeRecord.getRecordBuffer();
+        RecordBuffer minRecordBuffer = ((BPTreeRecords) minPage).getRecordBuffer();
+        RecordBuffer maxRecordBuffer = ((BPTreeRecords) maxPage).getRecordBuffer();
 
         int min = minRecordBuffer.find(minRecord);
         int max = maxRecordBuffer.find(maxRecord);
@@ -139,7 +133,11 @@ public class RandomJenaIterator implements Iterator<Tuple<NodeId>>, RandomIterat
         if (minPage.getId() == maxPage.getId()) {
             sum = max - min;
         } else {
-            sum = (sum - 2)*root.getMaxSize() + minStep.page.getCount() - min + max;
+            int minCount= minStep.page.getCount();
+            int maxCount= maxStep.page.getCount();
+            avg += minPage.getCount() + maxPage.getCount();
+            avg = avg / (2*(i+1));
+            sum = (sum - 2) * avg + minStep.page.getCount() - min + max;
         }
 
         return sum;

@@ -1,14 +1,13 @@
 package org.apache.jena.dboe.trans.bplustree;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2ForRandom;
-import fr.gdd.sage.OpExecutorRandom;
-import fr.gdd.sage.QueryEngineRandom;
-import fr.gdd.sage.RandomScanIteratorFactory;
+import fr.gdd.sage.*;
 import fr.gdd.sage.configuration.SageServerConfiguration;
+import fr.gdd.sage.datasets.Watdiv10M;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.core.Var;
@@ -19,6 +18,7 @@ import org.apache.jena.sparql.engine.iterator.PreemptScanIteratorTupleId;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 import org.apache.jena.tdb2.solver.PreemptStageMatchTuple;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
@@ -32,6 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.crypto.Data;
+
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RandomJenaIteratorCardinalityTest {
@@ -40,9 +44,12 @@ class RandomJenaIteratorCardinalityTest {
 
     static Dataset dataset;
 
+    static Dataset smallerDataset;
+
     @BeforeAll
-    public static void initializeDB() {
+    public static void initializeDB() throws NoSuchFieldException, IllegalAccessException {
         dataset = new InMemoryInstanceOfTDB2ForRandom().getDataset();
+        smallerDataset = new SmallBlocksInMemoryTDB2ForCardinality().getDataset();
         QueryEngineRandom.register();
     }
 
@@ -56,7 +63,7 @@ class RandomJenaIteratorCardinalityTest {
     @Test
     public void cardinality_of_nothing() {
         OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://licorne>))");
-        RandomJenaIterator it = getRandomJenaIterator(op);
+        RandomJenaIterator it = getRandomJenaIterator(op, dataset);
 
         assertEquals(0, it.cardinality());
     }
@@ -65,7 +72,7 @@ class RandomJenaIteratorCardinalityTest {
     @Test
     public void cardinality_of_a_one_tuple_triple_pattern() {
         OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://cat>))");
-        RandomJenaIterator it = getRandomJenaIterator(op);
+        RandomJenaIterator it = getRandomJenaIterator(op, dataset);
 
         assertEquals(1, it.cardinality());
     }
@@ -74,18 +81,39 @@ class RandomJenaIteratorCardinalityTest {
     @Test
     public void cardinality_of_a_few_tuples_triple_pattern() {
         OpBGP op = (OpBGP) SSE.parseOp("(bgp (<http://Alice> ?p ?o))");
-        RandomJenaIterator it = getRandomJenaIterator(op);
+        RandomJenaIterator it = getRandomJenaIterator(op, dataset);
         assertEquals(4, it.cardinality());
     }
 
     @Disabled
     @Test
     public void cardinality_of_larger_triple_pattern_above_leaf_size() {
+        OpBGP op = (OpBGP) SSE.parseOp("(bgp (<http://Alice> ?p ?o))");
+        RandomJenaIterator it = getRandomJenaIterator(op, smallerDataset);
+        assertEquals(50, it.cardinality());
+    }
 
+    @Disabled
+    @Test
+    public void cardinality_of_larger_triple_pattern_above_leaf_size_with_watdiv() {
+        Watdiv10M watdiv10M = new Watdiv10M(Optional.of("target"));
+        Dataset watdiv = TDB2Factory.connectDataset("target/watdiv10M");
+        watdiv.begin(ReadWrite.READ);
+        OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country21>))"); // expect 2613 get 4125
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/validThrough> ?v3))"); // expect 36346 get 44640
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/includes> ?v1))"); // expect 90000 get 288056
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v1 <http://schema.org/text> ?v6))"); // expect 7476 get 10205
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleQuantity> ?v4))"); // expect 90000 get 554814
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/price> ?v2))"); // expect 240000 get 900291
+
+
+        RandomJenaIterator it = getRandomJenaIterator(op, watdiv);
+        assertEquals(50, it.cardinality());
+        watdiv.end();
     }
 
 
-    public static RandomJenaIterator getRandomJenaIterator(OpBGP op) {
+    public static RandomJenaIterator getRandomJenaIterator(OpBGP op, Dataset dataset) {
         DatasetGraphTDB activeGraph = TDBInternal.getDatasetGraphTDB(dataset);
 
         ExecutionContext execCxt = new ExecutionContext(
