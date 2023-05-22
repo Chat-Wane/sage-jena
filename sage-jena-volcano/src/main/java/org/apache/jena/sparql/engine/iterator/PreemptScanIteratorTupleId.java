@@ -12,6 +12,7 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -21,7 +22,7 @@ import java.util.Objects;
  */
 public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>> {
 
-    public BackendIterator<NodeId, SerializableRecord> wrapped;
+    public BackendIterator<NodeId, Serializable> wrapped;
     NodeTable nodeTable;
 
     SageInput<?>  input;
@@ -33,7 +34,7 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>> {
     ExecutionContext context;
 
 
-    public PreemptScanIteratorTupleId(BackendIterator<NodeId, SerializableRecord> wrapped, NodeTable nodeTable,
+    public PreemptScanIteratorTupleId(BackendIterator<NodeId, Serializable> wrapped, NodeTable nodeTable,
                                       SageInput<?> input, SageOutput<?> output, Integer id, ExecutionContext context) {
         this.wrapped = wrapped;
         this.nodeTable = nodeTable;

@@ -15,6 +15,7 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
+import java.io.Serializable;
 import java.util.Iterator;
 
 
@@ -49,7 +50,7 @@ public class PreemptScanIteratorFactory implements ScanIteratorFactory {
     }
     
     public Iterator<Quad> getScan(Tuple<NodeId> pattern, Integer id) {
-        BackendIterator<NodeId, SerializableRecord> wrapped = null;
+        BackendIterator<NodeId, Serializable> wrapped = null;
         PreemptScanIteratorQuad volcanoIterator = null;
         if (pattern.len() < 4) {
             wrapped = preemptTripleTupleTable.preemptFind(pattern);
@@ -67,7 +68,7 @@ public class PreemptScanIteratorFactory implements ScanIteratorFactory {
     }
 
     public Iterator<Tuple<NodeId>> getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id) {
-        BackendIterator<NodeId, SerializableRecord> wrapped = null;
+        BackendIterator<NodeId, Serializable> wrapped = null;
         PreemptScanIteratorTupleId volcanoIterator = null;
         if (pattern.len() < 4) {
             wrapped = preemptTripleTupleTable.preemptFind(pattern);
