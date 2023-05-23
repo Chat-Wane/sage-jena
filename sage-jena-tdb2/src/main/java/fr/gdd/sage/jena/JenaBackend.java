@@ -112,4 +112,21 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
     public NodeId any() {
         return NodeId.NodeIdAny;
     }
+
+    /* **************************************************************************************** */
+
+    /**
+     * Convenience function that gets the id from the node, looking in both tables.
+     */
+    public NodeId getId(final Node node) throws NotFoundException {
+        NodeId id = nodeTripleTable.getNodeIdForNode(node);
+        if (NodeId.isDoesNotExist(id)) {
+            id = nodeQuadTable.getNodeIdForNode(node);
+            if (NodeId.isDoesNotExist(id)) {
+                throw new NotFoundException(String.format("Id of %s does not exist.", node.toString()));
+            }
+        }
+        return id;
+    }
+
 }

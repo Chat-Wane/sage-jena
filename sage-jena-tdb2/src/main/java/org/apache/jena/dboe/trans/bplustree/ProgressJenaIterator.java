@@ -185,7 +185,10 @@ public class ProgressJenaIterator {
                     branchingFactor *= pageSize[j];
                 }
                 if (!minStep.node.isLeaf()) {
-                    branchingFactor += pageSize[pageSize.length - 1]; // (TODO): Why is it necessary?
+                    // Why is it necessary? Probably due to {@link BPTreeNode} that
+                    // have count = number of keys; while the number of pointers is
+                    // count + 1
+                    branchingFactor += pageSize[pageSize.length - 1];
                 }
 
                 if (minStep.node.id == maxStep.node.id) {
