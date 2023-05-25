@@ -1,8 +1,7 @@
 package fr.gdd.sage.jena;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2;
+import fr.gdd.sage.InMemoryInstanceOfTDB2_bis;
 import fr.gdd.sage.interfaces.BackendIterator;
-import fr.gdd.sage.io.SageOutput;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.atlas.lib.Bytes;
 import org.apache.jena.ext.xerces.impl.dv.util.Base64;
@@ -22,7 +21,7 @@ class SerializableRecordTest {
 
     @Test
     public void serialize_then_deserialize_a_record() {
-        Dataset dataset = new InMemoryInstanceOfTDB2().getDataset();
+        Dataset dataset = new InMemoryInstanceOfTDB2_bis().getDataset();
 
         JenaBackend backend = new JenaBackend(dataset);
         NodeId predicate = backend.getId("<http://www.geonames.org/ontology#parentCountry>");

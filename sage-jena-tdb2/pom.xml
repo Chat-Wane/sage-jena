@@ -42,6 +42,12 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>fr.gdd.sage</groupId>
+      <artifactId>sage-jena-benchmarks</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>

@@ -11,6 +11,8 @@ target/
 #### jupyter notebook ####
 *.ipynb_checkpoints/
 *.csv
+*.pdf
+*.txt
 
 #### datasets #####
 watdiv10M/

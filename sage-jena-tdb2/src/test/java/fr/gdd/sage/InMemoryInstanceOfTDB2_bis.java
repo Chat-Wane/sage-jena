@@ -18,11 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Create an in memory database following TDB2 model. Useful for testing.
  **/
-public class InMemoryInstanceOfTDB2 {
+public class InMemoryInstanceOfTDB2_bis {
 
     Dataset dataset;
 
-    public InMemoryInstanceOfTDB2() {
+    public InMemoryInstanceOfTDB2_bis() {
         dataset = TDB2Factory.createDataset();
         dataset.begin(ReadWrite.WRITE);
 

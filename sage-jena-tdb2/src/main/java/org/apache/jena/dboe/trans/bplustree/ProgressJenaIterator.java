@@ -1,9 +1,12 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.tdb2.store.NodeId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.List;
@@ -15,10 +18,12 @@ import java.util.Objects;
  */
 public class ProgressJenaIterator {
 
+    Logger log = LoggerFactory.getLogger(ProgressJenaIterator.class);
+
     /**
      * Number of walks to approximate how filled bptree's records are.
      */
-    private static final int NB_WALKS = 2;
+    public static int NB_WALKS = 2; // (TODO) could be self-adaptive, and depend on the number of possible nodes between bounds
 
     long offset = 0; // the number of elements explored
     Long cardinality = null; // lazy loaded cardinality
@@ -75,11 +80,15 @@ public class ProgressJenaIterator {
     }
 
     public double getProgress() {
-        if (Objects.isNull(cardinality)) { this.cardinality(); }
+        if (Objects.isNull(cardinality)) {
+            this.cardinality();
+        }
 
-        if (cardinality == 0) { return 1.0; } // already finished
+        if (cardinality == 0) {
+            return 1.0;
+        } // already finished
 
-        return ((double)this.offset) / (double) cardinality;
+        return ((double) this.offset) / (double) cardinality;
     }
 
     /**
@@ -119,8 +128,6 @@ public class ProgressJenaIterator {
             lastStep = randomPath.getPath().get(randomPath.getPath().size() - 1);
         }
 
-        // System.out.println("randomPath: " + randomPath);
-
         assert randomPath.getPath().size() == minPath.getPath().size();
 
         return randomPath;
@@ -132,20 +139,23 @@ public class ProgressJenaIterator {
      * When the number of results is small, more precision is needed.
      * Fortunately, this often means that results are spread among one
      * or two pages, which allows us to precisely count using binary search.
-     *
+     * <p>
      * (TODO) Take into account possible deletions.
      * (TODO) Triple patterns that return no solutions need to be handle elsewhere. Is it the case?
      *
      * @return An estimated cardinality.
      */
-    public long cardinality() {
+    public long cardinality(Integer... sample) {
         if (Objects.isNull(minRecord) && Objects.isNull(maxRecord) && Objects.isNull(root)) {
             return 0;
         }
 
         if (Objects.nonNull(this.cardinality)) {
-            return cardinality; // already processed
+            return cardinality; // already processed, lazy return.
         }
+
+        // number of random walks to estimate cardinalities in between boundaries.
+        int nbWalks = Objects.isNull(sample) || sample.length == 0 ? NB_WALKS : sample[0];
 
         AccessPath minPath = new AccessPath(null);
         AccessPath maxPath = new AccessPath(null);
@@ -158,44 +168,123 @@ public class ProgressJenaIterator {
 
         assert minSteps.size() == maxSteps.size();
 
-        long[] pageSize = new long[minSteps.size() + 1];
-
         // estimating the size of B+tree's pages and nodes using random walks
-        for (int i = 0; i < NB_WALKS; i++) {
+        // we create 3 buckets of walks, since the border may heavily impact
+        // the middle cardinality despite having significantly fewer elements.
+        // This is a best effort solution, a better solution would be to use cardinalities
+        // to weight collected cardinalities.
+        double[] leftSizes = new double[minSteps.size() + 1];
+        double[] leftCounts = new double[minSteps.size() + 1];
+        double[] midCounts = new double[minSteps.size() + 1];
+        double[] midSizes = new double[minSteps.size() + 1];
+        double[] rightSizes = new double[minSteps.size() + 1];
+        double[] rightCounts = new double[minSteps.size() + 1];
+
+        log.debug("Performing {} random walks…", nbWalks);
+        for (int i = 0; i < nbWalks; i++) {
             AccessPath path = randomWalk();
             int j = 0;
             for (; j < path.getPath().size(); j++) {
-                pageSize[j] += path.getPath().get(j).node.getCount();
+                // processing the nodes of the BPTree
+                // if (path.getPath().get(j).node.id == minPath.getPath().get(j).node.id) { // left
+                if (isParent(path, minPath, maxPath)) {
+                    leftSizes[j] += path.getPath().get(j).node.getCount() + 1;
+                    leftCounts[j] += 1;
+                    //} else if (path.getPath().get(j).node.id == maxPath.getPath().get(j).node.id) { // right
+                }  else if (isParent(path, maxPath, minPath)) {
+                    rightSizes[j] += path.getPath().get(j).node.getCount() + 1;
+                    rightCounts[j] += 1;
+                } else { // mid
+                    midSizes[j] += path.getPath().get(j).node.getCount() + 1;
+                    midCounts[j] += 1;
+                }
             }
-            pageSize[j] += path.getPath().get(j - 1).page.getCount();
-        }
-        for (int i = 0; i < pageSize.length; i++) {
-            pageSize[i] /= NB_WALKS;
+
+            // processing the leaves (Records) of the BPTree
+            // if (path.getPath().get(j - 1).node.id == minPath.getPath().get(j - 1).node.id) { // left
+            if (isParent(path, minPath, maxPath)) {
+                leftSizes[j] += path.getPath().get(j - 1).page.getCount();
+                leftCounts[j] += 1;
+                //} else if (path.getPath().get(j - 1).node.id == maxPath.getPath().get(j - 1).node.id) { // right
+            } else if (isParent(path, maxPath, minPath)) {
+                rightSizes[j] += path.getPath().get(j - 1).page.getCount();
+                rightCounts[j] += 1;
+            } else { // mid
+                midSizes[j] += path.getPath().get(j - 1).page.getCount();
+                midCounts[j] += 1;
+            }
+
         }
 
-        long cardinality = 0;
+        // processing a default value in case data is missing
+        double[] avgSizes = new double[minSteps.size() + 1];
+        for (int i = 0; i < rightSizes.length; ++i) {
+            double count = (leftCounts[i] > 0 ? leftCounts[i] : 0) + (midCounts[i] > 0 ? midCounts[i] : 0) + (rightCounts[i] > 0 ? rightCounts[i] : 0);
+            double value = (leftCounts[i] > 0 ? leftSizes[i] : 0) + (midCounts[i] > 0 ? midSizes[i] : 0) + (rightCounts[i] > 0 ? rightSizes[i] : 0);
+            avgSizes[i] = value / count;
+        }
+
+        // processing the actual average per bucket, and filling the blanks with other buckets
+        for (int i = 0; i < rightSizes.length; i++) {
+            leftSizes[i] = leftCounts[i] > 0 ? leftSizes[i] / leftCounts[i] : avgSizes[i];
+            midSizes[i] = midCounts[i] > 0 ? midSizes[i] / midCounts[i] : avgSizes[i];
+            rightSizes[i] = rightCounts[i] > 0 ? rightSizes[i] / rightCounts[i] : avgSizes[i];
+        }
+
+        log.debug("LEFT  avg: {}", leftSizes);
+        log.debug("MID   avg: {}", midSizes);
+        log.debug("RIGHT avg: {}", rightSizes);
+
+
+        // processing the cardinality using collected statistics
+        double cardinality = 0;
+
+
+        log.debug("min record " + minSteps);
+        log.debug("max record " + maxSteps);
 
         for (int i = 0; i < minSteps.size(); i++) {
             AccessPath.AccessStep minStep = minSteps.get(i);
             AccessPath.AccessStep maxStep = maxSteps.get(i);
 
             if (!equalsStep(minStep, maxStep)) {
-                long branchingFactor = 1;
-                for (int j = i + 1; j < pageSize.length; j++) {
-                    branchingFactor *= pageSize[j];
+                double branchingFactorLeft = 1;
+                double branchingFactorMid = 1;
+                double branchingFactorRight = 1;
+
+                for (int j = i + 1; j < rightSizes.length; j++) {
+                    branchingFactorLeft *= leftSizes[j];
+                    branchingFactorMid *= midSizes[j];
+                    branchingFactorRight *= rightSizes[j];
                 }
-                if (!minStep.node.isLeaf()) {
+
+                //if (!minStep.node.isLeaf()) { // setup in average counts
                     // Why is it necessary? Probably due to {@link BPTreeNode} that
                     // have count = number of keys; while the number of pointers is
                     // count + 1
-                    branchingFactor += pageSize[pageSize.length - 1];
-                }
+                    // branchingFactorLeft += leftSizes[leftSizes.length - 1];
+                    // branchingFactorMid += midSizes[midSizes.length - 1];
+                    // branchingFactorRight += rightSizes[rightSizes.length - 1];
+                //}
 
                 if (minStep.node.id == maxStep.node.id) {
-                    cardinality += (maxStep.idx - minStep.idx - 1) * branchingFactor;
+                    // middle processed all at once
+                    cardinality += (maxStep.idx - minStep.idx - 1) * branchingFactorMid;
+                    if (minStep.idx != maxStep.idx) {
+                        cardinality += branchingFactorLeft + branchingFactorRight;
+                    }
+                    // System.out.println("MID " + cardinality);
                 } else {
-                    cardinality += (minStep.node.getCount() - minStep.idx) * branchingFactor;
-                    cardinality += maxStep.idx * branchingFactor;
+                    // 1 node per side is left unexplored, we add its cardinality at the very end
+                    // cardinality += (minStep.node.getCount() - minStep.idx + 1) * (branchingFactorLeft);
+                    cardinality -= (minStep.idx) * branchingFactorLeft;
+                    // System.out.println("LEFT IDX " + minStep.idx);
+                    // System.out.println("LEFT CARD " + cardinality);
+                    // cardinality += (maxStep.idx + 1) * (branchingFactorRight);
+
+                    // System.out.println("RIGHT IDX " + maxStep.node.getCount() + " - " + maxStep.idx);
+                    cardinality -= (maxStep.node.getCount() - maxStep.idx) * branchingFactorRight;
+                    // System.out.println("RIGHT CARD " + cardinality);
                 }
             }
 
@@ -205,20 +294,25 @@ public class ProgressJenaIterator {
                 idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
 
                 RecordBuffer maxRecordBuffer = ((BPTreeRecords) maxStep.page).getRecordBuffer();
-                int idxMax =  maxRecordBuffer.find(maxRecord);
+                int idxMax = maxRecordBuffer.find(maxRecord);
                 idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
 
                 if (equalsStep(minStep, maxStep)) {
                     cardinality = idxMax - idxMin;
                 } else {
-                    cardinality += minRecordBuffer.size() - idxMin;
-                    cardinality += idxMax;
+                    // cardinality += minRecordBuffer.size() - idxMin;
+                    // System.out.println("minSize " + maxRecordBuffer.size());
+                    // System.out.println("idxMin " + idxMin);
+                    cardinality -= idxMin;
+                    // cardinality += idxMax;
+                    // System.out.println("size " +  maxRecordBuffer.size() + " -  idxMax " + idxMax);
+                    cardinality -= maxRecordBuffer.size() - idxMax;
                 }
             }
         }
 
-        this.cardinality = cardinality;
-        return cardinality;
+        this.cardinality = (long) cardinality;
+        return (long) cardinality;
     }
 
     /**
@@ -230,5 +324,17 @@ public class ProgressJenaIterator {
                 o1.page.getId() == o2.page.getId();
     }
 
+
+    private boolean isParent(AccessPath randomWalk, AccessPath base, AccessPath other) {
+        for (int i = 0; i < base.getPath().size(); ++i) {
+            if (base.getPath().get(i).node.id == other.getPath().get(i).node.id) {
+                continue;
+            }
+            if (randomWalk.getPath().get(i).node.id == base.getPath().get(i).node.id) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 }

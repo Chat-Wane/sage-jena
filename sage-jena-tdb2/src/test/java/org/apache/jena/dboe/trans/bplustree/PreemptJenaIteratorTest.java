@@ -1,6 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2;
+import fr.gdd.sage.InMemoryInstanceOfTDB2_bis;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
@@ -35,7 +35,7 @@ public class PreemptJenaIteratorTest {
 
     @BeforeAll
     public static void initializeDB() {
-        dataset = new InMemoryInstanceOfTDB2().getDataset();
+        dataset = new InMemoryInstanceOfTDB2_bis().getDataset();
 
         backend = new JenaBackend(dataset);
         predicate = backend.getId("<http://www.geonames.org/ontology#parentCountry>");
