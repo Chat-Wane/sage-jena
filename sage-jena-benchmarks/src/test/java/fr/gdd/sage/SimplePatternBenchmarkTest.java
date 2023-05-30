@@ -1,6 +1,6 @@
 package fr.gdd.sage;
 
-import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.databases.persistent.Watdiv10M;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;

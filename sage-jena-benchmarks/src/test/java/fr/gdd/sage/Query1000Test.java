@@ -3,7 +3,7 @@ package fr.gdd.sage;
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.databases.persistent.Watdiv10M;
 import fr.gdd.sage.io.SageInput;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;

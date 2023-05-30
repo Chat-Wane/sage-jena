@@ -1,10 +1,9 @@
 package org.apache.jena.dboe.trans.bplustree;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2WithSimpleData;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2WithSimpleData;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.jena.JenaBackend;
-import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;

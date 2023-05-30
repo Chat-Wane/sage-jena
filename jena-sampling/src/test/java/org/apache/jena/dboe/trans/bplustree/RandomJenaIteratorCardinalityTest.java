@@ -1,23 +1,18 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.*;
-import fr.gdd.sage.configuration.SageServerConfiguration;
-import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
+import fr.gdd.sage.databases.inmemory.SmallBlocksInMemoryTDB2ForCardinality;
+import fr.gdd.sage.databases.persistent.Watdiv10M;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
-import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.BindingRoot;
-import org.apache.jena.sparql.engine.iterator.PreemptScanIteratorTupleId;
-import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.sse.SSE;
-import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 import org.apache.jena.tdb2.solver.PreemptStageMatchTuple;
@@ -31,8 +26,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.xml.crypto.Data;
 
 import java.util.Optional;
 

@@ -1,6 +1,6 @@
 package fr.gdd.sage;
 
-import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.databases.persistent.Watdiv10M;
 import fr.gdd.sage.generics.Pair;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.results.format.ResultFormatType;

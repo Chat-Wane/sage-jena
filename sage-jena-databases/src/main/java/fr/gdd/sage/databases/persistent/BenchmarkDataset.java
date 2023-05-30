@@ -1,4 +1,4 @@
-package fr.gdd.sage.datasets;
+package fr.gdd.sage.databases.persistent;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;

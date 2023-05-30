@@ -1,4 +1,4 @@
-package fr.gdd.sage;
+package fr.gdd.sage.databases.inmemory;
 
 import org.apache.jena.dboe.sys.SystemIndex;
 import org.apache.jena.query.Dataset;

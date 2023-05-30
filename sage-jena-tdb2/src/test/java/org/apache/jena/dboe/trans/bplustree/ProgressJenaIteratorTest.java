@@ -1,7 +1,7 @@
 package org.apache.jena.dboe.trans.bplustree;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2_bis;
-import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
+import fr.gdd.sage.databases.persistent.Watdiv10M;
 import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
@@ -9,10 +9,6 @@ import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ReadWrite;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.sse.SSE;
-import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
@@ -26,8 +22,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 class ProgressJenaIteratorTest {
 
     Logger log = LoggerFactory.getLogger(ProgressJenaIteratorTest.class);
@@ -40,7 +34,7 @@ class ProgressJenaIteratorTest {
 
     @BeforeAll
     public static void initializeDB() {
-        dataset = new InMemoryInstanceOfTDB2_bis().getDataset();
+        dataset = new InMemoryInstanceOfTDB2().getDataset();
 
         backend = new JenaBackend(dataset);
         predicate = backend.getId("<http://www.geonames.org/ontology#parentCountry>");

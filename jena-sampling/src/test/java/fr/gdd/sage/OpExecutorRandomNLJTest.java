@@ -1,6 +1,7 @@
 package fr.gdd.sage;
 
 import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
 import org.apache.jena.ext.com.google.common.collect.HashMultiset;
 import org.apache.jena.ext.com.google.common.collect.Multiset;
 import org.apache.jena.query.ARQ;
@@ -17,7 +18,6 @@ import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

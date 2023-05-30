@@ -20,6 +20,7 @@
 
   <modules>
     <module>sage-commons</module>
+    <module>sage-jena-databases</module>
     <module>sage-jena-tdb2</module>
     <module>sage-jena-volcano</module>
     <module>sage-jena-module</module>
@@ -63,7 +64,7 @@
       <dependency>
         <groupId>fr.gdd.sage</groupId>
         <artifactId>sage-jena-volcano</artifactId>
-        <version>0.0.1</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>fr.gdd.sage</groupId>
@@ -78,6 +79,11 @@
       <dependency>
         <groupId>fr.gdd.sage</groupId>
         <artifactId>jena-sampling</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-jena-databases</artifactId>
         <version>${project.version}</version>
       </dependency>
 

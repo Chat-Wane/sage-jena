@@ -1,4 +1,4 @@
-package fr.gdd.sage;
+package fr.gdd.sage.databases.inmemory;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
@@ -12,34 +12,32 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 
 /**
- * Create an in memory database following TDB2 model. Useful for testing.
+ * Create an in memory database following TDB2 model. This dataset is about creating the
+ * simplest smallest dataset highlighting issues with `previous`, `next`, `NullIterator`,
+ * `SingletonIterator`.
  **/
-public class InMemoryInstanceOfTDB2ForOptional {
+public class InMemoryInstanceOfTDB2WithSimpleData {
 
     Dataset dataset;
 
-    public InMemoryInstanceOfTDB2ForOptional() {
+    public InMemoryInstanceOfTDB2WithSimpleData() {
         dataset = TDB2Factory.createDataset();
         dataset.begin(ReadWrite.WRITE);
 
         // Model containing the 10 first triples of Dataset Watdiv.10M
         // Careful, the order in the DB is not identical to that of the array
         List<String> statements = Arrays.asList(
-                    "<http://Alice> <http://address> <http://nantes> .",
-                    "<http://Bob>   <http://address> <http://paris>  .",
-                    "<http://Carol> <http://address> <http://nantes> .",
-                    "<http://Alice> <http://own>     <http://cat> .",
-                    "<http://Alice> <http://own>     <http://dog> .",
-                    "<http://Alice> <http://own>     <http://snake> ."
+                "<http://person> <http://named> <http://Alice>.",
+                "<http://person> <http://named> <http://Bob>.",
+                "<http://Alice>  <http://owns>  <http://cat>."
         );
 
         InputStream statementsStream = new ByteArrayInputStream(String.join("\n", statements).getBytes());
         Model model = ModelFactory.createDefaultModel();
         model.read(statementsStream, "", Lang.NT.getLabel());
+
         dataset.setDefaultModel(model);
     }
 

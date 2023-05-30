@@ -1,7 +1,7 @@
 package fr.gdd.sage.arq;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2;
-import fr.gdd.sage.datasets.Watdiv10M;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
+import fr.gdd.sage.databases.persistent.Watdiv10M;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;

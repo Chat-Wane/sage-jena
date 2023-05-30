@@ -20,7 +20,7 @@
     </dependency>
     <dependency>
       <groupId>fr.gdd.sage</groupId>
-      <artifactId>sage-jena-benchmarks</artifactId>
+      <artifactId>sage-jena-databases</artifactId>
     </dependency>
     <dependency>
       <groupId>fr.gdd.sage</groupId>

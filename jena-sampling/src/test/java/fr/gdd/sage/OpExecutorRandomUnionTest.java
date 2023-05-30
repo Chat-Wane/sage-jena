@@ -1,6 +1,7 @@
 package fr.gdd.sage;
 
 import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
 import org.apache.jena.ext.com.google.common.collect.HashMultiset;
 import org.apache.jena.ext.com.google.common.collect.Multiset;
 import org.apache.jena.query.Dataset;

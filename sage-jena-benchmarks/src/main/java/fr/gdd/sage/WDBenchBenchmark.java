@@ -1,7 +1,7 @@
 package fr.gdd.sage;
 
-import fr.gdd.sage.datasets.BenchmarkDataset;
-import fr.gdd.sage.datasets.WDBench;
+import fr.gdd.sage.databases.persistent.BenchmarkDataset;
+import fr.gdd.sage.databases.persistent.WDBench;
 import fr.gdd.sage.generics.Pair;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.results.format.ResultFormatType;

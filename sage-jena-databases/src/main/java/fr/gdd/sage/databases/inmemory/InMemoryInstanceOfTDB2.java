@@ -1,4 +1,4 @@
-package fr.gdd.sage;
+package fr.gdd.sage.databases.inmemory;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
@@ -12,17 +12,15 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 
 /**
  * Create an in memory database following TDB2 model. Useful for testing.
  **/
-public class InMemoryInstanceOfTDB2_bis {
+public class InMemoryInstanceOfTDB2 {
 
     Dataset dataset;
 
-    public InMemoryInstanceOfTDB2_bis() {
+    public InMemoryInstanceOfTDB2() {
         dataset = TDB2Factory.createDataset();
         dataset.begin(ReadWrite.WRITE);
 
@@ -65,8 +63,6 @@ public class InMemoryInstanceOfTDB2_bis {
         dataset.addNamedModel("https://graphA.org", modelA);
         dataset.addNamedModel("https://graphB.org", modelB);
 
-        assertEquals(10, dataset.getDefaultModel().size());
-        assertEquals(4, dataset.getUnionModel().size());
     }
 
     public Dataset getDataset() {

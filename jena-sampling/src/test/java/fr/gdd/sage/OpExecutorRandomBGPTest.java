@@ -1,6 +1,7 @@
 package fr.gdd.sage;
 
 import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
@@ -26,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;

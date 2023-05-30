@@ -1,7 +1,7 @@
 package fr.gdd.sage.arq;
 
-import fr.gdd.sage.InMemoryInstanceOfTDB2;
-import fr.gdd.sage.InMemoryInstanceOfTDB2ForOptional;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForOptional;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.jena.query.*;

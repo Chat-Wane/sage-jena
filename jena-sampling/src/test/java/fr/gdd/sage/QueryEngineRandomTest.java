@@ -1,28 +1,15 @@
 package fr.gdd.sage;
 
-import fr.gdd.sage.arq.OpExecutorSage;
-import fr.gdd.sage.arq.QueryEngineSage;
-import fr.gdd.sage.arq.SageConstants;
-import org.apache.jena.query.ARQ;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
-import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.binding.BindingRoot;
-import org.apache.jena.sparql.engine.main.OpExecutorFactory;
-import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
-import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 

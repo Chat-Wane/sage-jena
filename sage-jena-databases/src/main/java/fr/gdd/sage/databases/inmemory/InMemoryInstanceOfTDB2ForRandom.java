@@ -1,4 +1,4 @@
-package fr.gdd.sage;
+package fr.gdd.sage.databases.inmemory;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;

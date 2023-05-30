@@ -1,17 +1,11 @@
 package fr.gdd.sage;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Serializable;
-import java.nio.file.Files;
-import java.util.*;
-
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
+import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
+import fr.gdd.sage.io.SageOutput;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.jena.base.Sys;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.util.Context;
@@ -19,11 +13,9 @@ import org.apache.jena.tdb2.TDB2Factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.configuration.SageInputBuilder;
-import fr.gdd.sage.configuration.SageServerConfiguration;
-import fr.gdd.sage.io.SageInput;
-import fr.gdd.sage.io.SageOutput;
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Aims to ease the simple execution of a query from start to finish
