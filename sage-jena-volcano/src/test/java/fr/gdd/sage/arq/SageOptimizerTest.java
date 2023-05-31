@@ -23,6 +23,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,16 +119,14 @@ class SageOptimizerTest {
         });
     }
 
-    @Disabled
+    @EnabledIfEnvironmentVariable(named = "WATDIV", matches = "true")
     @Test
     public void try_to_get_watdiv_orders_with_optimizer() throws IOException {
-        // unfortunately, it depends on cardinalities that are not accurate enough to reliably
-        // get the same results as sage's optimizer on HDT.
-        new Watdiv10M(Optional.of("../target/"));
-        Dataset dataset = TDB2Factory.connectDataset("../target/watdiv10M");
+        Watdiv10M watdiv10M = new Watdiv10M(Optional.of("../target/"));
+        Dataset dataset = TDB2Factory.connectDataset(watdiv10M.dbPath_asStr);
         SageOptimizer o = new SageOptimizer(dataset);
 
-        ProgressJenaIterator.NB_WALKS = 20000;
+        ProgressJenaIterator.NB_WALKS = Integer.MAX_VALUE; // gets exact cardinality
 
         File filePath = new File("../sage-jena-benchmarks/queries/watdiv_with_sage_plan");
         File[] listingAllFiles = filePath.listFiles();
@@ -136,7 +136,13 @@ class SageOptimizerTest {
             Op op = Algebra.compile(query);
 
             Op newOp = Transformer.transform(o, op);
-            // assertEquals(op, newOp); // may fail because of RNG
+
+            if (ProgressJenaIterator.NB_WALKS == Integer.MAX_VALUE) {
+                // When using exact cardinality, the plans are equal.
+                assertEquals(op, newOp);
+            }
+
+            // otherwise, it may fail because of RNG
             // When differences occurs, they are on close cardinality estimates,
             // this most often lead to inverted triple patterns, sometimes inverted star patterns.
             if (!op.equals(newOp)) {

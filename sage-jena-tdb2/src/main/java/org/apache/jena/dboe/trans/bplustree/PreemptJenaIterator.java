@@ -78,6 +78,7 @@ public class PreemptJenaIterator extends ProgressJenaIterator implements Backend
         return this.wrapped instanceof SingletonIterator;
     }
 
+    /* ************************************************************************************* */
 
     public Tuple<NodeId> getCurrentTuple() {
         return current;

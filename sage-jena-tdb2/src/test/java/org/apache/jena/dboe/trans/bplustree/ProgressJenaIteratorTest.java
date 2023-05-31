@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class ProgressJenaIteratorTest {
 
     Logger log = LoggerFactory.getLogger(ProgressJenaIteratorTest.class);
@@ -112,11 +114,13 @@ class ProgressJenaIteratorTest {
 
         var it = backend.search(backend.any(), given, backend.any());
         ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(69970, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 69970, got {}.", casted.cardinality());
 
         it = backend.search(backend.any(), family, backend.any());
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
         log.info("Expected 69970, got {}.", casted.cardinality());
+        assertEquals(69970, casted.cardinality(Integer.MAX_VALUE));
     }
 
 
@@ -134,32 +138,38 @@ class ProgressJenaIteratorTest {
         NodeId price = backend.getId("<http://purl.org/goodrelations/price>");
         var it = backend.search(backend.any(), price, backend.any());
         ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(240000, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 240000, got {}.", casted.cardinality(200000));
 
         NodeId eligible = backend.getId("<http://schema.org/eligibleQuantity>");
         it = backend.search(backend.any(), eligible, backend.any());
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(90000, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 90000, got {}.", casted.cardinality(200000));
 
         NodeId text = backend.getId("<http://schema.org/text>");
         it = backend.search(backend.any(), text, backend.any());
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(7476, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 7476, got {}.", casted.cardinality(200000));
 
         NodeId include = backend.getId("<http://purl.org/goodrelations/includes>");
         it = backend.search(backend.any(), include, backend.any());
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(90000, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 90000, got {}.", casted.cardinality(200000));
 
         NodeId valid = backend.getId("<http://purl.org/goodrelations/validThrough>");
         it = backend.search(backend.any(), valid, backend.any());
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(36346, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 36346, got {}.", casted.cardinality(200000));
 
         NodeId region = backend.getId("<http://schema.org/eligibleRegion>");
         NodeId country21 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
         it = backend.search(backend.any(), region, country21);
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(2613, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 2613, got {}.", casted.cardinality(200000));
     }
 

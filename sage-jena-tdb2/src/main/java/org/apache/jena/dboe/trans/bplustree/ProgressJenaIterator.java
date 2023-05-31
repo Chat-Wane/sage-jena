@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,11 +33,13 @@ public class ProgressJenaIterator {
     private final Record maxRecord;
 
     private final BPTreeNode root;
+    private final PreemptTupleIndexRecord ptir;
 
     public ProgressJenaIterator(PreemptTupleIndexRecord ptir, Record minRec, Record maxRec) {
         this.root = ptir.bpt.getNodeManager().getRead(ptir.bpt.getRootId());
         this.minRecord = Objects.isNull(minRec) ? root.minRecord() : minRec;
         this.maxRecord = Objects.isNull(maxRec) ? root.maxRecord() : maxRec;
+        this.ptir = ptir;
     }
 
     /**
@@ -47,6 +50,7 @@ public class ProgressJenaIterator {
         this.maxRecord = null;
         this.minRecord = null;
         this.root = null;
+        this.ptir = null;
     }
 
     /**
@@ -57,6 +61,7 @@ public class ProgressJenaIterator {
         this.root = ptir.bpt.getNodeManager().getRead(ptir.bpt.getRootId());
         this.maxRecord = null;
         this.minRecord = null;
+        this.ptir = null;
     }
 
     public void next() {
@@ -89,6 +94,24 @@ public class ProgressJenaIterator {
         } // already finished
 
         return ((double) this.offset) / (double) cardinality;
+    }
+
+    /**
+     * Counts the number of elements by iterating over them. Warning: this is costly, but it provides exact
+     * cardinality.
+     * @return The exact number of elements in the iterator.
+     */
+    public long count() {
+        if (Objects.isNull(ptir)) {
+            return 0L;
+        }
+        Iterator<Tuple<NodeId>> wrapped = ptir.bpt.iterator(minRecord, maxRecord, ptir.getRecordMapper());
+        long nbElements = 0;
+        while (wrapped.hasNext()) {
+            wrapped.next();
+            nbElements += 1;
+        }
+        return nbElements;
     }
 
     /**
@@ -150,12 +173,17 @@ public class ProgressJenaIterator {
             return 0;
         }
 
+        // number of random walks to estimate cardinalities in between boundaries.
+        int nbWalks = Objects.isNull(sample) || sample.length == 0 ? NB_WALKS : sample[0];
+
+        if (nbWalks == Integer.MAX_VALUE) {
+            // MAX_VALUE goes for counting since it's the most costly, at least we want exact cardinality
+            return count();
+        }
+
         if (Objects.nonNull(this.cardinality)) {
             return cardinality; // already processed, lazy return.
         }
-
-        // number of random walks to estimate cardinalities in between boundaries.
-        int nbWalks = Objects.isNull(sample) || sample.length == 0 ? NB_WALKS : sample[0];
 
         AccessPath minPath = new AccessPath(null);
         AccessPath maxPath = new AccessPath(null);
