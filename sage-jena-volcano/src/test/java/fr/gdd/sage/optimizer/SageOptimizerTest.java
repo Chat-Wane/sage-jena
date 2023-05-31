@@ -1,5 +1,7 @@
-package fr.gdd.sage.arq;
+package fr.gdd.sage.optimizer;
 
+import fr.gdd.sage.arq.OpExecutorSage;
+import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
 import fr.gdd.sage.databases.persistent.Watdiv10M;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
@@ -23,7 +25,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,9 +120,10 @@ class SageOptimizerTest {
         });
     }
 
-    @EnabledIfEnvironmentVariable(named = "WATDIV", matches = "true")
+
     @Test
-    public void try_to_get_watdiv_orders_with_optimizer() throws IOException {
+    @EnabledIfEnvironmentVariable(named = "WATDIV", matches = "true")
+    public void get_old_sage_orders_for_watdiv_queries() throws IOException {
         Watdiv10M watdiv10M = new Watdiv10M(Optional.of("../target/"));
         Dataset dataset = TDB2Factory.connectDataset(watdiv10M.dbPath_asStr);
         SageOptimizer o = new SageOptimizer(dataset);
@@ -130,6 +132,7 @@ class SageOptimizerTest {
 
         File filePath = new File("../sage-jena-benchmarks/queries/watdiv_with_sage_plan");
         File[] listingAllFiles = filePath.listFiles();
+        assert listingAllFiles != null;
         for (File f : listingAllFiles) {
             String query_asString = Files.readString(f.toPath());
             Query query = QueryFactory.create(query_asString);
@@ -150,5 +153,21 @@ class SageOptimizerTest {
                 log.debug("New Sage plan. {}", newOp);
             }
         }
+    }
+
+    @Disabled
+    @Test
+    public void simple_ordering_with_two_quads () {
+        // |tp1|= 10; |tp2|= 2
+        // patterns should be inverted
+        Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o) (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>))");
+        Op transformed = Transformer.transform(new GraphClauseAdder(), op);
+
+        log.debug("Transformed plan : {}", transformed);
+
+        SageOptimizer o = new SageOptimizer(dataset);
+        Op optmized = Transformer.transform(o, transformed);
+
+        log.debug("Optimized plan : {}", optmized);
     }
 }

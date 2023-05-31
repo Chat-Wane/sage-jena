@@ -1,5 +1,6 @@
-package fr.gdd.sage.arq;
+package fr.gdd.sage.optimizer;
 
+import com.github.jsonldjava.utils.Obj;
 import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
@@ -13,8 +14,8 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.algebra.optimize.VariableUsagePusher;
 import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
-import org.apache.jena.sparql.algebra.optimize.VariableUsageVisitor;
 import org.apache.jena.sparql.core.BasicPattern;
+import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.util.VarUtils;
 import org.apache.jena.tdb2.store.NodeId;
@@ -92,6 +93,72 @@ public class SageOptimizer extends TransformCopy {
         }
 
         return new OpBGP(BasicPattern.wrap(triples));
+    }
+
+    @Override
+    public Op transform(OpJoin opJoin, Op left, Op right) {
+        List<OpQuad> quads = getAllQuads(opJoin);
+        if (Objects.nonNull(quads)) {
+            // same as OpBGP with triples , but with quads
+            List<Pair<OpQuad, ProgressJenaIterator>> quadsToIt = quads.stream().map(quad -> {
+                NodeId g = quad.getQuad().getGraph().isVariable() ? backend.any() : backend.getId(quad.getQuad().getGraph());
+                NodeId s = quad.getQuad().getSubject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getSubject());
+                NodeId p = quad.getQuad().getPredicate().isVariable() ? backend.any() : backend.getId(quad.getQuad().getPredicate());
+                NodeId o = quad.getQuad().getObject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getObject());
+
+                BackendIterator<?, ?> it = backend.search(s, p, o, g);
+                ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator<?, ?>) it).iterator;
+                log.debug("quad {} => {} elements", quad, casted.cardinality());
+                return new Pair<>(quad, casted);
+            }).sorted((p1, p2) -> { // sort ASC by cardinality
+                long c1 = p1.right.cardinality();
+                long c2 = p2.right.cardinality();
+                return Long.compare(c1, c2);
+            }).collect(Collectors.toList());
+
+            List<OpQuad> optimizedQuads = new ArrayList<>();
+            Set<Var> patternVarsScope = new HashSet<>();
+            while (quadsToIt.size() > 0) {
+                // #A contains at least one variable
+                var filtered = quadsToIt.stream().filter(p -> patternVarsScope.stream()
+                                .anyMatch(v -> VarUtils.getVars(p.getLeft().getQuad().asTriple()).contains(v)) ||
+                                VarUtils.getVars(p.getLeft().getQuad().asTriple()) // no `getVarsFromQuad` for some reason
+                                        .stream().anyMatch(v2 -> alreadySetVars.getUsageCount(v2) > 0) ||
+                                alreadySetVars.getUsageCount(p.getLeft().getQuad().getGraph().toString()) > 0)
+                        .toList();
+                if (filtered.isEmpty()) {
+                    // #B contains none
+                    filtered = quadsToIt; // everyone is candidate
+                }
+                OpQuad toAdd = filtered.get(0).getLeft();
+                quadsToIt = quadsToIt.stream().filter(p -> p.getLeft() != toAdd).collect(Collectors.toList());
+                VarUtils.addVarsFromQuad(patternVarsScope, toAdd.getQuad());
+                optimizedQuads.add(toAdd);
+            }
+
+            Op joinedQuads = optimizedQuads.get(0); // at least one
+            for (int i = 1; i < quads.size() ; ++i) {
+                joinedQuads = OpJoin.create(joinedQuads, optimizedQuads.get(i));
+            }
+
+            return joinedQuads;
+        } else {
+            return super.transform(opJoin, left, right);
+        }
+    }
+
+
+    private static List<OpQuad> getAllQuads(Op op) {
+        if (op instanceof OpQuad) {
+            List<OpQuad> quads = new ArrayList<>();
+            quads.add((OpQuad) op);
+            return quads;
+        } else if (op instanceof OpJoin) {
+            var quads = getAllQuads(((OpJoin) op).getLeft());
+            quads.addAll(getAllQuads(((OpJoin) op).getRight()));
+            return quads;
+        }
+        return null;
     }
 
 }
