@@ -21,7 +21,7 @@ import java.util.Objects;
 
 
 /**
- * TDB2 Jena Backend implementation of the interface `Backend<ID, SKIP>`.
+ * TDB2 Jena Backend implementation of the interface `Backend`.
  **/
 public class JenaBackend implements Backend<NodeId, Serializable> {
 

@@ -1,4 +1,4 @@
-package fr.gdd.sage.optimizer;
+package fr.gdd.fedup.optimizer;
 
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;

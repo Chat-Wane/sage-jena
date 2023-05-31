@@ -1,8 +1,8 @@
 package fr.gdd.sage.databases.persistent;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Watdiv10MTest {
 
-    @Disabled // Testing from time to time
     @Test
+    @EnabledIfEnvironmentVariable(named = "WATDIV", matches = "true")
     public void download_extract_ingest_clean() {
         Path testingPath = Path.of("target/watdiv-test");
         try {

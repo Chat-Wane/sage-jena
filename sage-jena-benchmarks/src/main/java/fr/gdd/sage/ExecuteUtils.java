@@ -33,7 +33,7 @@ public class ExecuteUtils {
      * @param query The query to execute on the dataset.
      * @param withSerialize An optional serialization parameter that state whether time for serialize should be
      *                      included or not.
-     * @return A pair <number of results, number of pauses>
+     * @return A pair (number of results, number of pauses)
      */
     public static Pair<Long, Long> executeQueryTillTheEnd(Dataset dataset, Query query, boolean... withSerialize) {
         long nbPreempt = -1; // the first execution is not a preempt
@@ -89,7 +89,7 @@ public class ExecuteUtils {
      * @param query The query to execute on the dataset.
      * @param withSerialize An optional serialization parameter that state whether time for serialize should be
      *                      included or not.
-     * @return A pair <number of results, number of pauses>
+     * @return A pair (number of results, number of pauses)
      */
     public static Pair<Long, Long> executeTillTheEnd(Dataset dataset, String query, boolean... withSerialize) {
         Query q = QueryFactory.create(query);
@@ -100,7 +100,7 @@ public class ExecuteUtils {
      * Execute a query represented as a string on a TDB2 dataset with a TDB2 query engine.
      * @param dataset The dataset to execute on.
      * @param query The query to execute on the dataset.
-     * @return A pair <number of results, 0>, since the number of pause is always 0.
+     * @return A pair (number of results, 0), since the number of pause is always 0.
      */
     public static Pair<Long, Long> executeTDB(Dataset dataset, String query) {
         QueryExecution queryExecution = null;

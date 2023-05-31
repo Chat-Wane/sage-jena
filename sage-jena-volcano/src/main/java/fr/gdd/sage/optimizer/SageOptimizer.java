@@ -37,7 +37,7 @@ public class SageOptimizer extends TransformCopy {
 
     VariableUsageTracker alreadySetVars = new VariableUsageTracker();
 
-    SageOptimizer(Dataset dataset) {
+    public SageOptimizer(Dataset dataset) {
         backend = new JenaBackend(dataset);
         this.dataset = dataset;
     }

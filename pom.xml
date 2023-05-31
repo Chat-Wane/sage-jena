@@ -46,6 +46,7 @@
     <maven.compiler.release>20</maven.compiler.release>
     <maven.compiler.source>20</maven.compiler.source>
     <maven.compiler.target>20</maven.compiler.target>
+    <maven.javadoc.plugin>3.5.0</maven.javadoc.plugin>
   </properties>
 
   <dependencyManagement>
@@ -54,6 +55,11 @@
       <dependency>
         <groupId>fr.gdd.sage</groupId>
         <artifactId>sage-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>sage-jena-databases</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -79,11 +85,6 @@
       <dependency>
         <groupId>fr.gdd.sage</groupId>
         <artifactId>jena-sampling</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>fr.gdd.sage</groupId>
-        <artifactId>sage-jena-databases</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -152,5 +153,35 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin> <!-- mvn javadoc:aggregate -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${maven.javadoc.plugin}</version>
+        <configuration>
+          <additionalOptions>
+            <additionalOption>-Xdoclint:none</additionalOption>
+          </additionalOptions>
+        </configuration>
+        <reportSets>
+          <reportSet>
+            <id>aggregate</id>
+            <inherited>false</inherited>
+            <reports>
+              <report>aggregate</report>
+            </reports>
+          </reportSet>
+          <reportSet>
+            <id>default</id>
+            <reports>
+              <report>javadoc</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
 
 </project>

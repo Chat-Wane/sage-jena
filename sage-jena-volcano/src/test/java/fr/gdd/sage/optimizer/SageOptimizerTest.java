@@ -13,9 +13,7 @@ import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitorBase;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.algebra.op.OpLeftJoin;
-import org.apache.jena.sparql.algebra.op.OpProject;
+import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
@@ -158,7 +156,7 @@ class SageOptimizerTest {
     @Disabled
     @Test
     public void simple_ordering_with_two_quads () {
-        // |tp1|= 10; |tp2|= 2
+        // |tp1|= 4; |tp2|= 2      note: it does not look in default graph when using quads…
         // patterns should be inverted
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o) (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>))");
         Op transformed = Transformer.transform(new GraphClauseAdder(), op);
@@ -166,8 +164,23 @@ class SageOptimizerTest {
         log.debug("Transformed plan : {}", transformed);
 
         SageOptimizer o = new SageOptimizer(dataset);
-        Op optmized = Transformer.transform(o, transformed);
+        Op optimized = Transformer.transform(o, transformed);
 
-        log.debug("Optimized plan : {}", optmized);
+        optimized.visit(new OpVisitorBase() {
+            @Override
+            public void visit(OpProject opProject) {
+                opProject.getSubOp().visit(this);
+            }
+
+            @Override
+            public void visit(OpJoin opJoin) {
+                OpQuad left = (OpQuad) opJoin.getLeft();
+                assertEquals("http://db.uwaterloo.ca/~galuc/wsdbm/Country2", left.getQuad().getObject().toString());
+                OpQuad right = (OpQuad)  opJoin.getRight();
+                assertEquals("http://www.geonames.org/ontology#parentCountry", right.getQuad().getPredicate().toString());
+            }
+        });
+
+        log.debug("Optimized plan : {}", optimized);
     }
 }
