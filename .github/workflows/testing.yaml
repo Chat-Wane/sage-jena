@@ -27,13 +27,6 @@ jobs:
         if: success() || failure()        # run this step even if previous step failed
         with:
           name: test-results
-          path: jest-junit.xml
+          path: ./*/target/surefire-reports/*.xml # prefixed with * since they are in submodules
+          # path: jest-junit.xml
       
-      # - name: Report
-      #   uses: dorny/test-reporter@v1
-
-      #   with:
-      #     name: Maven Tests
-      #     path: ./*/target/surefire-reports/*.xml # prefixed with * since they are in submodules
-      #     reporter: java-junit
-      #     fail-on-error: true

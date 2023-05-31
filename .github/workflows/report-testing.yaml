@@ -17,3 +17,4 @@ jobs:
         path: ./*/target/surefire-reports/*.xml # prefixed with * since they are in submodules
         # path: '*.xml'                     # Path to test results (inside artifact .zip)
         reporter: java-junit              # Format of test results
+
