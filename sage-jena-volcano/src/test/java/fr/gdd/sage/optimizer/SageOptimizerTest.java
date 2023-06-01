@@ -3,16 +3,15 @@ package fr.gdd.sage.optimizer;
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
+import fr.gdd.sage.databases.persistent.WDBench;
 import fr.gdd.sage.databases.persistent.Watdiv10M;
+import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpVisitorBase;
-import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.*;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.main.QC;
@@ -28,8 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -153,11 +154,10 @@ class SageOptimizerTest {
         }
     }
 
-    @Disabled
     @Test
     public void simple_ordering_with_two_quads () {
         // |tp1|= 4; |tp2|= 2      note: it does not look in default graph when using quads…
-        // patterns should be inverted
+        // patterns should be inverted as a result
         Op op = SSE.parseOp("(bgp (?s <http://www.geonames.org/ontology#parentCountry> ?o) (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country2>))");
         Op transformed = Transformer.transform(new GraphClauseAdder(), op);
 
@@ -183,4 +183,34 @@ class SageOptimizerTest {
 
         log.debug("Optimized plan : {}", optimized);
     }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "WDBENCH", matches = "true")
+    public void try_to_look_for_how_it_behave_on_options () throws IOException {
+        WDBench wdbench = new WDBench(Optional.of("../datasets"));
+        Dataset dataset = TDB2Factory.connectDataset(wdbench.dbPath_asStr);
+        SageOptimizer o = new SageOptimizer(dataset);
+
+        ProgressJenaIterator.NB_WALKS = 20000;
+
+        // (TODO) put this in WDBench dataset creator
+        // (TODO) assert there are ~498 files
+        Path sagePlansPath = Path.of("../sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/");
+        if (!sagePlansPath.toFile().exists()) {
+            sagePlansPath.toFile().mkdirs();
+            File filePath = new File("../sage-jena-benchmarks/queries/wdbench_opts/");
+            File[] listingAllFiles = filePath.listFiles();
+            assert listingAllFiles != null;
+            for (File f : listingAllFiles) {
+                log.debug("Optimizing {}…", f.getName());
+                Query query = QueryFactory.read(f.getAbsolutePath());
+                Op op = Algebra.compile(query);
+                Op optimized = Transformer.transform(o, op);
+                FileOutputStream outputStream = new FileOutputStream(Path.of("../sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/", f.getName()).toFile());
+                Query optimizedQuery = OpAsQuery.asQuery(optimized);
+                optimizedQuery.serialize(new IndentedWriter(outputStream,false)) ;
+            }
+        }
+    }
+
 }

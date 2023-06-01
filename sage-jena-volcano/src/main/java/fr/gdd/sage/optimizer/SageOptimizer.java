@@ -8,6 +8,7 @@ import fr.gdd.sage.jena.JenaBackend;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.shared.NotFoundException;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
@@ -53,24 +54,30 @@ public class SageOptimizer extends TransformCopy {
         VariableUsageTracker tracker = new VariableUsageTracker();
         var variablesVisitor = new VariableUsagePusher(tracker);
         left.visit(variablesVisitor);
+        // (TODO) position OPTIONAL in the plan
         // We get the variable set on the left side and inform right side
         return OpLeftJoin.create(left, Transformer.transform(new SageOptimizer(dataset, tracker), right), opLeftJoin.getExprs());
     }
 
     @Override
     public Op transform(OpBGP opBGP) {
-        List<Pair<Triple, ProgressJenaIterator>> tripleToIt = opBGP.getPattern().getList().stream().map(triple -> {
-            NodeId s = triple.getSubject().isVariable() ? backend.any() : backend.getId(triple.getSubject());
-            NodeId p = triple.getPredicate().isVariable() ? backend.any() : backend.getId(triple.getPredicate());
-            NodeId o = triple.getObject().isVariable() ? backend.any() : backend.getId(triple.getObject());
+        List<Pair<Triple, Long>> tripleToIt = opBGP.getPattern().getList().stream().map(triple -> {
+            try {
+                NodeId s = triple.getSubject().isVariable() ? backend.any() : backend.getId(triple.getSubject());
+                NodeId p = triple.getPredicate().isVariable() ? backend.any() : backend.getId(triple.getPredicate());
+                NodeId o = triple.getObject().isVariable() ? backend.any() : backend.getId(triple.getObject());
 
-            BackendIterator<?, ?> it = backend.search(s, p, o);
-            ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator<?, ?>) it).iterator;
-            log.debug("triple {} => {} elements", triple, casted.cardinality());
-            return new Pair<>(triple, casted);
+                BackendIterator<?, ?> it = backend.search(s, p, o);
+                ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator<?, ?>) it).iterator;
+                log.debug("triple {} => {} elements", triple, casted.cardinality());
+                return new Pair<>(triple, casted.cardinality());
+            } catch (NotFoundException e) {
+                log.debug("triple {} does not exist -> 0 element", triple);
+                return new Pair<>(triple, 0L);
+            }
         }).sorted((p1, p2) -> { // sort ASC by cardinality
-            long c1 = p1.right.cardinality();
-            long c2 = p2.right.cardinality();
+            long c1 = p1.right;
+            long c2 = p2.right;
             return Long.compare(c1, c2);
         }).collect(Collectors.toList());
 
@@ -100,19 +107,23 @@ public class SageOptimizer extends TransformCopy {
         List<OpQuad> quads = getAllQuads(opJoin);
         if (Objects.nonNull(quads)) {
             // same as OpBGP with triples , but with quads
-            List<Pair<OpQuad, ProgressJenaIterator>> quadsToIt = quads.stream().map(quad -> {
-                NodeId g = quad.getQuad().getGraph().isVariable() ? backend.any() : backend.getId(quad.getQuad().getGraph());
-                NodeId s = quad.getQuad().getSubject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getSubject());
-                NodeId p = quad.getQuad().getPredicate().isVariable() ? backend.any() : backend.getId(quad.getQuad().getPredicate());
-                NodeId o = quad.getQuad().getObject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getObject());
+            List<Pair<OpQuad, Long>> quadsToIt = quads.stream().map(quad -> {
+                try {
+                    NodeId g = quad.getQuad().getGraph().isVariable() ? backend.any() : backend.getId(quad.getQuad().getGraph());
+                    NodeId s = quad.getQuad().getSubject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getSubject());
+                    NodeId p = quad.getQuad().getPredicate().isVariable() ? backend.any() : backend.getId(quad.getQuad().getPredicate());
+                    NodeId o = quad.getQuad().getObject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getObject());
 
-                BackendIterator<?, ?> it = backend.search(s, p, o, g);
-                ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator<?, ?>) it).iterator;
-                log.debug("quad {} => {} elements", quad, casted.cardinality());
-                return new Pair<>(quad, casted);
+                    BackendIterator<?, ?> it = backend.search(s, p, o, g);
+                    ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator<?, ?>) it).iterator;
+                    log.debug("quad {} => {} elements", quad, casted.cardinality());
+                    return new Pair<>(quad, casted.cardinality());
+                } catch (NotFoundException e) {
+                    return new Pair<>(quad, 0L);
+                }
             }).sorted((p1, p2) -> { // sort ASC by cardinality
-                long c1 = p1.right.cardinality();
-                long c2 = p2.right.cardinality();
+                long c1 = p1.right;
+                long c2 = p2.right;
                 return Long.compare(c1, c2);
             }).collect(Collectors.toList());
 
@@ -147,7 +158,9 @@ public class SageOptimizer extends TransformCopy {
         }
     }
 
-
+    /**
+     * Get all quads directly linked together by JOIN operators.
+     */
     private static List<OpQuad> getAllQuads(Op op) {
         if (op instanceof OpQuad) {
             List<OpQuad> quads = new ArrayList<>();

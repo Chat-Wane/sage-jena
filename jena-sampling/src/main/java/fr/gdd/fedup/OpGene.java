@@ -36,4 +36,9 @@ public class OpGene implements Gene<Op, OpGene> {
         // check if the value makes sense
         return true;
     }
+
+    @Override
+    public String toString() {
+        return this.operator.toString();
+    }
 }

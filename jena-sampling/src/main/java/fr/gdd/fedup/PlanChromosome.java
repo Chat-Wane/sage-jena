@@ -59,4 +59,9 @@ public class PlanChromosome implements Chromosome<OpGene> {
     public Chromosome<OpGene> newInstance() {
         return new PlanChromosome(this);
     }
+
+    @Override
+    public String toString() {
+        return this.genes.get(0).toString();
+    }
 }

@@ -20,13 +20,14 @@ public class FedUPExplorer {
     }
 
     public void build (Op op) {
-        Genotype<OpGene> genotype = Genotype.of(
-                new PlanChromosome(op, dataset), // plan 1
-                new PlanChromosome(op, dataset) // plan 2
-        );
+        // #1 we start from a basic plan with a cardinality-based heuristic
+        Genotype<OpGene> genotype = Genotype.of(new PlanChromosome(op, dataset));
+
 
         Engine<OpGene, Integer> engine = Engine
                 .builder(FedUPExplorer::fitness, genotype)
+                .populationSize(15)
+                .alterers(new OpMutator())
                 // .offspringFraction(0.5)
                 // .survivorsSelector(new TruncationSelector<>())
                 // .offspringFraction(new MonteCarloSelector<OpGene,())

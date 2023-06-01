@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,13 +56,13 @@ class RandomJenaIteratorCardinalityTest {
     @Disabled
     @Test
     public void cardinality_of_nothing() {
+        // (TODO)
         OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://licorne>))");
         RandomJenaIterator it = getRandomJenaIterator(op, dataset);
 
         assertEquals(0, it.cardinality());
     }
 
-    @Disabled
     @Test
     public void cardinality_of_a_one_tuple_triple_pattern() {
         OpBGP op = (OpBGP) SSE.parseOp("(bgp (?s ?p <http://cat>))");
@@ -70,7 +71,6 @@ class RandomJenaIteratorCardinalityTest {
         assertEquals(1, it.cardinality());
     }
 
-    @Disabled
     @Test
     public void cardinality_of_a_few_tuples_triple_pattern() {
         OpBGP op = (OpBGP) SSE.parseOp("(bgp (<http://Alice> ?p ?o))");
@@ -86,11 +86,12 @@ class RandomJenaIteratorCardinalityTest {
         assertEquals(50, it.cardinality());
     }
 
-    @Disabled
+
     @Test
+    @EnabledIfEnvironmentVariable(named = "WATDIV", matches = "true")
     public void cardinality_of_larger_triple_pattern_above_leaf_size_with_watdiv() {
-        Watdiv10M watdiv10M = new Watdiv10M(Optional.of("target"));
-        Dataset watdiv = TDB2Factory.connectDataset("target/watdiv10M");
+        Watdiv10M watdiv10M = new Watdiv10M(Optional.of("../target"));
+        Dataset watdiv = TDB2Factory.connectDataset(watdiv10M.dbPath_asStr);
         watdiv.begin(ReadWrite.READ);
         // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country21>))"); // expect 2613 get 2613
         // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/validThrough> ?v3))"); // expect 36346 get 34100
