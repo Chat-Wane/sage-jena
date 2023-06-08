@@ -80,7 +80,7 @@ public class OpExecutorSageOptionalTest {
     public void optional_that_stops_in_the_middle_with_a_result_before_stopping_and_none_after() {
         // so first it returns a solution <A> <OptionalB>, then pause/resume, then does not find
         // any <OptionalB>, yet, it must not return <A> alone since it returned one before
-        String opAsString = "(conditional " +
+        String opAsString = "(leftjoin " +
                 "(bgp (?s <http://address> <http://nantes>)) " +
                 "(filter (!= ?o <http://cat>) (" +
                 "    bgp (?s <http://own> ?o)"+

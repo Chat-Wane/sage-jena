@@ -1,11 +1,17 @@
 package fr.gdd.sage.databases.persistent;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Open a `WDBench` dataset or create it when need be. The link
@@ -23,7 +29,8 @@ public class WDBench extends BenchmarkDataset {
 
     public static final List<String> WHITELIST = List.of("truthy_direct_properties.nt");
 
-    public static final List<String> BLACKLIST = List.of(); // on query
+    // even with LIMIT 100k, they fail
+    public static final List<String> BLACKLIST = List.of("query_480.sparql", "query_51.sparql", "query_152.sparql");
 
     public WDBench(Optional<String> dbPath_opt) {
         super(dbPath_opt, DEFAULT_DB_PATH, DB_NAME, ARCHIVE_NAME, EXTRACT_PATH, DOWNLOAD_URL, WHITELIST, BLACKLIST);
@@ -38,4 +45,19 @@ public class WDBench extends BenchmarkDataset {
         }
     }
 
+    @Override
+    public void setQueries(String pathToQueries) throws IOException {
+        super.setQueries(pathToQueries);
+        if (Path.of("sage-jena-benchmarks/results/wdbench_opts.csv").toFile().exists()) {
+            Reader reader = new FileReader("sage-jena-benchmarks/results/wdbench_opts.csv");
+            String f = IOUtils.toString(reader);
+            String[] splitted = f.split(",|\n");
+            List<String> skiplist = Arrays.stream(splitted).toList().stream().filter(s -> s.contains(".sparql")).collect(Collectors.toList());
+            log.debug("Skipping {} queries:", skiplist.size());
+            for (String skip : skiplist) {
+                log.debug("\t {}", skip);
+            }
+            queries.removeAll(skiplist);
+        }
+    }
 }

@@ -8,6 +8,8 @@ import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 
+import java.util.Objects;
+
 /**
  * Such an iterator can represent optionals in SPARQL queries. When the optional statement does not find
  * any result, the mandatory statement must return nonetheless, with the optional part set as None.
@@ -22,18 +24,23 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting {
     SageInput  input;
     SageOutput output;
 
+    boolean first;
 
     public PreemptQueryIterDefaulting(QueryIterator cIter, Binding _defaultObject, ExecutionContext qCxt, Integer id) {
         super(cIter, _defaultObject, qCxt) ;
         this.id = id;
         input  = qCxt.getContext().get(SageConstants.input);
         output = qCxt.getContext().get(SageConstants.output);
+        first = true;
     }
 
 
     @Override
     protected boolean hasNextBinding() {
-        if  (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()) {
+        boolean result = super.hasNextBinding();
+
+        boolean someoneStartedSaving = Objects.nonNull(output.getState()) && !output.getState().isEmpty();
+        if (someoneStartedSaving || (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()))) {
             this.output.save(new Pair(id, haveReturnedSomeObject));
             // Need to not return false since iterator will do it,
             // otherwise, it returns an error since it `moveToNextBinding` first then
@@ -41,11 +48,12 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting {
             // Instead, we empty the iterator by checking all members of union.
             // return false;
         }
-        return super.hasNextBinding();
+        first = false;
+        return result;
     }
 
-
     public void skip(boolean to) {
+        first = true;
         haveReturnedSomeObject = to;
     }
 

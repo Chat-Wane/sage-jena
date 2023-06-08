@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * A general class that aims to ease the opening or creation of datasets to benchmark.
@@ -45,7 +46,7 @@ public class BenchmarkDataset {
     private List<String> whitelist;
     private List<String> blacklist;
 
-    private List<String> queries;
+    protected List<String> queries;
 
     public BenchmarkDataset(Optional<String> dbPath_opt,
                             String defaultDbPath, String dbName, String archiveName, String extractPath,
@@ -69,8 +70,8 @@ public class BenchmarkDataset {
         this.fullExtractPath = Paths.get(dirPath.toString(), extractPath);
     }
 
-    public void setQueries(String pathToQueries) {
-        this.queries = Watdiv10M.getQueries(pathToQueries, this.blacklist).stream().map(e -> e.left).toList();
+    public void setQueries(String pathToQueries) throws IOException {
+        this.queries = Watdiv10M.getQueries(pathToQueries, this.blacklist).stream().map(e -> e.left).collect(Collectors.toList());
     }
 
     public List<String> getQueries() {

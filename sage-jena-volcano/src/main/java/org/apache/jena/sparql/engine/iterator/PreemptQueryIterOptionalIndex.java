@@ -33,7 +33,7 @@ public class PreemptQueryIterOptionalIndex extends QueryIterOptionalIndex {
     @Override
     protected QueryIterator nextStage(Binding binding) {
         Integer id = getExecContext().getContext().get(SageConstants.cursor);
-        id += 1;
+        id += 1; // The identifier of the OPT
         getExecContext().getContext().set(SageConstants.cursor, id);
 
         Op op2 = QC.substitute(op, binding);

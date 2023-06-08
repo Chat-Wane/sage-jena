@@ -152,6 +152,11 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         return new PreemptQueryIterOptionalIndex(left, opCondition.getRight(), execCxt);
     }
 
+    @Override
+    protected QueryIterator execute(OpLeftJoin opLeftJoin, QueryIterator input) {
+        QueryIterator left = exec(opLeftJoin.getLeft(), input);
+        return new PreemptQueryIterOptionalIndex(left, opLeftJoin.getRight(), execCxt);
+    }
 
     /**
      * Copy/Pasta from {@link OpExecutorTDB2} again. We want it to use our

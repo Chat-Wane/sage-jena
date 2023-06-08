@@ -3,6 +3,8 @@ package fr.gdd.sage;
 import fr.gdd.sage.databases.persistent.BenchmarkDataset;
 import fr.gdd.sage.databases.persistent.WDBench;
 import fr.gdd.sage.generics.Pair;
+import org.apache.commons.io.IOUtils;
+import org.apache.jena.dboe.base.file.FileException;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -14,10 +16,7 @@ import org.openjdk.jmh.runner.options.TimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,6 +58,8 @@ public class WDBenchBenchmark {
     public void read_query(SetupBenchmark.BenchmarkExecutionContext ec) {
         try {
             ec.query = Files.readString(Paths.get(a_query), StandardCharsets.UTF_8);
+            // The paper enforces a limit on the number of results. Of course, execution is much faster.
+            ec.query += "LIMIT 100000";
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,8 +68,22 @@ public class WDBenchBenchmark {
 
     @Benchmark
     public long execute(SetupBenchmark.BenchmarkExecutionContext ec) throws Exception {
-        Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
+        long start = System.currentTimeMillis(); // (TODO) remove all things that are not the measured stuff
+        Pair<Long, Long> nbResultsAndPreempt = null;
+        try {
+            nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
+        } catch (Exception e) {
+            // Seems to have error when RAM is not sufficient
+            long elapsed = System.currentTimeMillis() - start; // (TODO) remove
+            log.debug("{}", e);
+            BufferedWriter writer = new BufferedWriter(new FileWriter("sage-jena-benchmarks/results/wdbench_opts.csv", true));
+            writer.append(String.format("%s,-1,%s\n", a_query, elapsed));
+            writer.close();
+            return -1;
+        }
 
+
+        long elapsed = System.currentTimeMillis() - start; // (TODO) remove
         log.debug("Got {} results for this query in {} pause/resume.", nbResultsAndPreempt.left, nbResultsAndPreempt.right);
 
         // (TODO) remove this from the benchmarked part
@@ -82,7 +97,7 @@ public class WDBenchBenchmark {
             nbResultsPerQuery.put(a_query, nbResultsAndPreempt.left);
             BufferedWriter writer = new BufferedWriter(new FileWriter("sage-jena-benchmarks/results/wdbench_opts.csv", true));
             for (String key : nbResultsPerQuery.keySet()) {
-                writer.append(String.format("%s,%s\n", key, nbResultsPerQuery.get(key)));
+                writer.append(String.format("%s,%s,%s\n", key, nbResultsPerQuery.get(key), elapsed));
             }
             writer.close();
         }
@@ -97,28 +112,24 @@ public class WDBenchBenchmark {
     public static void main(String[] args) throws RunnerException, IOException {
         Optional<String> dirPath_opt = (args.length > 0) ? Optional.of(args[0]) : Optional.empty();
 
-        WDBench wdbench = new WDBench(Optional.of("sage-jena-benchmarks/target/"));
-        // Watdiv10M watdiv = new Watdiv10M(dirPath_opt); // creates the db if need be
-
-        wdbench.setQueries("sage-jena-benchmarks/queries/wdbench_opts/");
-        // wdbench.setQueries("sage-jena-benchmarks/queries/temp/");
+        WDBench wdbench = new WDBench(Optional.of("datasets"));
+        wdbench.setQueries("sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/");
 
         // create all the runners' options
         List<Options> options = createOptions(wdbench, List.of(QueryTypes.Long),
-                EngineTypes.TDB
+                // EngineTypes.TDB
                 // EngineTypes.Sage,
-                // EngineTypes.TDBForceOrder,
+                // EngineTypes.TDBForceOrder
                 // EngineTypes.SageForceOrder,
-                // EngineTypes.SageForceOrderTimeout1ms,
+                EngineTypes.SageForceOrderTimeout1ms
                 // EngineTypes.SageForceOrderTimeout1s,
                 // EngineTypes.SageForceOrderTimeout30s
                 //EngineTypes.SageForceOrderTimeout60s);
         );
 
         // testing only one query
-        //options = customsOptions(wdbench.dbPath_asStr, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
-        //        EngineTypes.SageForceOrderTimeout1ms);
-        // EngineTypes.TDB);*/
+        options = customsOptions(wdbench.dbPath_asStr, "sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/query_309.sparql",
+               EngineTypes.SageForceOrderTimeout1ms);
 
         for (Options opt : options) {
             new Runner(opt).run();
@@ -161,8 +172,8 @@ public class WDBenchBenchmark {
         ArrayList<Options> options = new ArrayList<>();
         for (String engine : engines) {
             options.add(runCommon(pathToDataset, List.of(query), engine)
-                    .warmupIterations(3)
-                    .forks(100)
+                    .warmupIterations(0)
+                    .forks(1)
                     .mode(Mode.SingleShotTime)
                     .timeout(TimeValue.seconds(10000))
                     //.jvmArgsAppend("-XX:-TieredCompilation", "-XX:-BackgroundCompilation")
@@ -230,7 +241,7 @@ public class WDBenchBenchmark {
         if (fileExistsAndNotEmpty(outfile)) return null;
 
         return runCommon(benched.dbPath_asStr, benched.getQueries(), engine)
-                .warmupIterations(0)
+                .warmupIterations(2)
                 .forks(1)
                 .mode(Mode.SingleShotTime)
                 .result(outfile.toString())
