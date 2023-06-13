@@ -2,6 +2,7 @@ package fr.gdd.sage.arq;
 
 import fr.gdd.sage.configuration.SageInputBuilder;
 import fr.gdd.sage.configuration.SageServerConfiguration;
+import fr.gdd.sage.interfaces.PreemptIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -47,7 +49,7 @@ import java.util.function.Predicate;
  * Some operators need rewriting to enable pausing/resuming their
  * operation. This is mostly a copy/pasta of {@link OpExecutorTDB2}, for we want
  * the same behavior of this executor but the use of our own preemptive iterators.
- *
+ * <br />
  * It is worth noting that including preemptive iterators in the standard workflow of
  * TDB2 would be easier if modifying the source code was allowed. Indeed, it would be
  * enough to have a ScanIteratorFactory that instantiates the proper scan iterator depending
@@ -98,6 +100,8 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         execCxt.getContext().setIfUndef(SageConstants.output, new SageOutput<>());
         execCxt.getContext().setIfUndef(SageConstants.scanFactory, new PreemptScanIteratorFactory(execCxt));
         execCxt.getContext().setIfUndef(SageConstants.cursor, 0); // Starting identifier of preemptive iterators
+        ChainOfIterators.create(execCxt);
+        execCxt.getContext().setIfUndef(SageConstants.iterators, new HashMap<Integer, PreemptIterator>());
     }
 
     @Override
@@ -134,9 +138,14 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     }
 
     @Override
-    public QueryIterator execute(OpUnion union, QueryIterator input) {
+    protected QueryIterator execute(OpQuad opQuad, QueryIterator input) {
+        return PatternMatchSage.matchQuadPattern(opQuad.asQuadPattern().getBasicPattern(), opQuad.getQuad().getGraph(), input, execCxt);
+    }
+
+    @Override
+    public QueryIterator execute(OpUnion opUnion, QueryIterator input) {
         // Comes from {@link OpExecutorTDB2}
-        return new PreemptQueryIterUnion(input, flattenUnion(union), execCxt);
+        return new PreemptQueryIterUnion(input, flattenUnion(opUnion), execCxt);
     }
 
     @Override
@@ -167,16 +176,14 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         // If the filter does not apply to the input??
         // Where does ARQ catch this?
 
-        // (filter (bgp ...))
-        if ( OpBGP.isBGP(opFilter.getSubOp()) ) {
+        if ( OpBGP.isBGP(opFilter.getSubOp()) ) { // (filter (bgp ...))
             // Still may be a TDB graph in a non-TDB dataset (e.g. a named model)
             GraphTDB graph = (GraphTDB)execCxt.getActiveGraph();
             OpBGP opBGP = (OpBGP)opFilter.getSubOp();
             return executeBGP(graph, opBGP, input, opFilter.getExprs(), execCxt);
         }
 
-        // (filter (quadpattern ...))
-        if ( opFilter.getSubOp() instanceof OpQuadPattern ) {
+        if ( opFilter.getSubOp() instanceof OpQuadPattern ) { // (filter (quadpattern ...))
             OpQuadPattern quadPattern = (OpQuadPattern)opFilter.getSubOp();
             DatasetGraphTDB ds = (DatasetGraphTDB)execCxt.getDataset();
             return optimizeExecuteQuads(ds, input,

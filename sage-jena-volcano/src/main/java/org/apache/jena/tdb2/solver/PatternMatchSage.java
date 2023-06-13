@@ -55,7 +55,7 @@ public class PatternMatchSage {
         return matchQuadPattern(pattern, graphNode, input, execCxt);
     }
 
-
+    /* ****************************************************************************************** */
 
     /**
      * Creates the builder for triple patterns.

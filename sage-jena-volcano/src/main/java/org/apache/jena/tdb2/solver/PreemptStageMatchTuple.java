@@ -29,7 +29,9 @@ public class PreemptStageMatchTuple {
     static Iterator<BindingNodeId> access(NodeTupleTable nodeTupleTable, Iterator<BindingNodeId> input, Tuple<Node> patternTuple,
                                           Predicate<Tuple<NodeId>> filter, boolean anyGraph, ExecutionContext execCxt, Integer id) {
         return Iter.flatMap(input, bnid -> {
-            return PreemptStageMatchTuple.access(nodeTupleTable, bnid, patternTuple, filter, anyGraph, execCxt, id);
+            Iterator<BindingNodeId> newIterator = PreemptStageMatchTuple.access(nodeTupleTable, bnid, patternTuple, filter, anyGraph, execCxt, id);
+
+            return newIterator;
         });
     }
 

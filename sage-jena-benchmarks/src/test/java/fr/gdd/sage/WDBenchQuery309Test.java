@@ -113,10 +113,14 @@ class WDBenchQuery309Test {
         QueryEngineSage.register();
 
         SageInput<?> input = new SageInput<>();
-        Context c = dataset.getContext().copy().set(SageConstants.input, input);
-        c.set(ARQ.optimization, false);
+        // Context c = dataset.getContext().set(SageConstants.input, input);
+        dataset.getContext().set(ARQ.optimization, false);
+        dataset.getContext().set(SageConstants.timeout, 1);
 
-        QueryExecution queryExecution = null;
+
+        ExecuteUtils.executeTillTheEnd(dataset, query);
+
+        /* QueryExecution queryExecution = null;
         try {
             queryExecution = QueryExecution.create()
                     .dataset(dataset)
@@ -131,9 +135,9 @@ class WDBenchQuery309Test {
         while (rs.hasNext()) {
             rs.next();
             nbResults+=1;
-        }
+        } */
 
-        log.info("Got {} results…", nbResults);
+        //log.info("Got {} results…", nbResults);
     }
 
     @Test

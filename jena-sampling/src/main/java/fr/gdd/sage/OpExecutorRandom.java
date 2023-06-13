@@ -48,8 +48,8 @@ public class OpExecutorRandom extends OpExecutorSage {
     }
 
     @Override
-    public QueryIterator execute(OpUnion union, QueryIterator input) {
-        return new RandomQueryIterUnion(input, flattenUnion(union), execCxt);
+    public QueryIterator execute(OpUnion opUnion, QueryIterator input) {
+        return new RandomQueryIterUnion(input, flattenUnion(opUnion), execCxt);
     }
 
     @Override

@@ -128,7 +128,7 @@ public class WDBenchBenchmark {
         );
 
         // testing only one query
-        options = customsOptions(wdbench.dbPath_asStr, "sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/query_309.sparql",
+        options = customsOptions(wdbench.dbPath_asStr, "sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/query_266.sparql",
                EngineTypes.SageForceOrderTimeout1ms);
 
         for (Options opt : options) {

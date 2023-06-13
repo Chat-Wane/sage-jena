@@ -4,9 +4,7 @@ import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
-import org.apache.jena.query.ARQ;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ReadWrite;
+import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
@@ -16,6 +14,7 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.sparql.util.VarUtils;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
@@ -25,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -190,12 +190,15 @@ public class OpExecutorSageBGPTest {
         Plan plan = QueryEngineSage.factory.create(query, dataset.asDatasetGraph(), BindingRoot.create(), c);
         QueryIterator it = plan.iterator();
 
+        ResultSet results = new ResultSetSage(ResultSetFactory.create(it, List.of("*")));
+
         long nb_results = 0;
-        while (it.hasNext()) {
-            Binding b = it.next();
+        while (results.hasNext()) {
+            QuerySolution b = results.next();
             log.debug(b.toString());
             nb_results += 1;
         }
+
         SageOutput<SerializableRecord> output = c.get(SageConstants.output);
         if (limitIsSet) {
             assertEquals(input.getLimit(), nb_results);

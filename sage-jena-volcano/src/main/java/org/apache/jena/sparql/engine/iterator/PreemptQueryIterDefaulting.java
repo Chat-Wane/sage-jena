@@ -2,13 +2,21 @@ package org.apache.jena.sparql.engine.iterator;
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
+import fr.gdd.sage.interfaces.PreemptIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
+import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.serializer.SerializationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Such an iterator can represent optionals in SPARQL queries. When the optional statement does not find
@@ -18,43 +26,37 @@ import java.util.Objects;
  * A preemptive version must get a unique identifier to save/resume its execution, i.e. it must remember
  * if up till then, it had found a result for this mandatory statement.
  */
-public class PreemptQueryIterDefaulting extends QueryIterDefaulting {
+public class PreemptQueryIterDefaulting extends QueryIterDefaulting implements PreemptIterator<Boolean> {
 
     Integer id;
-    SageInput  input;
-    SageOutput output;
-
-    boolean first;
 
     public PreemptQueryIterDefaulting(QueryIterator cIter, Binding _defaultObject, ExecutionContext qCxt, Integer id) {
-        super(cIter, _defaultObject, qCxt) ;
+        super(cIter, _defaultObject, qCxt);
         this.id = id;
-        input  = qCxt.getContext().get(SageConstants.input);
-        output = qCxt.getContext().get(SageConstants.output);
-        first = true;
+
+        HashMap<Integer, PreemptIterator> iterators = qCxt.getContext().get(SageConstants.iterators);
+        iterators.put(id, this);
     }
 
+    /* ******************************************************************************** */
 
     @Override
-    protected boolean hasNextBinding() {
-        boolean result = super.hasNextBinding();
-
-        boolean someoneStartedSaving = Objects.nonNull(output.getState()) && !output.getState().isEmpty();
-        if (someoneStartedSaving || (!first && (System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()))) {
-            this.output.save(new Pair(id, haveReturnedSomeObject));
-            // Need to not return false since iterator will do it,
-            // otherwise, it returns an error since it `moveToNextBinding` first then
-            // check `hasNextBinding` that returns false…
-            // Instead, we empty the iterator by checking all members of union.
-            // return false;
-        }
-        first = false;
-        return result;
+    public Integer getId() {
+        return this.id;
     }
 
-    public void skip(boolean to) {
-        first = true;
-        haveReturnedSomeObject = to;
+    @Override
+    public void skip(Boolean to) {
+        super.haveReturnedSomeObject = to;
     }
 
+    @Override
+    public Boolean current() {
+        throw new RuntimeException("This function should never be called");
+    }
+
+    @Override
+    public Boolean previous() {
+        return super.haveReturnedSomeObject;
+    }
 }

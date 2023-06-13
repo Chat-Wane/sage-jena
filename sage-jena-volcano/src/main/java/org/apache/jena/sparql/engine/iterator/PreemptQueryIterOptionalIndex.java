@@ -20,6 +20,8 @@ import java.util.Objects;
  */
 public class PreemptQueryIterOptionalIndex extends QueryIterOptionalIndex {
 
+    Logger log = LoggerFactory.getLogger(PreemptQueryIterOptionalIndex.class);
+
     Op op; // because in `QueryIterOptionalIndex` the field is private…
 
     SageInput sageInput;

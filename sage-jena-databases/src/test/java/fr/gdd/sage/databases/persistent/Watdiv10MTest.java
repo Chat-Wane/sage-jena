@@ -17,7 +17,7 @@ public class Watdiv10MTest {
     @Test
     @EnabledIfEnvironmentVariable(named = "WATDIV", matches = "true")
     public void download_extract_ingest_clean() {
-        Path testingPath = Path.of("target/watdiv-test");
+        Path testingPath = Path.of("datasets/watdiv-test");
         try {
             FileUtils.deleteDirectory(testingPath.toFile());
         } catch (IOException e) {

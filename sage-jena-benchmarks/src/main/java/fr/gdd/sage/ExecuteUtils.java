@@ -2,6 +2,7 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
+import fr.gdd.sage.arq.ResultSetSage;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageOutput;
@@ -62,7 +63,9 @@ public class ExecuteUtils {
                 e.printStackTrace();
             }
 
+            // ResultSet result_set = new ResultSetSage(qe.execSelect());
             ResultSet result_set = qe.execSelect();
+
             while (result_set.hasNext()) { // must enumerate to actually execute
                 QuerySolution solution = result_set.next();
                 sum += 1;

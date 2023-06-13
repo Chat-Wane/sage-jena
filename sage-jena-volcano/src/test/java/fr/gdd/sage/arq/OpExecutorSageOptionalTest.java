@@ -31,7 +31,7 @@ public class OpExecutorSageOptionalTest {
         // set up the chain of execution to use Sage when called on this dataset
         QC.setFactory(datasetWatdiv.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
         QC.setFactory(datasetOption.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
-        QueryEngineRegistry.addFactory(QueryEngineSage.factory);
+        QueryEngineSage.register();
     }
 
     @AfterAll

@@ -91,20 +91,20 @@ public class WatdivBenchmark {
         Watdiv10M watdiv = new Watdiv10M(dirPath_opt); // creates the db if need be
 
         // create all the runners' options
-        List<Options> options = createOptions(watdiv, List.of(QueryTypes.Short),
+        List<Options> options = createOptions(watdiv, List.of(QueryTypes.Long),
                 // EngineTypes.TDB
                 // EngineTypes.Sage,
-                EngineTypes.TDBForceOrder,
+                // EngineTypes.TDBForceOrder,
                 // EngineTypes.SageForceOrder,
-                EngineTypes.SageForceOrderTimeout1ms,
-                EngineTypes.SageForceOrderTimeout1s,
-                EngineTypes.SageForceOrderTimeout30s
+                EngineTypes.SageForceOrderTimeout1ms
+                //EngineTypes.SageForceOrderTimeout1s,
+                // EngineTypes.SageForceOrderTimeout30s
                 //EngineTypes.SageForceOrderTimeout60s);
         );
 
         // testing only one query
-        options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
-                EngineTypes.SageForceOrderTimeout1ms);
+        // options = customsOptions(watdiv, "sage-jena-benchmarks/queries/watdiv_with_sage_plan/query_10020.sparql",
+        //        EngineTypes.SageForceOrderTimeout1ms);
                 // EngineTypes.TDB);*/
 
         for (Options opt : options) {
