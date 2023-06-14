@@ -7,7 +7,7 @@ import java.util.function.Predicate;
 
 import fr.gdd.sage.arq.SageConstants;
 import org.apache.jena.sparql.engine.iterator.PreemptScanIteratorFactory;
-import fr.gdd.sage.arq.ScanIteratorFactory;
+import org.apache.jena.sparql.engine.iterator.ScanIteratorFactory;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.StrUtils;
 import org.apache.jena.atlas.lib.tuple.Tuple;

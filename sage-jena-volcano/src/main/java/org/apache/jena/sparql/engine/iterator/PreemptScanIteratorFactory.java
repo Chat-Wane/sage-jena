@@ -1,7 +1,6 @@
 package org.apache.jena.sparql.engine.iterator;
 
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.ScanIteratorFactory;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;

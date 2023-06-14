@@ -1,6 +1,5 @@
 package org.apache.jena.sparql.engine.iterator;
 
-import fr.gdd.sage.arq.PauseException;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.ExecutionContext;

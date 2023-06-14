@@ -2,10 +2,8 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.arq.ScanIteratorFactory;
-import fr.gdd.sage.configuration.SageInputBuilder;
+import org.apache.jena.sparql.engine.iterator.ScanIteratorFactory;
 import fr.gdd.sage.configuration.SageServerConfiguration;
-import fr.gdd.sage.io.SageInput;
 import org.apache.jena.sparql.algebra.op.OpConditional;
 import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpUnion;
@@ -16,8 +14,6 @@ import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.util.Context;
 
-import java.io.Serializable;
-import java.util.Map;
 import java.util.Objects;
 
 /**

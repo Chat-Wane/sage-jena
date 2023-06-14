@@ -190,11 +190,9 @@ public class OpExecutorSageBGPTest {
         Plan plan = QueryEngineSage.factory.create(query, dataset.asDatasetGraph(), BindingRoot.create(), c);
         QueryIterator it = plan.iterator();
 
-        ResultSet results = new ResultSetSage(ResultSetFactory.create(it, List.of("*")));
-
         long nb_results = 0;
-        while (results.hasNext()) {
-            QuerySolution b = results.next();
+        while (it.hasNext()) {
+            Binding b = it.next();
             log.debug(b.toString());
             nb_results += 1;
         }

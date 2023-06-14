@@ -5,15 +5,24 @@ import org.apache.jena.sparql.algebra.OpVisitorBase;
 import org.apache.jena.sparql.algebra.OpVisitorByType;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
+import org.apache.jena.sparql.expr.ExprList;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class IdentifierLinker extends OpVisitorBase {
 
     HashMap<Integer, Integer> childToParent = new HashMap<>();
+    IdentifierAllocator identifiers;
+
+    public static void create(ExecutionContext ec, Op op) {
+        ec.getContext().setIfUndef(SageConstants.identifiers, new IdentifierLinker(op));
+    }
+
+    public IdentifierLinker(Op op) {
+        this.identifiers = new IdentifierAllocator();
+        op.visit(this.identifiers);
+        op.visit(this);
+    }
 
     @Override
     public void visit(OpProject opProject) {
@@ -25,10 +34,73 @@ public class IdentifierLinker extends OpVisitorBase {
         GetMostLeftOp visitor = new GetMostLeftOp();
         opLeftJoin.getLeft().visit(visitor);
         Op leftestOp = visitor.result;
-        System.out.println(leftestOp);
 
-        chain.add(op2Id.get(leftestOp), op2Id.get(opLeftJoin));
-        chain.add(op2Id.get(opLeftJoin), op2Id.get(opLeftJoin.getRight()));
+        opLeftJoin.getRight().visit(visitor);
+        Op leftestOfRightOp = visitor.result;
+
+        Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
+        Integer idOptional = identifiers.op2Id.get(opLeftJoin).get(0);
+
+        add(idLeftest, idOptional);
+        add(idOptional, idLeftestOfRight);
+
+        opLeftJoin.getLeft().visit(this);
+        opLeftJoin.getRight().visit(this);
+    }
+
+    @Override
+    public void visit(OpConditional opCond) {
+        GetMostLeftOp visitor = new GetMostLeftOp();
+        opCond.getLeft().visit(visitor);
+        Op leftestOp = visitor.result;
+
+        opCond.getRight().visit(visitor);
+        Op leftestOfRightOp = visitor.result;
+
+        Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
+        Integer idOptional = identifiers.op2Id.get(opCond).get(0);
+
+        add(idLeftest, idOptional);
+        add(idOptional, idLeftestOfRight);
+
+        opCond.getLeft().visit(this);
+        opCond.getRight().visit(this);
+    }
+
+    @Override
+    public void visit(OpJoin opJoin) {
+        GetMostLeftOp visitor = new GetMostLeftOp();
+        opJoin.getLeft().visit(visitor);
+        Op leftestOp = visitor.result;
+
+        opJoin.getRight().visit(visitor);
+        Op leftestOfRightOp = visitor.result;
+
+        Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
+
+        add(idLeftest, idLeftestOfRight);
+
+        opJoin.getLeft().visit(this);
+        opJoin.getRight().visit(this);
+    }
+
+    @Override
+    public void visit(OpBGP opBGP) {
+        List<Integer> bgpIds = identifiers.op2Id.get(opBGP);
+        for (int i = 0; i < bgpIds.size() - 1; ++i) {
+            add(bgpIds.get(i), bgpIds.get(i+1));
+        }
+    }
+
+    @Override
+    public void visit(OpQuadPattern opQuad) {
+        List<Integer> quadIds = identifiers.op2Id.get(opQuad);
+        for (int i = 0; i < quadIds.size() - 1; ++i) {
+            add(quadIds.get(i), quadIds.get(i+1));
+        }
     }
 
     /* ***************************************************************************** */
@@ -46,9 +118,9 @@ public class IdentifierLinker extends OpVisitorBase {
      * @param child The unique identifier of the iterator
      * @return A list of parents of the iterator.
      */
-    public List<Integer> getParents(Integer child) {
+    public Set<Integer> getParents(Integer child) {
         boolean done = false;
-        List<Integer> parents = new ArrayList<>();
+        Set<Integer> parents = new TreeSet<>();
         while (!done) {
             Integer parent = childToParent.get(child);
             if (Objects.nonNull(parent)) {

@@ -2,7 +2,6 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
-import fr.gdd.sage.arq.ResultSetSage;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageOutput;

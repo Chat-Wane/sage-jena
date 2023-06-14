@@ -20,11 +20,7 @@ public class SageConstants {
     static public Symbol input    = allocVariableSymbol("Input");
 
     static public Symbol cursor = allocVariableSymbol("Cursor");
-
-    static public Symbol chain = allocVariableSymbol("Chain");
-
     static public Symbol identifiers = allocVariableSymbol("Identifiers");
-
     static public Symbol iterators = allocVariableSymbol("Iterators");
     
     /**

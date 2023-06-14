@@ -1,11 +1,6 @@
-package fr.gdd.sage.arq;
+package org.apache.jena.sparql.engine.iterator;
 
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.atlas.lib.tuple.TupleMap;
-import org.apache.jena.dboe.base.record.Record;
-import org.apache.jena.dboe.base.record.RecordFactory;
-import org.apache.jena.dboe.base.record.RecordMapper;
-import org.apache.jena.dboe.trans.bplustree.BPlusTree;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;

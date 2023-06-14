@@ -57,7 +57,7 @@ public class QueryEngineSage extends QueryEngineTDB {
 
         // #2 comes from {@link QueryEngineBase}
         ExecutionContext execCxt = new ExecutionContext(context, dsg.getDefaultGraph(), dsg, QC.getFactory(context));
-        IdentifierAllocator.create(execCxt, op);
+        IdentifierLinker.create(execCxt, op);
 
         QueryIterator qIter1 =
                 ( input.isEmpty() ) ? QueryIterRoot.create(execCxt)

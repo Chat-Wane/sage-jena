@@ -2,7 +2,7 @@ package org.apache.jena.tdb2.solver; // In this package so it can access SolverL
 
 import fr.gdd.sage.arq.SageConstants;
 import org.apache.jena.sparql.engine.iterator.PreemptScanIteratorFactory;
-import fr.gdd.sage.arq.ScanIteratorFactory;
+import org.apache.jena.sparql.engine.iterator.ScanIteratorFactory;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
@@ -19,7 +19,6 @@ import org.apache.jena.sparql.engine.iterator.Abortable;
 import org.apache.jena.sparql.engine.iterator.QueryIterAbortable;
 import org.apache.jena.sparql.engine.main.solver.SolverLib;
 import org.apache.jena.sparql.engine.main.solver.SolverRX4;
-import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.GraphTDB;

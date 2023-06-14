@@ -2,11 +2,11 @@ package fr.gdd.sage.arq;
 
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitorBase;
-import org.apache.jena.sparql.algebra.OpVisitorByType;
 import org.apache.jena.sparql.algebra.op.*;
-import org.apache.jena.sparql.engine.ExecutionContext;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Associate with each operator a range of identifiers that it can allocate.
@@ -19,12 +19,6 @@ public class IdentifierAllocator extends OpVisitorBase {
 
     Integer current = 1;
 
-    public static void create(ExecutionContext ec, Op op) {
-        IdentifierAllocator ids = new IdentifierAllocator();
-        op.visit(ids);
-        ec.getContext().setIfUndef(SageConstants.identifiers, ids);
-    }
-
     public IdentifierAllocator() {}
 
     public IdentifierAllocator(Integer start) {
@@ -34,6 +28,8 @@ public class IdentifierAllocator extends OpVisitorBase {
     public Integer getCurrent() {
         return current;
     }
+
+    public List<Integer> getIds (Op op) {return this.op2Id.get(op);}
 
     /* ******************************************************************** */
 
@@ -112,7 +108,7 @@ public class IdentifierAllocator extends OpVisitorBase {
     @Override
     public void visit(OpUnion opUnion) {
         List<Op> flattened = flattenUnion(opUnion);
-        op2Id.put(opUnion, List.of(current));  // one id dedicated to union
+        op2Id.put(opUnion, List.of(current));  // one id dedicated to multi-union
         id2Op.put(current, opUnion);
         current += 1;
         for (Op subOp : flattened) {

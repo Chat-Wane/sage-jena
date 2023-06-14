@@ -5,8 +5,11 @@ import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.databases.persistent.WDBench;
 import fr.gdd.sage.databases.persistent.Watdiv10M;
+import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageInput;
 import org.apache.jena.query.*;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.mgt.Explain;
@@ -30,10 +33,40 @@ class WDBenchQuery309Test {
 
     static OpExecutorFactory opExecutorTDB2ForceOrderFactory;
 
-    String query = "SELECT  * WHERE { " +
+    /* String query = "SELECT  * WHERE { " +
             "?x1  <http://www.wikidata.org/prop/direct/P31>  <http://www.wikidata.org/entity/Q20650540> " +
             "OPTIONAL { ?x1  <http://www.wikidata.org/prop/direct/P921>  ?x2 } "+
-            "} LIMIT 100000";
+            "} LIMIT 100000";*/
+
+    String query = "SELECT  *\n" +
+            "WHERE\n" +
+            "  { ?x1  <http://www.wikidata.org/prop/direct/P31>  <http://www.wikidata.org/entity/Q5398426> ;\n" +
+            "         <http://www.wikidata.org/prop/direct/P31>  <http://www.wikidata.org/entity/Q11424>\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1476>  ?x2 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1266>  ?x3 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P345>  ?x4 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1562>  ?x5 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P646>  ?x6 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1970>  ?x7 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1258>  ?x8 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P3302>  ?x9 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1874>  ?x10 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P1712>  ?x11 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P18>  ?x12 }\n" +
+            "    OPTIONAL\n" +
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P31>  ?x13 }\n" +
+            "  }";
 
     @BeforeAll
     public static void initialize_database() {
@@ -109,6 +142,7 @@ class WDBenchQuery309Test {
 
     @Test
     public void execute_with_Sage_force_order() {
+        System.out.println("EXECUTING");
         QC.setFactory(dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
         QueryEngineSage.register();
 
@@ -117,27 +151,9 @@ class WDBenchQuery309Test {
         dataset.getContext().set(ARQ.optimization, false);
         dataset.getContext().set(SageConstants.timeout, 1);
 
+        Pair results = ExecuteUtils.executeTillTheEnd(dataset, query);
 
-        ExecuteUtils.executeTillTheEnd(dataset, query);
-
-        /* QueryExecution queryExecution = null;
-        try {
-            queryExecution = QueryExecution.create()
-                    .dataset(dataset)
-                    .context(c)
-                    .query(query).build();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        long nbResults = 0;
-        ResultSet rs = queryExecution.execSelect() ;
-        while (rs.hasNext()) {
-            rs.next();
-            nbResults+=1;
-        } */
-
-        //log.info("Got {} results…", nbResults);
+        log.info("Got {} results…", results.left);
     }
 
     @Test

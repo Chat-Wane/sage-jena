@@ -1,7 +1,6 @@
 package org.apache.jena.sparql.engine.iterator;
 
-import fr.gdd.sage.arq.IdentifierAllocator;
-import fr.gdd.sage.arq.PauseException;
+import fr.gdd.sage.arq.IdentifierLinker;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
@@ -10,16 +9,16 @@ import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * A Volcano Iterator that works on {@link Tuple<NodeId>} instead of
@@ -72,7 +71,7 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, Pree
                     System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()) {
                 // saving
                 HashMap<Integer, PreemptIterator> iterators = context.getContext().get(SageConstants.iterators);
-                IdentifierAllocator identifiers = context.getContext().get(SageConstants.identifiers);
+                IdentifierLinker identifiers = context.getContext().get(SageConstants.identifiers);
                 Set<Integer> parents = identifiers.getParents(getId());
                 for (Integer parent : parents) {
                     Pair toSave = new Pair(parent, iterators.get(parent).previous());

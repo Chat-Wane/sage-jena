@@ -3,6 +3,7 @@ package fr.gdd.sage.arq;
 import fr.gdd.sage.configuration.SageInputBuilder;
 import fr.gdd.sage.configuration.SageServerConfiguration;
 import fr.gdd.sage.interfaces.PreemptIterator;
+import org.apache.jena.sparql.engine.iterator.PreemptQueryIterUnion;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.jena.atlas.lib.tuple.Tuple;
@@ -100,7 +101,6 @@ public class OpExecutorSage extends OpExecutorTDB2 {
         execCxt.getContext().setIfUndef(SageConstants.output, new SageOutput<>());
         execCxt.getContext().setIfUndef(SageConstants.scanFactory, new PreemptScanIteratorFactory(execCxt));
         execCxt.getContext().setIfUndef(SageConstants.cursor, 0); // Starting identifier of preemptive iterators
-        ChainOfIterators.create(execCxt);
         execCxt.getContext().setIfUndef(SageConstants.iterators, new HashMap<Integer, PreemptIterator>());
     }
 

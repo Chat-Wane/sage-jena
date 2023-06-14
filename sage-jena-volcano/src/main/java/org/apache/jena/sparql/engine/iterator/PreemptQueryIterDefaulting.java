@@ -38,6 +38,12 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting implements P
         iterators.put(id, this);
     }
 
+    @Override
+    protected Binding moveToNextBinding() {
+        getExecContext().getContext().set(SageConstants.cursor, id+1);
+        return super.moveToNextBinding();
+    }
+
     /* ******************************************************************************** */
 
     @Override
