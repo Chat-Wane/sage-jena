@@ -17,7 +17,6 @@ import org.apache.jena.tdb2.store.nodetable.NodeTable;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -67,15 +66,20 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, Pree
         boolean result = wrapped.hasNext();
 
         if (result) {
-            if (!first && (Objects.isNull(output.getState()) || output.getState().isEmpty()) &&
+            if (!first &&
                     System.currentTimeMillis() >= input.getDeadline() || output.size() >= input.getLimit()) {
                 // saving
                 HashMap<Integer, PreemptIterator> iterators = context.getContext().get(SageConstants.iterators);
                 IdentifierLinker identifiers = context.getContext().get(SageConstants.identifiers);
                 Set<Integer> parents = identifiers.getParents(getId());
                 for (Integer parent : parents) {
-                    Pair toSave = new Pair(parent, iterators.get(parent).previous());
-                    this.output.addState(toSave);
+                    if (identifiers.inRightSideOf(parent, id)) {
+                        Pair toSave = new Pair(parent, iterators.get(parent).current());
+                        this.output.addState(toSave);
+                    } else {
+                        Pair toSave = new Pair(parent, iterators.get(parent).previous());
+                        this.output.addState(toSave);
+                    }
                 }
                 this.output.addState(new Pair(getId(), current()));
                 // execution stops immediately, caught by {@link ResultSetSage}
@@ -91,6 +95,7 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, Pree
     @Override
     public Tuple<NodeId> next() {
         first = false;
+
         context.getContext().set(SageConstants.cursor, id);
         wrapped.next();
         return ((PreemptJenaIterator) wrapped).getCurrentTuple();

@@ -55,8 +55,9 @@ class IdentifierLinkerTest {
         assertEquals(Set.of(), l.getParents(1)); // tp1
         assertEquals(Set.of(1), l.getParents(2)); // opt1
         assertEquals(Set.of(1,2), l.getParents(3)); // tp2
-        assertEquals(Set.of(1), l.getParents(4)); // opt2
-        assertEquals(Set.of(1,4), l.getParents(5)); // tp3
+        // the optional is independent, but still, it must be saved in case it is not.
+        assertEquals(Set.of(1,2,3), l.getParents(4)); // opt2
+        assertEquals(Set.of(1,2,3,4), l.getParents(5)); // tp3
     }
 
     @Test

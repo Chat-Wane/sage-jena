@@ -5,7 +5,6 @@ import org.apache.jena.sparql.algebra.OpVisitorBase;
 import org.apache.jena.sparql.algebra.OpVisitorByType;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.sparql.expr.ExprList;
 
 import java.util.*;
 
@@ -14,8 +13,15 @@ public class IdentifierLinker extends OpVisitorBase {
     HashMap<Integer, Integer> childToParent = new HashMap<>();
     IdentifierAllocator identifiers;
 
-    public static void create(ExecutionContext ec, Op op) {
-        ec.getContext().setIfUndef(SageConstants.identifiers, new IdentifierLinker(op));
+    GetMostLeftOp getLeftest = new GetMostLeftOp();
+    GetMostRightOp getRightest = new GetMostRightOp();
+
+    public static void create(ExecutionContext ec, Op op, boolean... force) {
+        if (Objects.isNull(force) || force.length == 0 || !force[0]) {
+            ec.getContext().setIfUndef(SageConstants.identifiers, new IdentifierLinker(op));
+        } else {
+            ec.getContext().set(SageConstants.identifiers, new IdentifierLinker(op));
+        }
     }
 
     public IdentifierLinker(Op op) {
@@ -24,25 +30,37 @@ public class IdentifierLinker extends OpVisitorBase {
         op.visit(this);
     }
 
+    public List<Integer> getIds(Op op) {
+        return this.identifiers.getIds(op);
+    }
+
+    /* ******************************************************************* */
+
     @Override
     public void visit(OpProject opProject) {
         opProject.visit(this);
     }
 
     @Override
+    public void visit(OpSlice opSlice) {
+        // (TODO) should have an identifier to save
+        opSlice.getSubOp().visit(this);
+    }
+
+    @Override
     public void visit(OpLeftJoin opLeftJoin) {
-        GetMostLeftOp visitor = new GetMostLeftOp();
-        opLeftJoin.getLeft().visit(visitor);
-        Op leftestOp = visitor.result;
+        opLeftJoin.getLeft().visit(getRightest);
+        Op rightestOfLeftOp = getRightest.result;
 
-        opLeftJoin.getRight().visit(visitor);
-        Op leftestOfRightOp = visitor.result;
+        opLeftJoin.getRight().visit(getLeftest);
+        Op leftestOfRightOp = getLeftest.result;
 
-        Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        // Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        Integer idRightestOfLeft = identifiers.op2Id.get(rightestOfLeftOp).stream().max(Integer::compare).orElseThrow();
         Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
         Integer idOptional = identifiers.op2Id.get(opLeftJoin).get(0);
 
-        add(idLeftest, idOptional);
+        add(idRightestOfLeft, idOptional);
         add(idOptional, idLeftestOfRight);
 
         opLeftJoin.getLeft().visit(this);
@@ -51,18 +69,18 @@ public class IdentifierLinker extends OpVisitorBase {
 
     @Override
     public void visit(OpConditional opCond) {
-        GetMostLeftOp visitor = new GetMostLeftOp();
-        opCond.getLeft().visit(visitor);
-        Op leftestOp = visitor.result;
+        opCond.getLeft().visit(getRightest);
+        Op rightestOfLeftOp = getRightest.result;
 
-        opCond.getRight().visit(visitor);
-        Op leftestOfRightOp = visitor.result;
+        opCond.getRight().visit(getLeftest);
+        Op leftestOfRightOp = getLeftest.result;
 
-        Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        // Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
+        Integer idRightestOfLeft = identifiers.op2Id.get(rightestOfLeftOp).stream().max(Integer::compare).orElseThrow();
         Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
         Integer idOptional = identifiers.op2Id.get(opCond).get(0);
 
-        add(idLeftest, idOptional);
+        add(idRightestOfLeft, idOptional);
         add(idOptional, idLeftestOfRight);
 
         opCond.getLeft().visit(this);
@@ -133,8 +151,74 @@ public class IdentifierLinker extends OpVisitorBase {
         return parents;
     }
 
+    public boolean inRightSideOf(Integer parent, Integer child) {
+        Op parentOp = identifiers.id2Op.get(parent);
+
+        if (!(parentOp instanceof OpN || parentOp instanceof Op2 || parentOp instanceof OpLeftJoin)) {
+            return false;
+        }
+
+        if (!getParents(child).contains(parent)) {
+            return false;
+        }
+
+        Op2 parentOp2 = (Op2) parentOp;
+
+        Op childOp = identifiers.id2Op.get(child);
+        IsIncludedIn visitor = new IsIncludedIn(childOp);
+        parentOp2.getRight().visit(visitor);
+        return visitor.result;
+    }
+
     /* ******************************************************************* */
 
+    static class IsIncludedIn extends OpVisitorByType {
+
+        public boolean result = false;
+        public Op toFind;
+
+        public IsIncludedIn(Op toFind) {
+            this.toFind = toFind;
+        }
+
+        @Override
+        protected void visitN(OpN op) {
+            int i = 0;
+            while (!result && i < op.size()) {
+                op.get(i).visit(this);
+                ++i;
+            }
+        }
+
+        @Override
+        protected void visit2(Op2 op) {
+            if (!result) op.getLeft().visit(this);
+            if (!result) op.getRight().visit(this);
+        }
+
+        @Override
+        protected void visit1(Op1 op) {
+            result = result || op == toFind;
+            if (!result) op.getSubOp().visit(this);
+
+        }
+
+        @Override
+        protected void visit0(Op0 op) {
+            result = result || op == toFind;
+        }
+
+        @Override
+        protected void visitFilter(OpFilter op) {
+            op.getSubOp().visit(this);
+        }
+
+        @Override
+        protected void visitLeftJoin(OpLeftJoin op) {
+            op.getLeft().visit(this);
+            if (!result) op.getRight().visit(this);
+        }
+    }
 
     static class GetMostLeftOp extends OpVisitorByType {
 
@@ -168,6 +252,41 @@ public class IdentifierLinker extends OpVisitorBase {
         @Override
         protected void visitLeftJoin(OpLeftJoin op) {
             op.getLeft().visit(this);
+        }
+    }
+
+    static class GetMostRightOp extends OpVisitorByType {
+
+        public Op result;
+
+        @Override
+        protected void visitN(OpN op) {
+            op.get(op.size()-1).visit(this);
+        }
+
+        @Override
+        protected void visit2(Op2 op) {
+            op.getRight().visit(this);
+        }
+
+        @Override
+        protected void visit1(Op1 op) {
+            op.getSubOp().visit(this);
+        }
+
+        @Override
+        protected void visit0(Op0 op) {
+            result = op;
+        }
+
+        @Override
+        protected void visitFilter(OpFilter op) {
+            op.getSubOp().visit(this);
+        }
+
+        @Override
+        protected void visitLeftJoin(OpLeftJoin op) {
+            op.getRight().visit(this);
         }
     }
 

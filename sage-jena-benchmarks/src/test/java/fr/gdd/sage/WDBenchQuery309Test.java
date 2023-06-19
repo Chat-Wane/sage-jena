@@ -142,18 +142,29 @@ class WDBenchQuery309Test {
 
     @Test
     public void execute_with_Sage_force_order() {
-        System.out.println("EXECUTING");
+
         QC.setFactory(dataset.getContext(), new OpExecutorSage.OpExecutorSageFactory(ARQ.getContext()));
         QueryEngineSage.register();
 
         SageInput<?> input = new SageInput<>();
         // Context c = dataset.getContext().set(SageConstants.input, input);
         dataset.getContext().set(ARQ.optimization, false);
+        dataset.getContext().set(SageConstants.timeout, 1000);
+
+        System.out.println("FIRST");
+        Pair results = ExecuteUtils.executeTillTheEnd(dataset, query);
+        for (String s : ExecuteUtils.solutions) {
+            System.out.println(s);
+        }
+
+        log.info("Got {} results in {} pause(s)/resume(s)…", results.left, results.right);
+
         dataset.getContext().set(SageConstants.timeout, 1);
 
-        Pair results = ExecuteUtils.executeTillTheEnd(dataset, query);
+        System.out.println("SECOND");
+        results = ExecuteUtils.executeTillTheEnd(dataset, query);
 
-        log.info("Got {} results…", results.left);
+        log.info("Got {} results in {} pause(s)/resume(s)…", results.left, results.right);
     }
 
     @Test

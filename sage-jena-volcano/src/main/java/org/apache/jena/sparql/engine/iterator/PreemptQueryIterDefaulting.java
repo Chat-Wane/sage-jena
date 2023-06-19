@@ -30,6 +30,8 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting implements P
 
     Integer id;
 
+    boolean previous;
+
     public PreemptQueryIterDefaulting(QueryIterator cIter, Binding _defaultObject, ExecutionContext qCxt, Integer id) {
         super(cIter, _defaultObject, qCxt);
         this.id = id;
@@ -40,7 +42,8 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting implements P
 
     @Override
     protected Binding moveToNextBinding() {
-        getExecContext().getContext().set(SageConstants.cursor, id+1);
+        getExecContext().getContext().set(SageConstants.cursor, id + 1);
+        previous = haveReturnedSomeObject;
         return super.moveToNextBinding();
     }
 
@@ -58,11 +61,11 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting implements P
 
     @Override
     public Boolean current() {
-        throw new RuntimeException("This function should never be called");
+        return super.haveReturnedSomeObject;
     }
 
     @Override
     public Boolean previous() {
-        return super.haveReturnedSomeObject;
+        return previous;
     }
 }

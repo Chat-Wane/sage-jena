@@ -134,9 +134,6 @@ public class WDBenchBenchmark {
         for (Options opt : options) {
             new Runner(opt).run();
         }
-
-
-
     }
 
     /**
@@ -172,7 +169,7 @@ public class WDBenchBenchmark {
         ArrayList<Options> options = new ArrayList<>();
         for (String engine : engines) {
             options.add(runCommon(pathToDataset, List.of(query), engine)
-                    .warmupIterations(0)
+                    .warmupIterations(3)
                     .forks(1)
                     .mode(Mode.SingleShotTime)
                     .timeout(TimeValue.seconds(10000))
@@ -248,7 +245,7 @@ public class WDBenchBenchmark {
                 .build();
     }
 
-
+    /* ******************************************************************* */
 
     public static boolean fileExistsAndNotEmpty(Path path) {
         if (path.toFile().exists()) {

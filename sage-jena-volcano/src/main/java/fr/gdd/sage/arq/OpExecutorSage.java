@@ -107,6 +107,7 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     @Override
     protected QueryIterator exec(Op op, QueryIterator input) {
         log.debug(op.getName());
+        IdentifierLinker.create(execCxt, op);
         return super.exec(op, input);
     }
 
@@ -158,13 +159,13 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     protected QueryIterator execute(OpConditional opCondition, QueryIterator input) {
         // Comes from {@link OpExecutor}:
         QueryIterator left = exec(opCondition.getLeft(), input);
-        return new PreemptQueryIterOptionalIndex(left, opCondition.getRight(), execCxt);
+        return new PreemptQueryIterOptionalIndex(opCondition, left, opCondition.getRight(), execCxt);
     }
 
     @Override
     protected QueryIterator execute(OpLeftJoin opLeftJoin, QueryIterator input) {
         QueryIterator left = exec(opLeftJoin.getLeft(), input);
-        return new PreemptQueryIterOptionalIndex(left, opLeftJoin.getRight(), execCxt);
+        return new PreemptQueryIterOptionalIndex(opLeftJoin, left, opLeftJoin.getRight(), execCxt);
     }
 
     /**

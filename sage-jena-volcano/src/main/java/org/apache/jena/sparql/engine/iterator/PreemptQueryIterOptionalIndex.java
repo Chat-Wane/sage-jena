@@ -1,5 +1,6 @@
 package org.apache.jena.sparql.engine.iterator;
 
+import fr.gdd.sage.arq.IdentifierLinker;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.io.SageInput;
 import org.apache.jena.sparql.algebra.Op;
@@ -23,19 +24,23 @@ public class PreemptQueryIterOptionalIndex extends QueryIterOptionalIndex {
     Logger log = LoggerFactory.getLogger(PreemptQueryIterOptionalIndex.class);
 
     Op op; // because in `QueryIterOptionalIndex` the field is private…
+    Integer id;
 
     SageInput sageInput;
 
-    public PreemptQueryIterOptionalIndex(QueryIterator input, Op op, ExecutionContext context) {
-        super(input, op, context);
-        this.op = op;
+    public PreemptQueryIterOptionalIndex(Op op, QueryIterator input, Op opRight, ExecutionContext context) {
+        super(input, opRight, context);
+        this.op = opRight;
         sageInput = context.getContext().get(SageConstants.input);
+
+        IdentifierLinker identifiers = getExecContext().getContext().get(SageConstants.identifiers);
+        this.id = identifiers.getIds(op).get(0);
     }
 
     @Override
     protected QueryIterator nextStage(Binding binding) {
-        Integer id = getExecContext().getContext().get(SageConstants.cursor);
-        id += 1; // The identifier of the OPT
+        //Integer id = getExecContext().getContext().get(SageConstants.cursor);
+        //id += 1; // The identifier of the OPT
         getExecContext().getContext().set(SageConstants.cursor, id);
 
         Op op2 = QC.substitute(op, binding);

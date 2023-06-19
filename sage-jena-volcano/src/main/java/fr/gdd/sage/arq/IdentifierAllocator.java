@@ -118,6 +118,7 @@ public class IdentifierAllocator extends OpVisitorBase {
 
     @Override
     public void visit(OpSlice opSlice) {
+        // (TODO) should have an identifier allocated
         opSlice.getSubOp().visit(this);
     }
 

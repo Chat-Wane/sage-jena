@@ -1,12 +1,24 @@
 package org.apache.jena.sparql.engine.iterator;
 
+import fr.gdd.sage.arq.SageConstants;
+import fr.gdd.sage.io.SageOutput;
+import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.serializer.SerializationContext;
+import org.apache.jena.tdb.store.Hash;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Map;
+
+/**
+ * The sole purpose of this iterator is to catch exception thrown by the underlying
+ * iterators.
+ */
 public class PreemptRootIter implements QueryIterator {
 
     Binding buffered;
@@ -15,8 +27,11 @@ public class PreemptRootIter implements QueryIterator {
     boolean consumed = true;
     boolean doesHaveNext = false;
 
+    ExecutionContext context;
+
     public PreemptRootIter(QueryIterator cIter, ExecutionContext context) {
         wrapped = cIter;
+        this.context = context;
     }
 
     @Override
@@ -29,7 +44,7 @@ public class PreemptRootIter implements QueryIterator {
             doesHaveNext = wrapped.hasNext();
         } catch (PauseException e) {
             close();
-            doesHaveNext = false;
+            return false;
         }
 
 

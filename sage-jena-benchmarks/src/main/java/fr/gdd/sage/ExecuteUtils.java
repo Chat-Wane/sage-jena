@@ -6,6 +6,7 @@ import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.commons.lang3.SerializationUtils;
+import org.apache.jena.base.Sys;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.util.Context;
@@ -14,8 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Aims to ease the simple execution of a query from start to finish
@@ -26,6 +29,7 @@ public class ExecuteUtils {
 
     static Integer expectedNumResults = null;
 
+    static Set<String> solutions = null;
 
     /**
      * Execute a parsed query on a dataset until all results are produced.
@@ -42,6 +46,10 @@ public class ExecuteUtils {
 
         Map<Integer, Serializable> state = Map.of();
         byte[] serialized = null;
+        Map<Integer, Serializable> previousState = null;
+
+        Set<String> preparingSolutions = new HashSet<>();
+
         while (Objects.isNull(results)|| (!Objects.isNull(results.getState()))) {
             nbPreempt += 1;
 
@@ -67,6 +75,16 @@ public class ExecuteUtils {
 
             while (result_set.hasNext()) { // must enumerate to actually execute
                 QuerySolution solution = result_set.next();
+                if (Objects.nonNull(solutions)) {
+                    if (!solutions.contains(solution.toString())) {
+                        System.out.println("WRONG SOL = " + solution);
+                    }
+                }
+                if (preparingSolutions.contains(solution.toString())) {
+                    System.out.println("DOUBLON = " + solution.toString() );
+                }
+                preparingSolutions.add(solution.toString());
+
                 sum += 1;
             }
             log.debug("Got {} results so far…" , sum);
@@ -79,7 +97,16 @@ public class ExecuteUtils {
             state = (Map) results.getState();
             qe.close();
 
+            if (Objects.nonNull(state) && state.equals(previousState)) {
+                System.out.println(":{");
+            }
+
             log.debug("Saved state {}", results.getState());
+        }
+
+
+        if (Objects.isNull(solutions)) {
+            solutions = preparingSolutions;
         }
 
         return new Pair<>(sum, nbPreempt);

@@ -1,5 +1,6 @@
 package fr.gdd.sage.jena;
 
+import org.apache.jena.atlas.lib.Bytes;
 import org.apache.jena.dboe.base.record.Record;
 
 import java.io.*;
@@ -48,5 +49,11 @@ public class SerializableRecord implements Serializable {
 
     public long getOffset() {
         return offset;
+    }
+
+    @Override
+    public String toString() {
+
+        return String.format("%s (%sth)", Bytes.asHex(record.getKey()), offset);
     }
 }

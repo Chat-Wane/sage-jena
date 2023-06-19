@@ -1,6 +1,5 @@
 package fr.gdd.sage.arq;
 
-import org.apache.jena.atlas.lib.Lib;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Query;
 import org.apache.jena.sparql.algebra.Op;
@@ -13,10 +12,10 @@ import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.mgt.Explain;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2;
-import org.apache.jena.tdb2.TDBException;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
-import org.apache.jena.tdb2.sys.TDBInternal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Instead of relying on {@link org.apache.jena.tdb2.solver.QueryEngineTDB} to
@@ -24,6 +23,8 @@ import org.apache.jena.tdb2.sys.TDBInternal;
  * counter in top of the execution pipeline.
  */
 public class QueryEngineSage extends QueryEngineTDB {
+
+    Logger log = LoggerFactory.getLogger(QueryEngineSage.class);
 
     protected QueryEngineSage(Op op, DatasetGraphTDB dataset, Binding input, Context context) {
         super(op, dataset, input, context);
@@ -57,7 +58,7 @@ public class QueryEngineSage extends QueryEngineTDB {
 
         // #2 comes from {@link QueryEngineBase}
         ExecutionContext execCxt = new ExecutionContext(context, dsg.getDefaultGraph(), dsg, QC.getFactory(context));
-        IdentifierLinker.create(execCxt, op);
+        IdentifierLinker.create(execCxt, op, true);
 
         QueryIterator qIter1 =
                 ( input.isEmpty() ) ? QueryIterRoot.create(execCxt)
