@@ -2,9 +2,11 @@ package fr.gdd.sage;
 
 import fr.gdd.sage.generics.Pair;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
@@ -19,7 +21,7 @@ import java.io.Reader;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Execute and register a benchmark (dataset along with queries) using Jena with force order. Measurements
@@ -30,7 +32,6 @@ public class Baseline {
     Logger log = LoggerFactory.getLogger(Baseline.class);
 
     final Dataset dataset;
-    List<String> queries;
     String output;
     Integer nbTimes;
 
@@ -39,21 +40,31 @@ public class Baseline {
     HashMap<String, Long> query2Results = new HashMap<>();
     HashMap<String, Long> query2Time    = new HashMap<>();
 
-    public Baseline(Dataset dataset, List<String> queries,  Integer nbTimes, String output) {
+    Map<String, String> query2ActualQuery;
+
+    public Baseline(Dataset dataset, Map<String, String> queries, Integer nbTimes, String output) {
         this.dataset = dataset;
-        this.queries = queries;
+        this.query2ActualQuery = queries;
         this.output = output;
         this.nbTimes = nbTimes;
     }
 
-    public void execute() throws IOException {
+    public Long nbResults(String query) {
+        return this.query2Results.get(query);
+    }
+
+    public Long executionTime(String query) {
+        return this.query2Time.get(query);
+    }
+
+    public void loadCSV () throws IOException {
         Path output_asPath = Path.of(output);
 
         if (output_asPath.toFile().exists()) {
             log.info("Reading the already existing output file.");
             CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
                     .setHeader(HEADERS)
-                    .setSkipHeaderRecord(true)
+                    // .setSkipHeaderRecord(true)
                     .build();
 
             Reader in = new FileReader(output_asPath.toString());
@@ -66,8 +77,18 @@ public class Baseline {
                 Long time = Long.parseLong(record.get(HEADERS[2]));
                 query2Results.put(query, results);
                 query2Time.put(query, time);
-                log.info("Skipping {}…", query);
             }
+            log.info("Loaded {} queries.", query2Results.keySet().size());
+        }
+    }
+
+    public void execute() throws IOException {
+        dataset.begin(ReadWrite.READ);
+
+        Path output_asPath = Path.of(output);
+
+        if (output_asPath.toFile().exists()) {
+            loadCSV();
         } else {
             log.info("Creating a fresh output file at {}.", output_asPath.toAbsolutePath());
             output_asPath.toFile().createNewFile();
@@ -75,34 +96,36 @@ public class Baseline {
 
         Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
         OpExecutorFactory opExecutorTDB2ForceOrderFactory = (OpExecutorFactory) ReflectionUtils._callField(plainFactoryField, OpExecutorTDB2.class, null);
-        dataset.getContext().set(ARQ.optimization, false);
         QC.setFactory(dataset.getContext(), opExecutorTDB2ForceOrderFactory);
         QueryEngineTDB.register();
 
-        for (String query: queries) {
-            if (query2Results.containsKey(query)) {
+        for (String queryPath: query2ActualQuery.keySet()) {
+            if (query2Results.containsKey(queryPath)) {
+                log.debug("Skipping {}…", queryPath);
                 continue;
             }
 
-            log.info("Executing {}…", query);
+            log.info("Executing {}…", queryPath);
+
+            String query = query2ActualQuery.get(queryPath);
+
             for (int i = 0; i < nbTimes; ++i) {
                 long starting = System.currentTimeMillis();
                 Pair<Long, Long> resultsAndPreempt = ExecuteUtils.executeTDB(dataset, query);
                 long elapsed = System.currentTimeMillis() - starting;
 
-                query2Results.put(query, resultsAndPreempt.left);
-                query2Time.put(query, elapsed);
+                query2Results.put(queryPath, resultsAndPreempt.left);
+                query2Time.put(queryPath, elapsed);
 
-                log.debug("[{}], Got {} results in {} ms.", i, resultsAndPreempt.left, elapsed);
+                log.debug("[{}] - Got {} results in {} ms.", i+1, resultsAndPreempt.left, elapsed);
 
-                CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
-                        .setHeader(HEADERS)
-                        .setSkipHeaderRecord(true)
-                        .build();
-
-                csvFormat.printRecord(new FileWriter(output_asPath.toFile()), query, resultsAndPreempt.left, elapsed);
+                CSVPrinter csvPrinter = new CSVPrinter(new FileWriter(output_asPath.toFile(), true), CSVFormat.DEFAULT);
+                csvPrinter.printRecord(queryPath, resultsAndPreempt.left, elapsed);
+                csvPrinter.flush();
             }
         }
+
+        dataset.close();
     }
 
 }

@@ -146,7 +146,7 @@ public class ExecuteUtils {
         ResultSet rs = queryExecution.execSelect() ;
         while (rs.hasNext()) {
             rs.next();
-            nbResults+=1;
+            nbResults += 1;
         }
 
         log.debug("Got {} results for this query.", nbResults);

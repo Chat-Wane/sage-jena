@@ -5,6 +5,8 @@ import fr.gdd.sage.databases.persistent.WDBench;
 import fr.gdd.sage.generics.Pair;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.dboe.base.file.FileException;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -23,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @State(Scope.Benchmark)
 public class WDBenchBenchmark {
@@ -114,6 +117,24 @@ public class WDBenchBenchmark {
 
         WDBench wdbench = new WDBench(Optional.of("datasets"));
         wdbench.setQueries("sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/");
+
+        Dataset dataset = TDB2Factory.connectDataset(wdbench.dbPath_asStr);
+
+        List<String> queries = wdbench.getQueries();
+        Map<String, String> query2ActualQuery = queries.stream().collect(
+                Collectors.toMap(String::toString, // key: query file path
+                        (path) -> { // actual query
+                            try {
+                                String query = String.join(" ", Files.readAllLines(Path.of(path)));
+                                return query + " LIMIT 100000";
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }));
+        Baseline baselineWDBench = new Baseline(dataset, query2ActualQuery,
+                3, "sage-jena-benchmarks/results/wdbench_baseline.csv");
+
+        baselineWDBench.execute();
 
         // create all the runners' options
         List<Options> options = createOptions(wdbench, List.of(QueryTypes.Long),
