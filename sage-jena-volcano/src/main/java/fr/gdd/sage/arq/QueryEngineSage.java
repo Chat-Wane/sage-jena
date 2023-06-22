@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
  */
 public class QueryEngineSage extends QueryEngineTDB {
 
-    Logger log = LoggerFactory.getLogger(QueryEngineSage.class);
+    private static Logger log = LoggerFactory.getLogger(QueryEngineSage.class);
 
     protected QueryEngineSage(Op op, DatasetGraphTDB dataset, Binding input, Context context) {
         super(op, dataset, input, context);

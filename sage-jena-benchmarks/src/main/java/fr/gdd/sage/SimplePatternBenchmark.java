@@ -28,7 +28,7 @@ import java.util.Optional;
 @Fork(2)
 @Measurement(iterations = 1)
 public class SimplePatternBenchmark {
-    static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
+    final static Logger log = LoggerFactory.getLogger(SimplePatternBenchmark.class);
 
     @Param({EngineTypes.SageForceOrderTimeout1ms, EngineTypes.TDB, EngineTypes.Sage, EngineTypes.TDBForceOrder, EngineTypes.SageForceOrder,
             EngineTypes.SageForceOrderLimit1, EngineTypes.SageForceOrderTimeout1ms})

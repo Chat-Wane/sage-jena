@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, PreemptIterator<SerializableRecord> {
 
-    Logger log = LoggerFactory.getLogger(PreemptScanIteratorTupleId.class);
+    private static Logger log = LoggerFactory.getLogger(PreemptScanIteratorTupleId.class);
 
     public BackendIterator<NodeId, Serializable> wrapped;
     NodeTable nodeTable;
@@ -100,7 +100,7 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, Pree
                 }
                 this.output.addState(new Pair(getId(), current()));
                 // execution stops immediately, caught by {@link PreemptRootIter}
-                throw new PauseException(this.output.getState());
+                throw new PauseException();
             }
             return true; // always true
         }

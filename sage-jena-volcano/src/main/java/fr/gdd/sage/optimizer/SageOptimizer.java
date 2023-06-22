@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * The topest the smallest; candidates patterns are chosen amongst set variables, all if none.
  */
 public class SageOptimizer extends TransformCopy {
-    Logger log = LoggerFactory.getLogger(SageOptimizer.class);
+    private static Logger log = LoggerFactory.getLogger(SageOptimizer.class);
 
     JenaBackend backend;
     Dataset dataset;

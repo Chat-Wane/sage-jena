@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @State(Scope.Benchmark)
 public class WDBenchBenchmark {
 
-    static Logger log = LoggerFactory.getLogger(WDBenchBenchmark.class);
+    final static Logger log = LoggerFactory.getLogger(WDBenchBenchmark.class);
     static String BASELINE_FILE = "sage-jena-benchmarks/results/wdbench_opts_baseline.csv";
 
     @Param("sage-jena-benchmarks/queries/wdbench_opts/query_99.sparql")
@@ -115,8 +115,7 @@ public class WDBenchBenchmark {
         // (TODO) should fully release dataset, yet cannot manage to do it properly… The process seems
         //  to hang on the locking… Once the baseline is processed, for now, you need to restart the benchmark…
 
-        wdbench.queries = wdbench.queries.stream().filter(q -> baselineWDBench.query2Results.get(q) < 100000).collect(Collectors.toList());
-        System.out.println("EXECUTING "+ wdbench.queries.size()+ " queries.");
+        // wdbench.queries = wdbench.queries.stream().filter(q -> baselineWDBench.query2Results.get(q) < 100000).collect(Collectors.toList());
 
         // create all the runners' options
         List<Options> options = createOptions(wdbench, List.of(QueryTypes.Long),

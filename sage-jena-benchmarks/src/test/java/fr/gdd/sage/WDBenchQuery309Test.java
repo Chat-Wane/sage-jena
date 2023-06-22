@@ -27,7 +27,7 @@ import java.lang.reflect.Field;
 import java.util.Optional;
 
 class WDBenchQuery309Test {
-    Logger log = LoggerFactory.getLogger(WDBenchQuery309Test.class);
+    private static Logger log = LoggerFactory.getLogger(WDBenchQuery309Test.class);
 
     static Dataset dataset;
 
@@ -40,24 +40,12 @@ class WDBenchQuery309Test {
 
     String query = "SELECT  *\n" +
             "WHERE\n" +
-            "  { ?x1  <http://www.wikidata.org/prop/direct/P171>  <http://www.wikidata.org/entity/Q25401> ;\n" +
-            "         <http://www.wikidata.org/prop/direct/P18>  ?x2\n" +
+            "  { ?x1  <http://www.wikidata.org/prop/direct/P2174>  ?x2 .\n" +
+            "    ?x3  <http://www.wikidata.org/prop/direct/P625>  ?x4\n" +
             "    OPTIONAL\n" +
-            "      { ?x3  <http://www.wikidata.org/prop/direct/P171>  ?x1 ;\n" +
-            "             <http://www.wikidata.org/prop/direct/P18>  ?x4\n" +
-            "      }\n" +
-            "    OPTIONAL\n" +
-            "      { ?x3  <http://www.wikidata.org/prop/direct/P31>  <http://www.wikidata.org/entity/Q16521> .\n" +
-            "        ?x5  <http://www.wikidata.org/prop/direct/P171>  ?x3 ;\n" +
-            "             <http://www.wikidata.org/prop/direct/P18>  ?x6\n" +
-            "      }\n" +
-            "    OPTIONAL\n" +
-            "      { ?x5  <http://www.wikidata.org/prop/direct/P171>  ?x3 .\n" +
-            "        ?x3  <http://www.wikidata.org/prop/direct/P171>  ?x1 .\n" +
-            "        ?x7  <http://www.wikidata.org/prop/direct/P171>  ?x5 ;\n" +
-            "             <http://www.wikidata.org/prop/direct/P18>  ?x8\n" +
-            "      }\n" +
-            "  } LIMIT 1000000";
+            "      { ?x1  <http://www.wikidata.org/prop/direct/P937>  ?x3 }\n" +
+            "  }\n" +
+            "LIMIT 100000";
 
     @BeforeAll
     public static void initialize_database() {
@@ -140,18 +128,18 @@ class WDBenchQuery309Test {
         SageInput<?> input = new SageInput<>();
         // Context c = dataset.getContext().set(SageConstants.input, input);
         dataset.getContext().set(ARQ.optimization, false);
-        dataset.getContext().set(SageConstants.timeout, 1000);
+        /*dataset.getContext().set(SageConstants.timeout, 1000);
 
         System.out.println("FIRST");
         Pair results = ExecuteUtils.executeTillTheEnd(dataset, query);
 
 
-        log.info("Got {} results in {} pause(s)/resume(s)…", results.left, results.right);
+        log.info("Got {} results in {} pause(s)/resume(s)…", results.left, results.right);*/
 
         dataset.getContext().set(SageConstants.timeout, 1);
 
         System.out.println("SECOND");
-        results = ExecuteUtils.executeTillTheEnd(dataset, query);
+        Pair results = ExecuteUtils.executeTillTheEnd(dataset, query);
 
         log.info("Got {} results in {} pause(s)/resume(s)…", results.left, results.right);
     }

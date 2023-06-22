@@ -1,19 +1,11 @@
 package org.apache.jena.sparql.engine.iterator;
 
-import fr.gdd.sage.arq.SageConstants;
-import fr.gdd.sage.io.SageOutput;
-import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.serializer.SerializationContext;
-import org.apache.jena.tdb.store.Hash;
-
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.Map;
 
 /**
  * The sole purpose of this iterator is to catch exception thrown by the underlying

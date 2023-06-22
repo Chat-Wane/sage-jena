@@ -59,7 +59,7 @@ import java.util.function.Predicate;
  * Line 116; and {@link org.apache.jena.tdb2.solver.StageMatchTuple} Line 59.
  **/
 public class OpExecutorSage extends OpExecutorTDB2 {
-    static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorSage.class);
 
     /**
      * Factory to be registered in Jena ARQ. It creates an OpExecutor for
@@ -166,6 +166,13 @@ public class OpExecutorSage extends OpExecutorTDB2 {
     protected QueryIterator execute(OpLeftJoin opLeftJoin, QueryIterator input) {
         QueryIterator left = exec(opLeftJoin.getLeft(), input);
         return new PreemptQueryIterOptionalIndex(opLeftJoin, left, opLeftJoin.getRight(), execCxt);
+    }
+
+    @Override
+    protected QueryIterator execute(OpSlice opSlice, QueryIterator input) {
+        QueryIterator qIter = exec(opSlice.getSubOp(), input);
+        qIter = new PreemptQueryIterSlice(opSlice, qIter, opSlice.getStart(), opSlice.getLength(), execCxt);
+        return qIter;
     }
 
     /**

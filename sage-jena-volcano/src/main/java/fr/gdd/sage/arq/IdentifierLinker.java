@@ -44,19 +44,19 @@ public class IdentifierLinker extends OpVisitorBase {
 
     @Override
     public void visit(OpProject opProject) {
-        opProject.visit(this);
+        opProject.getSubOp().visit(this);
     }
 
     @Override
     public void visit(OpSlice opSlice) {
-        /*opSlice.getSubOp().visit(getLeftest);
+        opSlice.getSubOp().visit(getLeftest);
         Op opLeftest = getLeftest.result;
 
         Integer idLeftest = identifiers.getIds(opLeftest).stream().min(Integer::compare).orElseThrow();
         Integer idSlice = identifiers.getIds(opSlice).get(0);
 
         add(idSlice, idLeftest);
-        */
+
         opSlice.getSubOp().visit(this);
     }
 
@@ -165,20 +165,26 @@ public class IdentifierLinker extends OpVisitorBase {
     public boolean inRightSideOf(Integer parent, Integer child) {
         Op parentOp = identifiers.id2Op.get(parent);
 
-        if (!(parentOp instanceof OpN || parentOp instanceof Op2 || parentOp instanceof OpLeftJoin)) {
-            return false;
-        }
-
         if (!getParents(child).contains(parent)) {
             return false;
         }
 
-        Op2 parentOp2 = (Op2) parentOp;
+        if (parentOp instanceof Op2) {
+            Op2 parentOp2 = (Op2) parentOp;
 
-        Op childOp = identifiers.id2Op.get(child);
-        IsIncludedIn visitor = new IsIncludedIn(childOp);
-        parentOp2.getRight().visit(visitor);
-        return visitor.result;
+            Op childOp = identifiers.id2Op.get(child);
+            IsIncludedIn visitor = new IsIncludedIn(childOp);
+            parentOp2.getRight().visit(visitor);
+            return visitor.result;
+        } else if (parentOp instanceof Op1) {
+            Op1 parentOp1 = (Op1) parentOp;
+
+            Op childOp = identifiers.id2Op.get(child);
+            IsIncludedIn visitor = new IsIncludedIn(childOp);
+            parentOp1.getSubOp().visit(visitor);
+            return visitor.result;
+        }
+        return false;
     }
 
     /* ******************************************************************* */
@@ -213,7 +219,6 @@ public class IdentifierLinker extends OpVisitorBase {
         protected void visit1(Op1 op) {
             result = result || op == toFind;
             if (!result) op.getSubOp().visit(this);
-
         }
 
         @Override

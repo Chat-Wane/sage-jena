@@ -35,7 +35,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RandomFusekiServerTest {
-    Logger log = LoggerFactory.getLogger(RandomFusekiServerTest.class);
+    private static Logger log = LoggerFactory.getLogger(RandomFusekiServerTest.class);
 
     @Disabled
     @Test

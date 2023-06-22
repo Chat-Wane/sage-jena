@@ -24,7 +24,7 @@ import java.lang.reflect.Field;
 import java.util.Optional;
 
 class WDBenchQueryTest {
-    Logger log = LoggerFactory.getLogger(WDBenchQueryTest.class);
+    private static Logger log = LoggerFactory.getLogger(WDBenchQueryTest.class);
 
     static Dataset dataset;
 

@@ -19,7 +19,7 @@ import java.util.Objects;
  */
 public class ProgressJenaIterator {
 
-    Logger log = LoggerFactory.getLogger(ProgressJenaIterator.class);
+    private static Logger log = LoggerFactory.getLogger(ProgressJenaIterator.class);
 
     /**
      * Number of walks to approximate how filled bptree's records are.

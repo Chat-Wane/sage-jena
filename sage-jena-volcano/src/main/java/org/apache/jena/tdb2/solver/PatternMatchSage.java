@@ -42,7 +42,7 @@ import static org.apache.jena.sparql.engine.main.solver.SolverLib.tripleHasEmbTr
  **/
 public class PatternMatchSage {
 
-    static Logger log = LoggerFactory.getLogger(PatternMatchSage.class);
+    private static Logger log = LoggerFactory.getLogger(PatternMatchSage.class);
 
     public static QueryIterator execute(GraphTDB graph, BasicPattern pattern, QueryIterator input, Predicate<Tuple<NodeId>> filter, ExecutionContext execCxt) {
         NodeTupleTable ntt = graph.getNodeTupleTable();

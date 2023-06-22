@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class OpExecutorRandomOptionalTest {
 
-    Logger log = LoggerFactory.getLogger(OpExecutorRandomOptionalTest.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorRandomOptionalTest.class);
 
     static Dataset dataset;
 

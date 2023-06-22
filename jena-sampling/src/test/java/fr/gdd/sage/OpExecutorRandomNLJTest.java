@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpExecutorRandomNLJTest {
 
-    Logger log = LoggerFactory.getLogger(OpExecutorRandomNLJTest.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorRandomNLJTest.class);
 
     static Dataset dataset;
 

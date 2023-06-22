@@ -1,26 +1,22 @@
 package fr.gdd.sage.arq;
 
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitorBase;
-import org.apache.jena.sparql.algebra.OpVisitorByType;
-import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.algebra.op.OpBGP;
+import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.sse.SSE;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class IdentifierAllocatorTest {
 
-    Logger log = LoggerFactory.getLogger(IdentifierAllocatorTest.class);
+    private static Logger log = LoggerFactory.getLogger(IdentifierAllocatorTest.class);
 
     @Test
     public void simple_test_with_only_one_bgp () {

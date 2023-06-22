@@ -29,7 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 class SageFusekiServerTest {
-    static Logger log = LoggerFactory.getLogger(SageFusekiServerTest.class);
+    private static Logger log = LoggerFactory.getLogger(SageFusekiServerTest.class);
 
     @Disabled
     @Test

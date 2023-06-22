@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpExecutorRandomUnionTest {
 
-    Logger log = LoggerFactory.getLogger(OpExecutorRandomUnionTest.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorRandomUnionTest.class);
 
     static Dataset dataset;
 

@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
  **/
 public class PreemptCounterIter extends QueryIter1 {
 
-    Logger log = LoggerFactory.getLogger(PreemptCounterIter.class);
+    private static Logger log = LoggerFactory.getLogger(PreemptCounterIter.class);
 
     SageOutput<?> output;
 

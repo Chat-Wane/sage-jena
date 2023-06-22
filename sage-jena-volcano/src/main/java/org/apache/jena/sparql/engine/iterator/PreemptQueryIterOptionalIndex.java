@@ -23,7 +23,7 @@ import java.util.Objects;
  */
 public class PreemptQueryIterOptionalIndex extends QueryIterOptionalIndex {
 
-    Logger log = LoggerFactory.getLogger(PreemptQueryIterOptionalIndex.class);
+    private static Logger log = LoggerFactory.getLogger(PreemptQueryIterOptionalIndex.class);
 
     Op op; // because in `QueryIterOptionalIndex` the field is private…
     Integer id;
@@ -35,23 +35,16 @@ public class PreemptQueryIterOptionalIndex extends QueryIterOptionalIndex {
         this.op = opRight;
         sageInput = context.getContext().get(SageConstants.input);
 
-        IdentifierLinker identifiers = getExecContext().getContext().get(SageConstants.identifiers);
         Integer current = getExecContext().getContext().get(SageConstants.cursor);
-
-        IdentifierAllocator meow = new IdentifierAllocator(current);
-        ((Op2) op).getLeft().visit(meow);
-
-        this.id = meow.getCurrent() + 1;
+        IdentifierAllocator allocator = new IdentifierAllocator(current);
+        ((Op2) op).getLeft().visit(allocator);
+        this.id = allocator.getCurrent() + 1;
 
         log.debug("Op {} gets id {}", op, id);
-
-        // this.id = identifiers.getIds(op).get(0);
     }
 
     @Override
     protected QueryIterator nextStage(Binding binding) {
-        // id = getExecContext().getContext().get(SageConstants.cursor);
-        // id += 1; // The identifier of the OPT
         getExecContext().getContext().set(SageConstants.cursor, id);
 
         Op op2 = QC.substitute(op, binding);

@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpExecutorRandomBGPTest {
 
-    Logger log = LoggerFactory.getLogger(OpExecutorRandomBGPTest.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorRandomBGPTest.class);
 
     static Dataset dataset;
 

@@ -5,6 +5,7 @@ import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.query.*;
+import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineRegistry;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  */
 public class OpExecutorSageBGPTest {
 
-    static Logger log = LoggerFactory.getLogger(OpExecutorSageBGPTest.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorSageBGPTest.class);
 
     static Dataset dataset = null;
 
@@ -141,6 +142,31 @@ public class OpExecutorSageBGPTest {
         assertEquals(9, rest.size());
     }
 
+    @Test
+    public void a_simple_bgp_with_a_limit () {
+        String query_asString = "SELECT * WHERE {?s ?p ?o} LIMIT 5";
+        Query query = QueryFactory.create(query_asString);
+        Op op = Algebra.compile(query);
+
+        SageOutput output = run_to_the_limit(dataset, op, new SageInput<>().setLimit(1));
+        assertEquals(1, output.size());
+        output = run_to_the_limit(dataset, op, new SageInput<>().setState(output.getState()).setLimit(1));
+        assertEquals(1, output.size());
+        output = run_to_the_limit(dataset, op, new SageInput<>().setState(output.getState()).setLimit(1));
+        assertEquals(1, output.size());
+        output = run_to_the_limit(dataset, op, new SageInput<>().setState(output.getState()));
+        // despite the fact that there are more results, it only returns 2 to complete the 3 already produced
+        // and reach the LIMIT 5.
+        assertEquals(2, output.size());
+    }
+
+    /* ***************************************************************************** */
+
+    /**
+     * Designed to easily profile query creation when the number of thread increases.
+     * At the time of the writing (June 22th 2023), it highlights a locking mechanism
+     * even in read-only mode that negatively impacts performance.
+     */
     @Disabled
     @Test
     public void test_concurrent_execution_to_profile_perf() throws InterruptedException {

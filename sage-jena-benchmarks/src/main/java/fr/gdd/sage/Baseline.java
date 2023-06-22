@@ -32,7 +32,7 @@ import java.util.Objects;
  */
 public class Baseline {
 
-    Logger log = LoggerFactory.getLogger(Baseline.class);
+    final static Logger log = LoggerFactory.getLogger(Baseline.class);
 
     final String datasetPath;
     Dataset dataset;

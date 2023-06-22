@@ -25,7 +25,7 @@ import java.util.Set;
  * despite pause/resume.
  **/
 public class ExecuteUtils {
-    static Logger log = LoggerFactory.getLogger(ExecuteUtils.class);
+    final static Logger log = LoggerFactory.getLogger(ExecuteUtils.class);
 
     static Integer expectedNumResults = null;
 
@@ -48,7 +48,7 @@ public class ExecuteUtils {
         byte[] serialized = null;
         Map<Integer, Serializable> previousState = null;
 
-        Set<String> preparingSolutions = new HashSet<>();
+        //Set<String> preparingSolutions = new HashSet<>();
 
         while (Objects.isNull(results)|| (!Objects.isNull(results.getState()))) {
             nbPreempt += 1;
@@ -76,7 +76,7 @@ public class ExecuteUtils {
             while (result_set.hasNext()) { // must enumerate to actually execute
                 QuerySolution solution = result_set.next();
                 // System.out.println(solution);
-                if (Objects.nonNull(solutions)) {
+                /*if (Objects.nonNull(solutions)) {
                     if (!solutions.contains(solution.toString())) {
                         results = qe.getContext().get(SageConstants.output);
                         state = (Map) results.getState();
@@ -84,15 +84,15 @@ public class ExecuteUtils {
                         System.out.println("WRONG = " + solution.toString() );
                         throw new RuntimeException("WRONG");
                     }
-                }
-                if (preparingSolutions.contains(solution.toString())) {
+                }*/
+                /*if (preparingSolutions.contains(solution.toString())) {
                     results = qe.getContext().get(SageConstants.output);
                     state = (Map) results.getState();
                     System.out.println(state);
                     System.out.println("DOUBLON = " + solution.toString() );
                     throw new RuntimeException("DOUBLON");
                 }
-                preparingSolutions.add(solution.toString());
+                preparingSolutions.add(solution.toString());*/
 
                 sum += 1;
             }
@@ -115,9 +115,9 @@ public class ExecuteUtils {
         }
 
 
-        if (Objects.isNull(solutions)) {
+        /*if (Objects.isNull(solutions)) {
             solutions = preparingSolutions;
-        }
+        }*/
 
         return new Pair<>(sum, nbPreempt);
     }

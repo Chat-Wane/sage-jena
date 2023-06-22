@@ -1,6 +1,5 @@
 package fr.gdd.sage.arq;
 
-import com.github.jsonldjava.utils.Obj;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForOptional;
 import fr.gdd.sage.generics.Pair;
@@ -11,7 +10,6 @@ import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.Plan;
-import org.apache.jena.sparql.engine.QueryEngineRegistry;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
@@ -26,16 +24,17 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.TreeSet;
 
-import static fr.gdd.sage.arq.OpExecutorSageBGPTest.log;
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class OpExecutorSageOptionalTest {
 
-    static Logger log = LoggerFactory.getLogger(OpExecutorSageOptionalTest.class);
+    private static Logger log = LoggerFactory.getLogger(OpExecutorSageOptionalTest.class);
 
     static Dataset datasetWatdiv = null;
     static Dataset datasetOption = null;

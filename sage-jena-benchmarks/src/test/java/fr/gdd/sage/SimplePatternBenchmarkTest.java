@@ -23,7 +23,7 @@ import java.util.Optional;
  * Indeed,`jmh` starts new VMs precluding the use of debug/profiling mode…
  **/
 class SimplePatternBenchmarkTest {
-    Logger log = LoggerFactory.getLogger(SimplePatternBenchmarkTest.class);
+    private static Logger log = LoggerFactory.getLogger(SimplePatternBenchmarkTest.class);
 
     static Dataset dataset;
 

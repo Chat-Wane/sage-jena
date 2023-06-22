@@ -116,7 +116,7 @@ class IdentifierLinkerTest {
         Op op = Algebra.compile(query);
         IdentifierLinker l = new IdentifierLinker(op);
 
-        assertEquals(Set.of(), l.getParents(1)); // limit
-        assertEquals(Set.of(1), l.getParents(2)); // tp1
+        assertEquals(Set.of(), l.getParents(2)); // tp1
+        assertEquals(Set.of(2), l.getParents(1)); // limit
     }
 }

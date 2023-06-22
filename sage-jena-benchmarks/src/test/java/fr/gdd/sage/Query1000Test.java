@@ -27,7 +27,7 @@ import java.util.Optional;
  * is far from optimal, and (ii) it contains fully bounded triples.
  **/
 class Query1000Test {
-    Logger log = LoggerFactory.getLogger(Query1000Test.class);
+    private static Logger log = LoggerFactory.getLogger(Query1000Test.class);
 
     static Dataset dataset;
 
