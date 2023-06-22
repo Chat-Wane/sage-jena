@@ -6,6 +6,7 @@ import fr.gdd.sage.generics.Pair;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.dboe.base.file.FileException;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.tdb.TDBFactory;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -29,9 +30,9 @@ import java.util.stream.Collectors;
 
 @State(Scope.Benchmark)
 public class WDBenchBenchmark {
-    static Logger log = LoggerFactory.getLogger(WDBenchBenchmark.class);
 
-    static HashMap<String, Long> nbResultsPerQuery = new HashMap<>();
+    static Logger log = LoggerFactory.getLogger(WDBenchBenchmark.class);
+    static String BASELINE_FILE = "sage-jena-benchmarks/results/wdbench_opts_baseline.csv";
 
     @Param("sage-jena-benchmarks/queries/wdbench_opts/query_99.sparql")
     public String a_query;
@@ -42,10 +43,14 @@ public class WDBenchBenchmark {
     @Param("sage-jena-benchmarks/target/WDBench")
     public String z_dbPath;
 
+    public static Baseline baseline;
+
 
     @Setup(Level.Trial)
     public void setup(SetupBenchmark.BenchmarkExecutionContext ec) {
         try {
+            baseline = new Baseline(null, null, null, BASELINE_FILE);
+            baseline.loadCSV();
             SetupBenchmark.setup(ec, z_dbPath, b_engine);
         } catch (Exception e) {
             e.printStackTrace();
@@ -71,38 +76,12 @@ public class WDBenchBenchmark {
 
     @Benchmark
     public long execute(SetupBenchmark.BenchmarkExecutionContext ec) throws Exception {
-        long start = System.currentTimeMillis(); // (TODO) remove all things that are not the measured stuff
-        Pair<Long, Long> nbResultsAndPreempt = null;
-        try {
-            nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
-        } catch (Exception e) {
-            // Seems to have error when RAM is not sufficient
-            long elapsed = System.currentTimeMillis() - start; // (TODO) remove
-            log.debug("{}", e);
-            BufferedWriter writer = new BufferedWriter(new FileWriter("sage-jena-benchmarks/results/wdbench_opts.csv", true));
-            writer.append(String.format("%s,-1,%s\n", a_query, elapsed));
-            writer.close();
-            return -1;
-        }
-
-
-        long elapsed = System.currentTimeMillis() - start; // (TODO) remove
+        Pair<Long, Long> nbResultsAndPreempt = SetupBenchmark.execute(ec, b_engine);
         log.debug("Got {} results for this query in {} pause/resume.", nbResultsAndPreempt.left, nbResultsAndPreempt.right);
 
-        // (TODO) remove this from the benchmarked part
-        if (nbResultsPerQuery.containsKey(a_query)) {
-            long previousNbResults = nbResultsPerQuery.get(a_query);
-            if (previousNbResults != nbResultsAndPreempt.left) {
-                throw (new Exception(String.format("/!\\ not the same number of results on %s: %s vs %s.",
-                        a_query, previousNbResults, nbResultsAndPreempt.left)));
-            }
-        } else {
-            nbResultsPerQuery.put(a_query, nbResultsAndPreempt.left);
-            BufferedWriter writer = new BufferedWriter(new FileWriter("sage-jena-benchmarks/results/wdbench_opts.csv", true));
-            for (String key : nbResultsPerQuery.keySet()) {
-                writer.append(String.format("%s,%s,%s\n", key, nbResultsPerQuery.get(key), elapsed));
-            }
-            writer.close();
+        if (!baseline.query2Results.get(a_query).equals(nbResultsAndPreempt.left)) {
+            throw (new Exception(String.format("/!\\ not the same number of results on %s: %s vs %s.",
+                    a_query, baseline.query2Results.get(a_query), nbResultsAndPreempt.left)));
         }
 
         return nbResultsAndPreempt.left;
@@ -118,8 +97,6 @@ public class WDBenchBenchmark {
         WDBench wdbench = new WDBench(Optional.of("datasets"));
         wdbench.setQueries("sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/");
 
-        Dataset dataset = TDB2Factory.connectDataset(wdbench.dbPath_asStr);
-
         List<String> queries = wdbench.getQueries();
         Map<String, String> query2ActualQuery = queries.stream().collect(
                 Collectors.toMap(String::toString, // key: query file path
@@ -131,10 +108,15 @@ public class WDBenchBenchmark {
                                 throw new RuntimeException(e);
                             }
                         }));
-        Baseline baselineWDBench = new Baseline(dataset, query2ActualQuery,
-                3, "sage-jena-benchmarks/results/wdbench_baseline.csv");
+        Baseline baselineWDBench = new Baseline(wdbench.dbPath_asStr, query2ActualQuery,
+                3, "sage-jena-benchmarks/results/wdbench_opts_baseline.csv");
 
         baselineWDBench.execute();
+        // (TODO) should fully release dataset, yet cannot manage to do it properly… The process seems
+        //  to hang on the locking… Once the baseline is processed, for now, you need to restart the benchmark…
+
+        wdbench.queries = wdbench.queries.stream().filter(q -> baselineWDBench.query2Results.get(q) < 100000).collect(Collectors.toList());
+        System.out.println("EXECUTING "+ wdbench.queries.size()+ " queries.");
 
         // create all the runners' options
         List<Options> options = createOptions(wdbench, List.of(QueryTypes.Long),
@@ -149,8 +131,8 @@ public class WDBenchBenchmark {
         );
 
         // testing only one query
-        options = customsOptions(wdbench.dbPath_asStr, "sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/query_266.sparql",
-               EngineTypes.SageForceOrderTimeout1ms);
+        // options = customsOptions(wdbench.dbPath_asStr, "sage-jena-benchmarks/queries/wdbench_opts_with_sage_plan/query_266.sparql",
+        //      EngineTypes.SageForceOrderTimeout1ms);
 
         for (Options opt : options) {
             new Runner(opt).run();

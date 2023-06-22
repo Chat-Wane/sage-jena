@@ -48,7 +48,7 @@ public class WDBench extends BenchmarkDataset {
     @Override
     public void setQueries(String pathToQueries) throws IOException {
         super.setQueries(pathToQueries);
-        if (Path.of("sage-jena-benchmarks/results/wdbench_opts.csv").toFile().exists()) {
+        /* if (Path.of("sage-jena-benchmarks/results/wdbench_opts.csv").toFile().exists()) {
             Reader reader = new FileReader("sage-jena-benchmarks/results/wdbench_opts.csv");
             String f = IOUtils.toString(reader);
             String[] splitted = f.split(",|\n");
@@ -58,6 +58,6 @@ public class WDBench extends BenchmarkDataset {
                 log.debug("\t {}", skip);
             }
             queries.removeAll(skiplist);
-        }
+        } */
     }
 }

@@ -46,7 +46,7 @@ public class BenchmarkDataset {
     private List<String> whitelist;
     private List<String> blacklist;
 
-    protected List<String> queries;
+    public List<String> queries;
 
     public BenchmarkDataset(Optional<String> dbPath_opt,
                             String defaultDbPath, String dbName, String archiveName, String extractPath,

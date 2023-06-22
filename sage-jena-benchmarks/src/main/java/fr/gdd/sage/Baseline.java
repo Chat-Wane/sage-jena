@@ -9,11 +9,13 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.OpExecutorTDB2;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.crypto.Data;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,6 +24,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Execute and register a benchmark (dataset along with queries) using Jena with force order. Measurements
@@ -31,7 +34,8 @@ public class Baseline {
 
     Logger log = LoggerFactory.getLogger(Baseline.class);
 
-    final Dataset dataset;
+    final String datasetPath;
+    Dataset dataset;
     String output;
     Integer nbTimes;
 
@@ -42,8 +46,8 @@ public class Baseline {
 
     Map<String, String> query2ActualQuery;
 
-    public Baseline(Dataset dataset, Map<String, String> queries, Integer nbTimes, String output) {
-        this.dataset = dataset;
+    public Baseline(String datasetPath, Map<String, String> queries, Integer nbTimes, String output) {
+        this.datasetPath = datasetPath;
         this.query2ActualQuery = queries;
         this.output = output;
         this.nbTimes = nbTimes;
@@ -56,6 +60,12 @@ public class Baseline {
     public Long executionTime(String query) {
         return this.query2Time.get(query);
     }
+
+    public String getOutput() {
+        return this.output;
+    }
+
+    /* ******************************************************* */
 
     public void loadCSV () throws IOException {
         Path output_asPath = Path.of(output);
@@ -83,8 +93,6 @@ public class Baseline {
     }
 
     public void execute() throws IOException {
-        dataset.begin(ReadWrite.READ);
-
         Path output_asPath = Path.of(output);
 
         if (output_asPath.toFile().exists()) {
@@ -94,15 +102,19 @@ public class Baseline {
             output_asPath.toFile().createNewFile();
         }
 
-        Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
-        OpExecutorFactory opExecutorTDB2ForceOrderFactory = (OpExecutorFactory) ReflectionUtils._callField(plainFactoryField, OpExecutorTDB2.class, null);
-        QC.setFactory(dataset.getContext(), opExecutorTDB2ForceOrderFactory);
-        QueryEngineTDB.register();
-
         for (String queryPath: query2ActualQuery.keySet()) {
             if (query2Results.containsKey(queryPath)) {
                 log.debug("Skipping {}…", queryPath);
                 continue;
+            }
+
+            if (Objects.isNull(dataset)) {
+                dataset = TDB2Factory.connectDataset(datasetPath);
+                dataset.begin(ReadWrite.READ);
+                Field plainFactoryField = ReflectionUtils._getField(OpExecutorTDB2.class, "plainFactory");
+                OpExecutorFactory opExecutorTDB2ForceOrderFactory = (OpExecutorFactory) ReflectionUtils._callField(plainFactoryField, OpExecutorTDB2.class, null);
+                QC.setFactory(dataset.getContext(), opExecutorTDB2ForceOrderFactory);
+                QueryEngineTDB.register();
             }
 
             log.info("Executing {}…", queryPath);
@@ -124,8 +136,10 @@ public class Baseline {
                 csvPrinter.flush();
             }
         }
-
-        dataset.close();
+        if (Objects.nonNull(dataset)) {
+            dataset.end();
+            dataset.close();
+        }
     }
 
 }

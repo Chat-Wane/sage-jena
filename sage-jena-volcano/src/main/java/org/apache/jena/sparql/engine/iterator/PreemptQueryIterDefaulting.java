@@ -42,7 +42,6 @@ public class PreemptQueryIterDefaulting extends QueryIterDefaulting implements P
 
     @Override
     protected Binding moveToNextBinding() {
-        getExecContext().getContext().set(SageConstants.cursor, id + 1);
         previous = haveReturnedSomeObject;
         return super.moveToNextBinding();
     }

@@ -75,13 +75,22 @@ public class ExecuteUtils {
 
             while (result_set.hasNext()) { // must enumerate to actually execute
                 QuerySolution solution = result_set.next();
+                // System.out.println(solution);
                 if (Objects.nonNull(solutions)) {
                     if (!solutions.contains(solution.toString())) {
-                        System.out.println("WRONG SOL = " + solution);
+                        results = qe.getContext().get(SageConstants.output);
+                        state = (Map) results.getState();
+                        System.out.println(state);
+                        System.out.println("WRONG = " + solution.toString() );
+                        throw new RuntimeException("WRONG");
                     }
                 }
                 if (preparingSolutions.contains(solution.toString())) {
+                    results = qe.getContext().get(SageConstants.output);
+                    state = (Map) results.getState();
+                    System.out.println(state);
                     System.out.println("DOUBLON = " + solution.toString() );
+                    throw new RuntimeException("DOUBLON");
                 }
                 preparingSolutions.add(solution.toString());
 
@@ -90,6 +99,7 @@ public class ExecuteUtils {
             log.debug("Got {} results so far…" , sum);
 
             results = qe.getContext().get(SageConstants.output);
+            // System.out.println(results.getState());
 
             if (Objects.nonNull(withSerialize) && withSerialize.length > 0 && withSerialize[0]) {
                 serialized = SerializationUtils.serialize(results);

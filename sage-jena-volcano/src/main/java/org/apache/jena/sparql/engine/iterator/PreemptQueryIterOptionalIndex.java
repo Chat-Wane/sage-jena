@@ -1,9 +1,11 @@
 package org.apache.jena.sparql.engine.iterator;
 
+import fr.gdd.sage.arq.IdentifierAllocator;
 import fr.gdd.sage.arq.IdentifierLinker;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.io.SageInput;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.op.Op2;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
@@ -34,13 +36,22 @@ public class PreemptQueryIterOptionalIndex extends QueryIterOptionalIndex {
         sageInput = context.getContext().get(SageConstants.input);
 
         IdentifierLinker identifiers = getExecContext().getContext().get(SageConstants.identifiers);
-        this.id = identifiers.getIds(op).get(0);
+        Integer current = getExecContext().getContext().get(SageConstants.cursor);
+
+        IdentifierAllocator meow = new IdentifierAllocator(current);
+        ((Op2) op).getLeft().visit(meow);
+
+        this.id = meow.getCurrent() + 1;
+
+        log.debug("Op {} gets id {}", op, id);
+
+        // this.id = identifiers.getIds(op).get(0);
     }
 
     @Override
     protected QueryIterator nextStage(Binding binding) {
-        //Integer id = getExecContext().getContext().get(SageConstants.cursor);
-        //id += 1; // The identifier of the OPT
+        // id = getExecContext().getContext().get(SageConstants.cursor);
+        // id += 1; // The identifier of the OPT
         getExecContext().getContext().set(SageConstants.cursor, id);
 
         Op op2 = QC.substitute(op, binding);

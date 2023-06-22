@@ -44,7 +44,7 @@ class BaselineTest {
                     }
                 }));
 
-        Baseline baseline = new Baseline(TDB2Factory.connectDataset(watdiv10M.dbPath_asStr), query2ActualQuery, 1,
+        Baseline baseline = new Baseline(watdiv10M.dbPath_asStr, query2ActualQuery, 1,
                 outputFilePath.toString());
 
         baseline.execute();

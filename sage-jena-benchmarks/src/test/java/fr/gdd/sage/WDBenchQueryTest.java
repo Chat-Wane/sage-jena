@@ -4,12 +4,9 @@ import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.databases.persistent.WDBench;
-import fr.gdd.sage.databases.persistent.Watdiv10M;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.io.SageInput;
 import org.apache.jena.query.*;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.main.OpExecutorFactory;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.mgt.Explain;
@@ -26,8 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.util.Optional;
 
-class WDBenchQuery309Test {
-    Logger log = LoggerFactory.getLogger(WDBenchQuery309Test.class);
+class WDBenchQueryTest {
+    Logger log = LoggerFactory.getLogger(WDBenchQueryTest.class);
 
     static Dataset dataset;
 
@@ -38,26 +35,7 @@ class WDBenchQuery309Test {
             "OPTIONAL { ?x1  <http://www.wikidata.org/prop/direct/P921>  ?x2 } "+
             "} LIMIT 100000";*/
 
-    String query = "SELECT  *\n" +
-            "WHERE\n" +
-            "  { ?x1  <http://www.wikidata.org/prop/direct/P171>  <http://www.wikidata.org/entity/Q25401> ;\n" +
-            "         <http://www.wikidata.org/prop/direct/P18>  ?x2\n" +
-            "    OPTIONAL\n" +
-            "      { ?x3  <http://www.wikidata.org/prop/direct/P171>  ?x1 ;\n" +
-            "             <http://www.wikidata.org/prop/direct/P18>  ?x4\n" +
-            "      }\n" +
-            "    OPTIONAL\n" +
-            "      { ?x3  <http://www.wikidata.org/prop/direct/P31>  <http://www.wikidata.org/entity/Q16521> .\n" +
-            "        ?x5  <http://www.wikidata.org/prop/direct/P171>  ?x3 ;\n" +
-            "             <http://www.wikidata.org/prop/direct/P18>  ?x6\n" +
-            "      }\n" +
-            "    OPTIONAL\n" +
-            "      { ?x5  <http://www.wikidata.org/prop/direct/P171>  ?x3 .\n" +
-            "        ?x3  <http://www.wikidata.org/prop/direct/P171>  ?x1 .\n" +
-            "        ?x7  <http://www.wikidata.org/prop/direct/P171>  ?x5 ;\n" +
-            "             <http://www.wikidata.org/prop/direct/P18>  ?x8\n" +
-            "      }\n" +
-            "  } LIMIT 1000000";
+    String query = "SELECT * WHERE {?x5 <http://www.wikidata.org/prop/direct/P171> <http://www.wikidata.org/entity/Q10744387>} LIMIT 1000000";
 
     @BeforeAll
     public static void initialize_database() {

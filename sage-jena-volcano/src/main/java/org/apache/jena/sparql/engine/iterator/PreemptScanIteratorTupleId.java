@@ -13,6 +13,8 @@ import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -24,6 +26,8 @@ import java.util.Set;
  * {@link  org.apache.jena.sparql.core.Quad}. They are supposedly more efficient.
  */
 public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, PreemptIterator<SerializableRecord> {
+
+    Logger log = LoggerFactory.getLogger(PreemptScanIteratorTupleId.class);
 
     public BackendIterator<NodeId, Serializable> wrapped;
     NodeTable nodeTable;
@@ -59,6 +63,9 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, Pree
         this.input = input;
         this.output = output;
         this.id = id;
+
+        HashMap<Integer, PreemptIterator> iterators = context.getContext().get(SageConstants.iterators);
+        iterators.put(id, this);
     }
 
     @Override
@@ -72,20 +79,36 @@ public class PreemptScanIteratorTupleId implements Iterator<Tuple<NodeId>>, Pree
                 HashMap<Integer, PreemptIterator> iterators = context.getContext().get(SageConstants.iterators);
                 IdentifierLinker identifiers = context.getContext().get(SageConstants.identifiers);
                 Set<Integer> parents = identifiers.getParents(getId());
+                log.debug("@{}", id);
                 for (Integer parent : parents) {
+                    if (!iterators.containsKey(parent)) {
+                        // in OPT, the iterator may not exist (because it fails beforehand) while being
+                        // a parent of downstream iterator. When it does not exist, we do not save anything
+                        // since previous iterator will fail on resume as well.
+                        log.debug("SKIP {}", parent);
+                        continue;
+                    }
                     if (identifiers.inRightSideOf(parent, id)) {
+                        log.debug("SAVE CURRENT {}", parent);
                         Pair toSave = new Pair(parent, iterators.get(parent).current());
                         this.output.addState(toSave);
                     } else {
+                        log.debug("SAVE PREVIOUS {}", parent);
                         Pair toSave = new Pair(parent, iterators.get(parent).previous());
                         this.output.addState(toSave);
                     }
                 }
                 this.output.addState(new Pair(getId(), current()));
-                // execution stops immediately, caught by {@link ResultSetSage}
+                // execution stops immediately, caught by {@link PreemptRootIter}
                 throw new PauseException(this.output.getState());
             }
             return true; // always true
+        }
+
+        if (!result) {
+            // we unregister the iterator to make sure it's not saved
+            HashMap<Integer, PreemptIterator> iterators = context.getContext().get(SageConstants.iterators);
+            iterators.remove(id);
         }
 
         // when false, there is no chance that we save at this point

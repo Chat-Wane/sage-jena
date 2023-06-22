@@ -30,6 +30,12 @@ public class IdentifierLinker extends OpVisitorBase {
         op.visit(this);
     }
 
+    public IdentifierLinker(Op op, Integer start) {
+        this.identifiers = new IdentifierAllocator(start);
+        op.visit(this.identifiers);
+        op.visit(this);
+    }
+
     public List<Integer> getIds(Op op) {
         return this.identifiers.getIds(op);
     }
@@ -43,7 +49,14 @@ public class IdentifierLinker extends OpVisitorBase {
 
     @Override
     public void visit(OpSlice opSlice) {
-        // (TODO) should have an identifier to save
+        /*opSlice.getSubOp().visit(getLeftest);
+        Op opLeftest = getLeftest.result;
+
+        Integer idLeftest = identifiers.getIds(opLeftest).stream().min(Integer::compare).orElseThrow();
+        Integer idSlice = identifiers.getIds(opSlice).get(0);
+
+        add(idSlice, idLeftest);
+        */
         opSlice.getSubOp().visit(this);
     }
 
@@ -55,10 +68,9 @@ public class IdentifierLinker extends OpVisitorBase {
         opLeftJoin.getRight().visit(getLeftest);
         Op leftestOfRightOp = getLeftest.result;
 
-        // Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
-        Integer idRightestOfLeft = identifiers.op2Id.get(rightestOfLeftOp).stream().max(Integer::compare).orElseThrow();
-        Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
-        Integer idOptional = identifiers.op2Id.get(opLeftJoin).get(0);
+        Integer idRightestOfLeft = identifiers.getIds(rightestOfLeftOp).stream().max(Integer::compare).orElseThrow();
+        Integer idLeftestOfRight = identifiers.getIds(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
+        Integer idOptional = identifiers.getIds(opLeftJoin).get(0);
 
         add(idRightestOfLeft, idOptional);
         add(idOptional, idLeftestOfRight);
@@ -75,10 +87,9 @@ public class IdentifierLinker extends OpVisitorBase {
         opCond.getRight().visit(getLeftest);
         Op leftestOfRightOp = getLeftest.result;
 
-        // Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
-        Integer idRightestOfLeft = identifiers.op2Id.get(rightestOfLeftOp).stream().max(Integer::compare).orElseThrow();
-        Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
-        Integer idOptional = identifiers.op2Id.get(opCond).get(0);
+        Integer idRightestOfLeft = identifiers.getIds(rightestOfLeftOp).stream().max(Integer::compare).orElseThrow();
+        Integer idLeftestOfRight = identifiers.getIds(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
+        Integer idOptional = identifiers.getIds(opCond).get(0);
 
         add(idRightestOfLeft, idOptional);
         add(idOptional, idLeftestOfRight);
@@ -96,8 +107,8 @@ public class IdentifierLinker extends OpVisitorBase {
         opJoin.getRight().visit(visitor);
         Op leftestOfRightOp = visitor.result;
 
-        Integer idLeftest = identifiers.op2Id.get(leftestOp).stream().max(Integer::compare).orElseThrow();
-        Integer idLeftestOfRight = identifiers.op2Id.get(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
+        Integer idLeftest = identifiers.getIds(leftestOp).stream().max(Integer::compare).orElseThrow();
+        Integer idLeftestOfRight = identifiers.getIds(leftestOfRightOp).stream().min(Integer::compare).orElseThrow();
 
         add(idLeftest, idLeftestOfRight);
 
@@ -107,7 +118,7 @@ public class IdentifierLinker extends OpVisitorBase {
 
     @Override
     public void visit(OpBGP opBGP) {
-        List<Integer> bgpIds = identifiers.op2Id.get(opBGP);
+        List<Integer> bgpIds = identifiers.getIds(opBGP);
         for (int i = 0; i < bgpIds.size() - 1; ++i) {
             add(bgpIds.get(i), bgpIds.get(i+1));
         }
@@ -115,7 +126,7 @@ public class IdentifierLinker extends OpVisitorBase {
 
     @Override
     public void visit(OpQuadPattern opQuad) {
-        List<Integer> quadIds = identifiers.op2Id.get(opQuad);
+        List<Integer> quadIds = identifiers.getIds(opQuad);
         for (int i = 0; i < quadIds.size() - 1; ++i) {
             add(quadIds.get(i), quadIds.get(i+1));
         }
@@ -183,6 +194,7 @@ public class IdentifierLinker extends OpVisitorBase {
 
         @Override
         protected void visitN(OpN op) {
+            result = result || op == toFind;
             int i = 0;
             while (!result && i < op.size()) {
                 op.get(i).visit(this);
@@ -192,6 +204,7 @@ public class IdentifierLinker extends OpVisitorBase {
 
         @Override
         protected void visit2(Op2 op) {
+            result = result || op == toFind;
             if (!result) op.getLeft().visit(this);
             if (!result) op.getRight().visit(this);
         }
@@ -210,11 +223,13 @@ public class IdentifierLinker extends OpVisitorBase {
 
         @Override
         protected void visitFilter(OpFilter op) {
+            result = result || op == toFind;
             op.getSubOp().visit(this);
         }
 
         @Override
         protected void visitLeftJoin(OpLeftJoin op) {
+            result = result || op == toFind;
             op.getLeft().visit(this);
             if (!result) op.getRight().visit(this);
         }

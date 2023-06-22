@@ -1,12 +1,16 @@
 package fr.gdd.sage.arq;
 
+import fr.gdd.sage.generics.Pair;
+import org.apache.jena.base.Sys;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitorBase;
 import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.tdb.store.Hash;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Associate with each operator a range of identifiers that it can allocate.
@@ -14,7 +18,7 @@ import java.util.List;
  */
 public class IdentifierAllocator extends OpVisitorBase {
 
-    HashMap<Op, List<Integer>> op2Id = new HashMap<>();
+    HashMap<Op, List<Pair<Op, List<Integer>>>> op2Id = new HashMap<>();
     HashMap<Integer, Op> id2Op = new HashMap<>();
 
     Integer current = 1;
@@ -29,20 +33,42 @@ public class IdentifierAllocator extends OpVisitorBase {
         return current;
     }
 
-    public List<Integer> getIds (Op op) {return this.op2Id.get(op);}
+    public List<Integer> getIds (Op op) {
+        List<Pair<Op, List<Integer>>> opList = this.op2Id.get(op);
+        if (opList.size() == 1) {
+            // if there is but one element, we do not compare pointer.
+            // In most cases its sufficient.
+            // Among others : easier for testing purposes.
+            return opList.get(0).getRight();
+        }
+
+        for (Pair<Op, List<Integer>> opAndIds : opList ) {
+            if (opAndIds.getLeft() == op) {
+                return opAndIds.getRight();
+            }
+        }
+        throw new RuntimeException("Could not find " + op + " in the map of Ops");
+    }
+
+    private void addOp2Ids(Op op, List<Integer> ids) {
+        if (!op2Id.containsKey(op)) {
+            op2Id.put(op, new ArrayList<>());
+        }
+        op2Id.get(op).add(new Pair<>(op, ids));
+    }
 
     /* ******************************************************************** */
 
     @Override
     public void visit(OpTriple opTriple) {
-        op2Id.put(opTriple, List.of(current));
+        addOp2Ids(opTriple, List.of(current));
         id2Op.put(current, opTriple);
         current += 1;
     }
 
     @Override
     public void visit(OpQuad opQuad) {
-        op2Id.put(opQuad, List.of(current));
+        addOp2Ids(opQuad, List.of(current));
         id2Op.put(current, opQuad);
         current += 1;
     }
@@ -54,7 +80,7 @@ public class IdentifierAllocator extends OpVisitorBase {
             ids.add(current + i);
             id2Op.put(current + i, opBGP);
         }
-        op2Id.put(opBGP, ids);
+        addOp2Ids(opBGP, ids);
         current += opBGP.getPattern().size();
     }
 
@@ -65,7 +91,7 @@ public class IdentifierAllocator extends OpVisitorBase {
             ids.add(current + i);
             id2Op.put(current + i, quadPattern);
         }
-        op2Id.put(quadPattern, ids);
+        addOp2Ids(quadPattern, ids);
         current += quadPattern.getPattern().size();
     }
 
@@ -83,7 +109,7 @@ public class IdentifierAllocator extends OpVisitorBase {
     public void visit(OpLeftJoin opLeftJoin) {
         opLeftJoin.getLeft().visit(this);
         // one id dedicated to optional
-        op2Id.put(opLeftJoin, List.of(current));
+        addOp2Ids(opLeftJoin, List.of(current));
         id2Op.put(current, opLeftJoin);
         current += 1;
         opLeftJoin.getRight().visit(this);
@@ -93,7 +119,7 @@ public class IdentifierAllocator extends OpVisitorBase {
     public void visit(OpConditional opConditional) {
         opConditional.getLeft().visit(this);
         // one id dedicated to optional
-        op2Id.put(opConditional, List.of(current));
+        addOp2Ids(opConditional, List.of(current));
         id2Op.put(current, opConditional);
         current += 1;
         opConditional.getRight().visit(this);
@@ -108,7 +134,7 @@ public class IdentifierAllocator extends OpVisitorBase {
     @Override
     public void visit(OpUnion opUnion) {
         List<Op> flattened = flattenUnion(opUnion);
-        op2Id.put(opUnion, List.of(current));  // one id dedicated to multi-union
+        addOp2Ids(opUnion, List.of(current));  // one id dedicated to multi-union
         id2Op.put(current, opUnion);
         current += 1;
         for (Op subOp : flattened) {
@@ -119,6 +145,9 @@ public class IdentifierAllocator extends OpVisitorBase {
     @Override
     public void visit(OpSlice opSlice) {
         // (TODO) should have an identifier allocated
+        /* addOp2Ids(opSlice, List.of(current));
+        id2Op.put(current, opSlice);
+        current += 1; */
         opSlice.getSubOp().visit(this);
     }
 
