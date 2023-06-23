@@ -2,7 +2,6 @@ package fr.gdd.sage.fuseki;
 
 import fr.gdd.sage.OpExecutorRandom;
 import fr.gdd.sage.QueryEngineRandom;
-import fr.gdd.sage.arq.OpExecutorSage;
 import fr.gdd.sage.arq.QueryEngineSage;
 import fr.gdd.sage.writers.ExtensibleRowSetWriterJSON;
 import fr.gdd.sage.writers.ModuleOutputRegistry;
