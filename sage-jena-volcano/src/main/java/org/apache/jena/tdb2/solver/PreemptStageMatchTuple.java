@@ -46,7 +46,7 @@ public class PreemptStageMatchTuple {
 
         Iterator<Tuple<NodeId>> iterMatches = !b ?
                 factory.getScan(id):
-                factory.getScan(nodeTupleTable, TupleFactory.create(ids), id);
+                factory.getScan(nodeTupleTable, TupleFactory.create(ids), vars, id);
 
         // ** Allow a triple or quad filter here.
         if ( filter != null )

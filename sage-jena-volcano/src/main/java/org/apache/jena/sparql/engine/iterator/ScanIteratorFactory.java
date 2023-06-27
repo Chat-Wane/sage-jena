@@ -2,6 +2,7 @@ package org.apache.jena.sparql.engine.iterator;
 
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetupletable.NodeTupleTable;
 
@@ -36,5 +37,5 @@ public interface ScanIteratorFactory {
      * @param id The identifier of the operator inherited by the iterator.
      * @return A scan iterator based on the pattern of {@link NodeId}.
      */
-    Iterator<Tuple<NodeId>> getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id);
+    Iterator<Tuple<NodeId>> getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Var[] vars, Integer id);
 }

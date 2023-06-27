@@ -8,6 +8,7 @@ import fr.gdd.sage.jena.PreemptTupleTable;
 import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
@@ -66,7 +67,7 @@ public class PreemptScanIteratorFactory implements ScanIteratorFactory {
         return volcanoIterator;
     }
 
-    public Iterator<Tuple<NodeId>> getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Integer id) {
+    public Iterator<Tuple<NodeId>> getScan(NodeTupleTable nodeTupleTable, Tuple<NodeId> pattern, Var[] vars, Integer id) {
         BackendIterator<NodeId, Serializable> wrapped = null;
         PreemptScanIteratorTupleId volcanoIterator = null;
         if (pattern.len() < 4) {
