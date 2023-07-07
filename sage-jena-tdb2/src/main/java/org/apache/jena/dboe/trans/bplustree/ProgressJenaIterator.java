@@ -339,8 +339,10 @@ public class ProgressJenaIterator {
             }
         }
 
-        this.cardinality = (long) cardinality;
-        return (long) cardinality;
+        // (TODO) can be lower when removing the wings with different filling rate
+        // I think. Must double check.
+        this.cardinality = (long) Math.max(0, cardinality);
+        return this.cardinality;
     }
 
     /**
