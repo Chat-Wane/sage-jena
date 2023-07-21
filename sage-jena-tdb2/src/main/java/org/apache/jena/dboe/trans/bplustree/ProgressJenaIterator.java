@@ -1,9 +1,11 @@
 package org.apache.jena.dboe.trans.bplustree;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.base.record.Record;
+import org.apache.jena.dboe.trans.bplustree.AccessPath.AccessStep;
 import org.apache.jena.tdb2.store.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -365,6 +367,110 @@ public class ProgressJenaIterator {
             }
         }
         return false;
+    }
+
+    private ImmutablePair<Record,Double> randomWalkWJ(AccessPath minPath, AccessPath maxPath) {
+        assert minPath.getPath().size() == maxPath.getPath().size();
+        
+        int idxMin = minPath.getPath().get(0).idx;
+        int idxMax = maxPath.getPath().get(0).idx;
+
+        int idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin + 1));
+
+        BPTreeNode node = minPath.getPath().get(0).node;
+        AccessPath.AccessStep lastStep = new AccessStep(node, idxRnd, node.get(idxRnd));
+        Double proba = 1.0 / (idxMax - idxMin + 1.0);
+
+        while (!lastStep.node.isLeaf()) {
+            node = (BPTreeNode) lastStep.page;
+
+            idxMin = node.findSlot(minRecord);
+            idxMax = node.findSlot(maxRecord);
+
+            idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
+            idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
+
+            idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin + 1));
+            
+            lastStep = new AccessStep(node, idxRnd, node.get(idxRnd));
+            proba *= 1.0 / (idxMax - idxMin + 1.0);
+        }
+
+        RecordBuffer recordBuffer = ((BPTreeRecords) lastStep.page).getRecordBuffer();
+
+        idxMin = recordBuffer.find(minRecord);
+        idxMax = recordBuffer.find(maxRecord);
+        
+        idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
+        idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
+
+        if (idxMin == idxMax) {
+            return new ImmutablePair<Record,Double>(null, 0.0);
+        }
+
+        idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin)); // no need for -1 in a `RecordBuffer`
+        
+        proba *= 1.0 / (idxMax - idxMin);
+
+        return new ImmutablePair<Record,Double>(recordBuffer.get(idxRnd), proba);
+    }
+
+    /**
+     * Estimates the cardinality of a triple/quad pattern knowing that
+     * the underlying data structure is a balanced tree.
+     * When the number of results is small, more precision is needed.
+     * Fortunately, this often means that results are spread among one
+     * or two pages, which allows us to precisely count using binary search.
+     *
+     * (TODO) Triple patterns that return no solutions need to be handle elsewhere. Is it the case?
+     * 
+     * @return An estimated cardinality.
+     */
+    public long cardinalityWJ() {
+        AccessPath minPath = new AccessPath(null);
+        AccessPath maxPath = new AccessPath(null);
+
+        root.internalSearch(minPath, minRecord);
+        root.internalSearch(maxPath, maxRecord);
+
+        AccessPath.AccessStep minStep = minPath.getPath().get(minPath.getPath().size() - 1);
+        AccessPath.AccessStep maxStep = maxPath.getPath().get(maxPath.getPath().size() - 1);
+
+        long cardinality = 0;
+
+        // exact count for the leftmost and rightmost page
+        RecordBuffer minRecordBuffer = ((BPTreeRecords) minStep.page).getRecordBuffer();
+        RecordBuffer maxRecordBuffer = ((BPTreeRecords) maxStep.page).getRecordBuffer();
+        
+        int idxMin = minRecordBuffer.find(minRecord);
+        int idxMax =  maxRecordBuffer.find(maxRecord);
+
+        idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
+        idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
+
+        if (equalsStep(minStep, maxStep)) {
+            cardinality += idxMax - idxMin;
+        } else {
+            cardinality += minRecordBuffer.size() - idxMin;
+            cardinality += idxMax;
+        }
+
+        // random walks to estimate the number of records between the leftmost and rightmost page
+        if (minStep.node.id != maxStep.node.id || maxStep.idx - minStep.idx >= 2) {
+            Double sum = 0.0;
+            Integer count = 0;
+            for (int i = 0; i < NB_WALKS; i++) {
+                ImmutablePair<Record, Double> pair = this.randomWalkWJ(minPath, maxPath);
+                // records in the leftmost and rightmost page are ignored
+                if (pair.getLeft() != null && minRecordBuffer.find(pair.getLeft()) < 0 && maxRecordBuffer.find(pair.getLeft()) < 0) {
+                    sum += 1 / pair.getRight();
+                }
+                count += 1;
+            }
+            cardinality += ((long) (sum / count));
+        }
+
+        return cardinality;
     }
 
 }
