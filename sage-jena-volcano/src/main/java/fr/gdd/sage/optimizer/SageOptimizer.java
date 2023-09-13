@@ -61,7 +61,7 @@ public class SageOptimizer extends TransformCopy {
 
     @Override
     public Op transform(OpBGP opBGP) {
-        List<Pair<Triple, Long>> tripleToIt = opBGP.getPattern().getList().stream().map(triple -> {
+        List<Pair<Triple, Double>> tripleToIt = opBGP.getPattern().getList().stream().map(triple -> {
             try {
                 NodeId s = triple.getSubject().isVariable() ? backend.any() : backend.getId(triple.getSubject());
                 NodeId p = triple.getPredicate().isVariable() ? backend.any() : backend.getId(triple.getPredicate());
@@ -73,12 +73,12 @@ public class SageOptimizer extends TransformCopy {
                 return new Pair<>(triple, casted.cardinality());
             } catch (NotFoundException e) {
                 log.debug("triple {} does not exist -> 0 element", triple);
-                return new Pair<>(triple, 0L);
+                return new Pair<>(triple, 0.);
             }
         }).sorted((p1, p2) -> { // sort ASC by cardinality
-            long c1 = p1.right;
-            long c2 = p2.right;
-            return Long.compare(c1, c2);
+            double c1 = p1.right;
+            double c2 = p2.right;
+            return Double.compare(c1, c2);
         }).collect(Collectors.toList());
 
         List<Triple> triples = new ArrayList<>();
@@ -107,7 +107,7 @@ public class SageOptimizer extends TransformCopy {
         List<OpQuad> quads = getAllQuads(opJoin);
         if (Objects.nonNull(quads)) {
             // same as OpBGP with triples , but with quads
-            List<Pair<OpQuad, Long>> quadsToIt = quads.stream().map(quad -> {
+            List<Pair<OpQuad, Double>> quadsToIt = quads.stream().map(quad -> {
                 try {
                     NodeId g = quad.getQuad().getGraph().isVariable() ? backend.any() : backend.getId(quad.getQuad().getGraph());
                     NodeId s = quad.getQuad().getSubject().isVariable() ? backend.any() : backend.getId(quad.getQuad().getSubject());
@@ -119,12 +119,12 @@ public class SageOptimizer extends TransformCopy {
                     log.debug("quad {} => {} elements", quad, casted.cardinality());
                     return new Pair<>(quad, casted.cardinality());
                 } catch (NotFoundException e) {
-                    return new Pair<>(quad, 0L);
+                    return new Pair<>(quad, 0.);
                 }
             }).sorted((p1, p2) -> { // sort ASC by cardinality
-                long c1 = p1.right;
-                long c2 = p2.right;
-                return Long.compare(c1, c2);
+                double c1 = p1.right;
+                double c2 = p2.right;
+                return Double.compare(c1, c2);
             }).collect(Collectors.toList());
 
             List<OpQuad> optimizedQuads = new ArrayList<>();
