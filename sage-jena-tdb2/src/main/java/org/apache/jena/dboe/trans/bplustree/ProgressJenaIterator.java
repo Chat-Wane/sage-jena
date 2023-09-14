@@ -190,6 +190,20 @@ public class ProgressJenaIterator {
     }
 
     /**
+     * @return A random record between the set boundaries of the object.
+     */
+    public Record random() {
+        AccessPath minPath = new AccessPath(null);
+        AccessPath maxPath = new AccessPath(null);
+
+        root.internalSearch(minPath, minRecord);
+        root.internalSearch(maxPath, maxRecord);
+        ImmutablePair<Record, Double> recordAndProba = randomWalkWJ(minPath, maxPath);
+
+        return recordAndProba.getLeft();
+    }
+
+    /**
      * Estimates the cardinality of a triple/quad pattern knowing that
      * the underlying data structure is a balanced tree.
      * When the number of results is small, more precision is needed.

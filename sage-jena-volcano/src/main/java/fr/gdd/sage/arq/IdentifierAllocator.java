@@ -1,16 +1,13 @@
 package fr.gdd.sage.arq;
 
 import fr.gdd.sage.generics.Pair;
-import org.apache.jena.base.Sys;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitorBase;
 import org.apache.jena.sparql.algebra.op.*;
-import org.apache.jena.tdb.store.Hash;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Associate with each operator a range of identifiers that it can allocate.
