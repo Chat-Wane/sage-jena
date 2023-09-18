@@ -20,4 +20,4 @@ jobs:
       - name: Publish package
         run: mvn --batch-mode deploy -DskipTests
         env:
-          GITHUB_TOKEN: ${{ secrets.MAVEN_DEPLOY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
