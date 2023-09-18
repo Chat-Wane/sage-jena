@@ -16,6 +16,11 @@
       <id>${project.artifactId}-site</id>
       <url>${project.baseUri}</url>
     </site>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/Chat-Wane/sage-jena</url>
+    </repository>
   </distributionManagement>
 
   <modules>
