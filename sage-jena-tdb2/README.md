@@ -12,10 +12,11 @@ Jena by providing:
   execution: when pausing, the last key of a range iterator is saved;
   on resuming, the saved key is used to create a new range iterator
   departing from this key.
+
+- [X] The additional ability to get a random triple/quad from a random
+  triple/quad pattern with a logarithmic time complexity in terms of
+  number of triples/quads in the dataset.
   
-
-
-
-
-
-
+- [X] The additional ability to get cardinality estimates of a random
+  triple/quad pattern with a logarithmic time complexity in terms
+  of number of triples/quads in the dataset.

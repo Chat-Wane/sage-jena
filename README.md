@@ -1,16 +1,15 @@
 # Sage ⨯ Jena
 
-[![Tests](https://github.com/Chat-Wane/sage-jena/actions/workflows/testing.yaml/badge.svg)](https://github.com/Chat-Wane/sage-jena/actions/workflows/testing.yaml)
-
+[![Tests](https://github.com/Chat-Wane/sage-jena/actions/workflows/report-testing.yaml/badge.svg)](https://github.com/Chat-Wane/sage-jena/actions/workflows/report-testing.yaml)
 
 [Jena](https://jena.apache.org/) is `A free and open source Java
 framework for building Semantic Web and Linked Data applications.`
 This incredible piece of work includes all components to build an
 end-to-end software to evaluate SPARQL Query over RDF graphs. 
-[Sage](http://sage.univ-nantes.fr/) is an approach that enables
+[Sage](http://sage.univ-nantes.fr/) [1] is an approach that enables
 pausing/resuming query execution as long as the data storage system
 allows it.
-This project provides the few additional components that enable **Sage
+This project provides the additional components that enable **Sage
 on top of Jena**. 
 
 - [X] Jena provides a default data storage called **TDB2** that uses
@@ -27,13 +26,12 @@ on top of Jena**.
   returning the results plus additional metadata that could be used to
   continue the execution later on.
 
-- [ ] Jena's server also comes with an optional user interface.  This
-  project provides a **Jena Fuseki UI** that slightly changes end
-  users' UI so they can configure their query executions. For
-  instance, whether or not they want an automatic re-execution of
-  their query up till termination, whether or not they want random
-  samples, etc.
-
 - [ ] Sage provides additional features at the cost of additional
-  computation. This project provides **benchmarks** that highlight the
-  marginal cost of these great features.
+  computation. [**Benchmarks**](https://github.com/Chat-Wane/sage-jena-benchmarks)
+  highlight the marginal cost of these great features.
+
+## References
+
+\[1] T. Minier, H. Skaf-Molli and P. Molli. __SaGe: Web
+Preemption for Public SPARQL Query services__. In Proceedings of the
+2019 World Wide Web Conference (2019).

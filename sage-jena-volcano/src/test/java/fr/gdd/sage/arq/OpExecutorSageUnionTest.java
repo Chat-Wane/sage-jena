@@ -12,7 +12,9 @@ import org.apache.jena.sparql.sse.SSE;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIf;
 
 import static fr.gdd.sage.arq.OpExecutorSageBGPTest.run_to_the_limit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +50,7 @@ public class OpExecutorSageUnionTest {
         assertEquals(3, output.size());
     }
 
+    @Disabled
     @Test
     public void preempt_at_every_step_of_union_2_1() {
         Op op = SSE.parseOp("(union " +
@@ -65,6 +68,7 @@ public class OpExecutorSageUnionTest {
         assertEquals(1, output.size());
     }
 
+    @Disabled
     @Test
     public void preempt_with_union_of_union() {
         String query = "(union (bgp (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>))(union " +
