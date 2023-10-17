@@ -1,4 +1,0 @@
-SELECT * WHERE {
-<http://www.wikidata.org/entity/Q64> <http://www.wikidata.org/prop/direct/P625> ?x1 . 
-
-}

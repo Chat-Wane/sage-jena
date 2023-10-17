@@ -1,4 +1,0 @@
-SELECT * WHERE {
-<http://www.wikidata.org/entity/Q10990> ?x1 ?x2 . 
-
-}

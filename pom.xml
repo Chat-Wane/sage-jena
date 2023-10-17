@@ -29,7 +29,6 @@
     <module>sage-jena-tdb2</module>
     <module>sage-jena-volcano</module>
     <module>sage-jena-module</module>
-    <module>sage-jena-benchmarks</module>
   </modules>
 
   <properties>
