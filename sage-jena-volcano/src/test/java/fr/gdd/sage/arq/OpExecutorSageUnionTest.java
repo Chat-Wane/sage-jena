@@ -50,7 +50,6 @@ public class OpExecutorSageUnionTest {
         assertEquals(3, output.size());
     }
 
-    @Disabled
     @Test
     public void preempt_at_every_step_of_union_2_1() {
         Op op = SSE.parseOp("(union " +
@@ -68,7 +67,6 @@ public class OpExecutorSageUnionTest {
         assertEquals(1, output.size());
     }
 
-    @Disabled
     @Test
     public void preempt_with_union_of_union() {
         String query = "(union (bgp (?s ?p <http://db.uwaterloo.ca/~galuc/wsdbm/Country1>))(union " +

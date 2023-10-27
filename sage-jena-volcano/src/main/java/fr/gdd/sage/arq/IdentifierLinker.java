@@ -99,6 +99,21 @@ public class IdentifierLinker extends OpVisitorBase {
     }
 
     @Override
+    public void visit(OpUnion opUnion) {
+        List<Op> flattened = IdentifierAllocator.flattenUnion(opUnion);
+
+        for (Op subOp : flattened) {
+            subOp.visit(getLeftest);
+            Op leftestOfSubOp = getLeftest.result;
+            Integer idLeftestOfSubOp = identifiers.getIds(leftestOfSubOp).stream().min(Integer::compare).orElseThrow();
+            Integer idUnion = identifiers.getIds(opUnion).get(0);
+            add(idUnion, idLeftestOfSubOp);
+        }
+
+        flattened.forEach(o -> o.visit(this));
+    }
+
+    @Override
     public void visit(OpJoin opJoin) {
         GetMostLeftOp visitor = new GetMostLeftOp();
         opJoin.getLeft().visit(visitor);

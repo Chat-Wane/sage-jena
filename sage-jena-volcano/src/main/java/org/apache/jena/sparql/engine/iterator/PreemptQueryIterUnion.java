@@ -3,72 +3,67 @@ package org.apache.jena.sparql.engine.iterator;
 import fr.gdd.sage.arq.IdentifierAllocator;
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.io.SageInput;
-import fr.gdd.sage.io.SageOutput;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.op.Op2;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.iterator.QueryIterUnion;
-import org.apache.jena.util.iterator.NullIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Unions create an iterator that concatenate operation. We want this
- * iterator to remember the state it was on before pausing so it can resume
+ * iterator to remember the state it was on before pausing, so it can resume
  * and execute in the same state.
  **/
 public class PreemptQueryIterUnion extends QueryIterUnion {
 
-    SageInput<?> input;
-    SageOutput<?> output;
+    private static Logger log = LoggerFactory.getLogger(PreemptQueryIterUnion.class);
+
+    Integer id;
+    SageInput sageInput;
 
     public PreemptQueryIterUnion(QueryIterator qIter, List<Op> subOps, ExecutionContext context) {
         super(qIter, subOps, context);
-        input = getExecContext().getContext().get(SageConstants.input);
-        output = getExecContext().getContext().get(SageConstants.output);
+        sageInput = getExecContext().getContext().get(SageConstants.input);
+
+        Integer current = getExecContext().getContext().get(SageConstants.cursor);
+        IdentifierAllocator allocator = new IdentifierAllocator(current);
+        this.id = allocator.getCurrent() + 1;
+
+        log.debug("Union {} gets id {}", Arrays.toString(subOps.toArray()), id);
+
+
     }
 
     @Override
     protected QueryIterator nextStage(Binding binding) {
-        Integer id = getExecContext().getContext().get(SageConstants.cursor);
-        id += 1;
         getExecContext().getContext().set(SageConstants.cursor, id);
 
-        // The first time we pause/resume, we want to skip even the creation of
-        // iterators. Thus, the first `PreemptQueryIterConcat` is shorter or equal
-        // compared to the rest of such iterators that will be created on `nextStage`.
-        Integer skipCreatingIterators = 0;
-        if (Objects.nonNull(input.getState()) && input.getState().containsKey(id)) {
-            skipCreatingIterators = (int) input.getState(id);
-        }
-        Integer skipToOffset = skipCreatingIterators;
-
         PreemptQueryIterConcat unionQIter = new PreemptQueryIterConcat(getExecContext(), id);
-        IdentifierAllocator a = new IdentifierAllocator(id);
+
+        IdentifierAllocator idAlloc = new IdentifierAllocator(id);
+
         for (Op subOp : subOps) {
-            if (skipCreatingIterators > 0) {
-                skipCreatingIterators -= 1;
-
-                // We process the identifiers allocated to the subOp still, so every branch
-                // of the union has its own range of identifiers.
-                subOp.visit(a);
-                continue;
-            }
-            getExecContext().getContext().set(SageConstants.cursor, a.getCurrent());
-
             subOp = QC.substitute(subOp, binding);
-            subOp.visit(a);
             QueryIterator parent = QueryIterSingleton.create(binding, getExecContext());
             QueryIterator qIter = QC.execute(subOp, parent, getExecContext());
-            unionQIter.add(qIter);
+            subOp.visit(idAlloc); // TODO bad complexity-wise to call it there every time
+            getExecContext().getContext().set(SageConstants.cursor, idAlloc.getCurrent());
+            unionQIter.add(qIter) ;
         }
 
-        // Set the offset of the first, so it knows the offset when pausing
-        unionQIter.skip(skipToOffset);
+        if (Objects.nonNull(sageInput.getState()) && sageInput.getState().containsKey(id)) {
+            // TODO an optimization consists in not QC.execute(subOp) for skipped subOp
+            unionQIter.skip((int) sageInput.getState(id));
+        }
 
-        return unionQIter;
+        return unionQIter ;
     }
 }

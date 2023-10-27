@@ -2,10 +2,13 @@ package org.apache.jena.sparql.engine.iterator;
 
 import fr.gdd.sage.arq.SageConstants;
 import fr.gdd.sage.generics.Pair;
+import fr.gdd.sage.interfaces.PreemptIterator;
 import fr.gdd.sage.io.SageInput;
 import fr.gdd.sage.io.SageOutput;
 import org.apache.jena.sparql.engine.ExecutionContext;
+import org.apache.jena.sparql.engine.binding.Binding;
 
+import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -14,33 +17,24 @@ import java.util.Objects;
  * a unique identifier to save/resume its offset in the list of operators the first time it gets
  * executed.
  */
-public class PreemptQueryIterConcat extends QueryIterConcat {
+public class PreemptQueryIterConcat extends QueryIterConcat implements PreemptIterator<Integer> {
 
-    int offset = 0;
-
-    SageOutput output;
-    SageInput sageInput;
+    Integer offset;
+    Integer previousOffset = null;
 
     int id;
 
     public PreemptQueryIterConcat(ExecutionContext context, int id) {
         super(context);
-        output = context.getContext().get(SageConstants.output);
-        sageInput  = context.getContext().get(SageConstants.input);
         this.id = id;
+        this.offset = 0;
+
+        HashMap<Integer, PreemptIterator> iterators = context.getContext().get(SageConstants.iterators);
+        iterators.put(id, this);
     }
 
     @Override
     protected boolean hasNextBinding() {
-        if  (System.currentTimeMillis() >= sageInput.getDeadline() || output.size() >= sageInput.getLimit()) {
-            this.output.save(new Pair(id, offset));
-            // Need to not return false since iterator will do it,
-            // otherwise, it returns an error since it `moveToNextBinding` first then
-            // check `hasNextBinding` that returns false…
-            // Instead, we empty the iterator by checking all members of union.
-            // return false;
-        }
-
         // Copy/pasta of `hasNextBinding` with an offset increment on
         // `iterator.next`.
         if ( isFinished() )
@@ -70,9 +64,10 @@ public class PreemptQueryIterConcat extends QueryIterConcat {
         return true;
     }
 
-
-    public void skip(int to){
-        this.offset = to;
+    @Override
+    protected Binding moveToNextBinding() {
+        previousOffset = offset;
+        return super.moveToNextBinding();
     }
 
     private void init(Integer... start) {
@@ -80,6 +75,7 @@ public class PreemptQueryIterConcat extends QueryIterConcat {
             currentQIter = null;
             if (iterator == null) {
                 if (Objects.nonNull(start) && start.length > 0) {
+                    iteratorList.subList(0, start[0]).forEach(i -> i.close()); // cleaner
                     iteratorList = iteratorList.subList(start[0], iteratorList.size());
                 }
                 iterator = iteratorList.listIterator();
@@ -88,6 +84,29 @@ public class PreemptQueryIterConcat extends QueryIterConcat {
                 currentQIter = iterator.next();
             initialized = true;
         }
+    }
+
+    /* ******************************************************************* */
+
+    @Override
+    public Integer getId() {
+        return id;
+    }
+
+    @Override
+    public void skip(Integer to) {
+        this.offset = to;
+        init(to);
+    }
+
+    @Override
+    public Integer current() {
+        return offset;
+    }
+
+    @Override
+    public Integer previous() {
+        return offset;
     }
 
 }
