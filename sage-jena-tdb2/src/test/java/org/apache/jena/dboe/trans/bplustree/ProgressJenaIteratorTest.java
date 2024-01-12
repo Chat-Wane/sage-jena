@@ -8,6 +8,9 @@ import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
+import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.base.Sys;
+import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
@@ -172,5 +175,45 @@ class ProgressJenaIteratorTest {
         assertEquals(2613, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 2613, got {}.", casted.cardinality(200000));
     }
+
+    @Disabled
+    @Test
+    public void getting_the_distribution_of_watdiv_spo_in_balanced_tree_index() {
+        JenaBackend backend = new JenaBackend("../target/watdiv10M");
+        ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
+        HashMap<Record, Double> recordToProba = new HashMap<>();
+        for (int i = 0; i < 100_000_000; ++i) {
+            var rWp = it.randomWithProbability();
+            recordToProba.put(rWp.getLeft(), rWp.getRight());
+        }
+        var sortedProbas = recordToProba.values().stream().sorted();
+        sortedProbas.forEach(p -> System.out.println(p));
+    }
+
+    @Disabled
+    @Test
+    public void testing_for_count_distinct() {
+        ProgressJenaIterator.NB_WALKS = 1000;
+        JenaBackend backend = new JenaBackend("../target/watdiv10M");
+        LazyIterator spo = (LazyIterator) backend.search(backend.any(), backend.any(), backend.any());
+        ProgressJenaIterator spoR = (ProgressJenaIterator) spo.iterator;
+
+        double sampleSize = 1000.;
+
+        for (int j = 0; j < 5; ++j) {
+            double sum = 0.;
+            for (int i = 0; i < sampleSize; ++i) {
+                var rWp = spoR.randomWithProbability();
+                Tuple<NodeId> ids = backend.getId(rWp.getLeft());
+                // LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
+                LazyIterator o = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
+                ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
+                sum += 1. / oR.cardinality();
+            }
+            double estimate = spoR.cardinality() / sampleSize * sum;
+            System.out.println(estimate);
+        }
+    }
+
 
 }

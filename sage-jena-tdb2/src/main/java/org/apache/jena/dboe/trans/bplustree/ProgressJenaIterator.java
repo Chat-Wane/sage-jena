@@ -1,6 +1,7 @@
 package org.apache.jena.dboe.trans.bplustree;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.base.record.Record;
@@ -193,6 +194,14 @@ public class ProgressJenaIterator {
      * @return A random record between the set boundaries of the object.
      */
     public Record random() {
+        return this.randomWithProbability().getLeft();
+    }
+
+    /**
+     * @return A random record between the set boundaries of the object along
+     * with the probability of being chosen in the balanced tree index.
+     */
+    public Pair<Record, Double> randomWithProbability() {
         AccessPath minPath = new AccessPath(null);
         AccessPath maxPath = new AccessPath(null);
 
@@ -200,7 +209,7 @@ public class ProgressJenaIterator {
         root.internalSearch(maxPath, maxRecord);
         ImmutablePair<Record, Double> recordAndProba = randomWalkWJ(minPath, maxPath);
 
-        return recordAndProba.getLeft();
+        return recordAndProba;
     }
 
     /**

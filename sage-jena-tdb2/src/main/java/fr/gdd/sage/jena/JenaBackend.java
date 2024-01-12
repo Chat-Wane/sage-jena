@@ -5,11 +5,13 @@ import fr.gdd.sage.interfaces.Backend;
 import fr.gdd.sage.interfaces.BackendIterator;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
+import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.shared.NotFoundException;
 import org.apache.jena.sparql.util.NodeFactoryExtra;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.nodetable.NodeTable;
@@ -127,6 +129,13 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
             }
         }
         return id;
+    }
+
+    public Tuple<NodeId> getId(Record record) throws NotFoundException {
+        Tuple<NodeId> ids = TupleLib.tuple(record, preemptableTripleTupleTable.getIndex(0).getMapping());
+        // TODO QuadTupleTable ?
+        // TODO Not found etc.
+        return ids;
     }
 
 }
