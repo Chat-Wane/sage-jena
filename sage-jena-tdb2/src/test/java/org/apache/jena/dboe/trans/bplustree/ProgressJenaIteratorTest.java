@@ -185,7 +185,7 @@ class ProgressJenaIteratorTest {
         ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
         HashMap<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
         log.debug("Start random sampling…");
-        for (int i = 0; i < 10_000; ++i) {
+        for (int i = 0; i < 100_000; ++i) {
             var rWp = it.randomWithProbability();
             Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
@@ -244,4 +244,14 @@ class ProgressJenaIteratorTest {
     }
 
 
+    @Disabled
+    @Test
+    public void testing_for_depth() {
+        ProgressJenaIterator.NB_WALKS = 1000;
+        JenaBackend backend = new JenaBackend("../target/watdiv10M");
+        LazyIterator spo = (LazyIterator) backend.search(backend.any(), backend.any(), backend.any());
+        ProgressJenaIterator spoR = (ProgressJenaIterator) spo.iterator;
+        var counts = spoR.countNodes();
+        System.out.println(counts.sum);
+    }
 }

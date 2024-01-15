@@ -11,7 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -252,7 +254,7 @@ public class ProgressJenaIterator {
         // exact count for the leftmost and rightmost page
         RecordBuffer minRecordBuffer = ((BPTreeRecords) minStep.page).getRecordBuffer();
         RecordBuffer maxRecordBuffer = ((BPTreeRecords) maxStep.page).getRecordBuffer();
-        
+
         int idxMin = minRecordBuffer.find(minRecord);
         int idxMax =  maxRecordBuffer.find(maxRecord);
 
@@ -285,6 +287,67 @@ public class ProgressJenaIterator {
         this.cardinality = cardinality; // for laziness
 
         return this.cardinality;
+    }
+
+    // TODO rename
+    // TODO use it for uniform sample
+    public CardinalityNode countNodes() {
+        AccessPath minPath = new AccessPath(null);
+        AccessPath maxPath = new AccessPath(null);
+
+        root.internalSearch(minPath, minRecord);
+        root.internalSearch(maxPath, maxRecord);
+        return _countNodes(minPath, maxPath);
+    }
+
+
+    private CardinalityNode getSum(AccessStep step) {
+        if (!step.node.isLeaf()) {
+            BPTreeNode node = (BPTreeNode) step.page;
+
+            int idxMin = node.findSlot(minRecord);
+            int idxMax = node.findSlot(maxRecord);
+
+            idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
+            idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
+
+            CardinalityNode cardinalityNode = new CardinalityNode();
+            for (int idx = idxMin; idx <= idxMax; ++idx) {
+                AccessStep lastStep = new AccessStep(node, idx, node.get(idx));
+                cardinalityNode.addChild(getSum(lastStep));
+            }
+            return cardinalityNode;
+        } else {
+            RecordBuffer recordBuffer = ((BPTreeRecords) step.page).getRecordBuffer();
+            int idxMin = recordBuffer.find(minRecord);
+            int idxMax = recordBuffer.find(maxRecord);
+
+            idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
+            idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
+
+            if (idxMin == idxMax) {
+                return new CardinalityNode();
+            } else {
+                return new CardinalityNode(idxMax - idxMin);
+            }
+
+        }
+    }
+
+    // TODO TODO
+    private CardinalityNode _countNodes(AccessPath minPath, AccessPath maxPath) {
+        int idxMin = minPath.getPath().get(0).idx;
+        int idxMax = maxPath.getPath().get(0).idx;
+
+        CardinalityNode cardinalityNode = new CardinalityNode();
+        for (int idx = idxMin; idx <= idxMax; ++idx) {
+            BPTreeNode node = minPath.getPath().get(0).node;
+            AccessPath.AccessStep lastStep = new AccessStep(node, idx, node.get(idx));
+
+            cardinalityNode.addChild(getSum(lastStep));
+        }
+
+        return cardinalityNode;
     }
 
 }
