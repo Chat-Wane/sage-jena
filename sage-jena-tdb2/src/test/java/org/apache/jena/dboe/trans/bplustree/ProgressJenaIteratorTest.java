@@ -8,6 +8,8 @@ import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.record.Record;
@@ -22,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -179,15 +182,22 @@ class ProgressJenaIteratorTest {
     @Disabled
     @Test
     public void getting_the_distribution_of_watdiv_spo_in_balanced_tree_index() {
+        ProgressJenaIterator.NB_WALKS = 1000;
+
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
         ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
-        HashMap<Record, Double> recordToProba = new HashMap<>();
-        for (int i = 0; i < 100_000_000; ++i) {
+        HashMap<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
+        for (int i = 0; i < 100_000_0; ++i) {
             var rWp = it.randomWithProbability();
-            recordToProba.put(rWp.getLeft(), rWp.getRight());
+            Tuple<NodeId> ids = backend.getId(rWp.getLeft());
+            LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
+            ProgressJenaIterator sR = (ProgressJenaIterator) s.iterator;
+            LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
+            ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
+            recordToProba.put(rWp.getLeft(), new ImmutableTriple<>(rWp.getRight(), oR.cardinality(), sR.cardinality()));
         }
-        var sortedProbas = recordToProba.values().stream().sorted();
-        sortedProbas.forEach(p -> System.out.println(p));
+        var sortedProbas = recordToProba.values().stream().sorted(Comparator.comparing(a -> a.left));
+        sortedProbas.forEach(p -> System.out.println(String.format("%s %s %s", p.getLeft(), p.getMiddle(), p.getRight())));
     }
 
     @Disabled
@@ -197,16 +207,15 @@ class ProgressJenaIteratorTest {
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
         LazyIterator spo = (LazyIterator) backend.search(backend.any(), backend.any(), backend.any());
         ProgressJenaIterator spoR = (ProgressJenaIterator) spo.iterator;
-
-        double sampleSize = 1000.;
+        double sampleSize = 10000.;
 
         for (int j = 0; j < 5; ++j) {
             double sum = 0.;
             for (int i = 0; i < sampleSize; ++i) {
                 var rWp = spoR.randomWithProbability();
                 Tuple<NodeId> ids = backend.getId(rWp.getLeft());
-                // LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
-                LazyIterator o = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
+                LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
+                //LazyIterator o = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
                 ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
                 sum += 1. / oR.cardinality();
             }
