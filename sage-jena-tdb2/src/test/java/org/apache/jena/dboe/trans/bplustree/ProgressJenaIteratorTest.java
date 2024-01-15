@@ -8,10 +8,8 @@ import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.store.NodeId;
@@ -186,7 +184,8 @@ class ProgressJenaIteratorTest {
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
         ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
         HashMap<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
-        for (int i = 0; i < 1000; ++i) {
+        log.debug("Start random sampling…");
+        for (int i = 0; i < 10_000; ++i) {
             var rWp = it.randomWithProbability();
             Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
@@ -198,28 +197,26 @@ class ProgressJenaIteratorTest {
 
         var sortedProbas = recordToProba.values().stream().sorted(Comparator.comparing(a -> a.left)).collect(Collectors.toList());
 
-
-        var pmin = sortedProbas.getFirst();
-        var pmax = sortedProbas.getLast();
-
         List<ImmutableTriple<Double, Double, Double>> accepted = new ArrayList<>();
+
         for (ImmutableTriple<Double, Double, Double> triple : sortedProbas) {
             double randomNumber= new Random().nextDouble();
-            if (randomNumber <= pmin.getLeft()/triple.getLeft()) {
+            if (randomNumber <= (1./it.cardinality())/triple.getLeft()) { // p = getLeft * 1/|N|/getLeft = 1/|N|
                 accepted.add(triple);
             }
         }
 
+        System.out.println("Size of unique triples = " + sortedProbas.size());
         System.out.println("Size of accepted = " + accepted.size());
-        // sortedProbas.forEach(p -> System.out.println(String.format("%s %s %s", p.getLeft(), p.getMiddle(), p.getRight())));
+        // normalized.forEach(p -> System.out.println(String.format("%s %s %s", p.getLeft(), p.getMiddle(), p.getRight())));
 
-            double sum = 0.;
-            for (var triple : accepted) {
-                sum += 1. / triple.getRight(); // middle : object ; right : subject
-            }
-            double estimate = it.cardinality() / accepted.size() * sum;
-            System.out.println(estimate);
+        double sum = 0.;
+        for (var triple : accepted) {
+            sum += 1. / triple.getRight(); // middle : object ; right : subject
         }
+        double estimate = it.cardinality() / accepted.size() * sum;
+        System.out.println(estimate);
+    }
 
 
     @Disabled
