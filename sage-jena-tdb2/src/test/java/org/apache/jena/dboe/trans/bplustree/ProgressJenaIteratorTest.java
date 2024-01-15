@@ -24,9 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -187,7 +186,7 @@ class ProgressJenaIteratorTest {
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
         ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
         HashMap<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
-        for (int i = 0; i < 100_000_0; ++i) {
+        for (int i = 0; i < 1000; ++i) {
             var rWp = it.randomWithProbability();
             Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
@@ -196,9 +195,32 @@ class ProgressJenaIteratorTest {
             ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
             recordToProba.put(rWp.getLeft(), new ImmutableTriple<>(rWp.getRight(), oR.cardinality(), sR.cardinality()));
         }
-        var sortedProbas = recordToProba.values().stream().sorted(Comparator.comparing(a -> a.left));
-        sortedProbas.forEach(p -> System.out.println(String.format("%s %s %s", p.getLeft(), p.getMiddle(), p.getRight())));
-    }
+
+        var sortedProbas = recordToProba.values().stream().sorted(Comparator.comparing(a -> a.left)).collect(Collectors.toList());
+
+
+        var pmin = sortedProbas.getFirst();
+        var pmax = sortedProbas.getLast();
+
+        List<ImmutableTriple<Double, Double, Double>> accepted = new ArrayList<>();
+        for (ImmutableTriple<Double, Double, Double> triple : sortedProbas) {
+            double randomNumber= new Random().nextDouble();
+            if (randomNumber <= pmin.getLeft()/triple.getLeft()) {
+                accepted.add(triple);
+            }
+        }
+
+        System.out.println("Size of accepted = " + accepted.size());
+        // sortedProbas.forEach(p -> System.out.println(String.format("%s %s %s", p.getLeft(), p.getMiddle(), p.getRight())));
+
+            double sum = 0.;
+            for (var triple : accepted) {
+                sum += 1. / triple.getRight(); // middle : object ; right : subject
+            }
+            double estimate = it.cardinality() / accepted.size() * sum;
+            System.out.println(estimate);
+        }
+
 
     @Disabled
     @Test
