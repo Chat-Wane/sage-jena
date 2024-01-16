@@ -131,12 +131,12 @@ class ProgressJenaIteratorTest {
     @Test
     public void cardinality_of_larger_triple_pattern_above_leaf_size_with_watdiv_with_query1000() {
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
-        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country21>))"); // expect 2613 get 2613
-        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/validThrough> ?v3))"); // expect 36346 get 34100
-        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/includes> ?v1))"); // expect 90000 get 103616
-        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v1 <http://schema.org/text> ?v6))"); // expect 7476 get 7476
-        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleQuantity> ?v4))"); // expect 90000 get 79454
-        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/price> ?v2))"); // expect 240000 get 234057
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleRegion> <http://db.uwaterloo.ca/~galuc/wsdbm/Country21>))"); // expect 2613
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/validThrough> ?v3))"); // expect 36346
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/includes> ?v1))"); // expect 90000
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v1 <http://schema.org/text> ?v6))"); // expect 7476
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://schema.org/eligibleQuantity> ?v4))"); // expect 90000
+        // OpBGP op = (OpBGP) SSE.parseOp("(bgp (?v0 <http://purl.org/goodrelations/price> ?v2))"); // expect 240000
 
         NodeId price = backend.getId("<http://purl.org/goodrelations/price>");
         var it = backend.search(backend.any(), price, backend.any());
@@ -174,6 +174,42 @@ class ProgressJenaIteratorTest {
         casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
         assertEquals(2613, casted.cardinality(Integer.MAX_VALUE));
         log.info("Expected 2613, got {}.", casted.cardinality(200000));
+    }
+
+    @Test
+    public void count_as_well_but_building_a_tree_in_a_bplustree_way() {
+        JenaBackend backend = new JenaBackend("../target/watdiv10M");
+
+        NodeId price = backend.getId("<http://purl.org/goodrelations/price>");
+        var it = backend.search(backend.any(), price, backend.any());
+        ProgressJenaIterator casted = (ProgressJenaIterator) ((LazyIterator) it).iterator;
+        assertEquals(240000, casted.getTreeOfCardinality().sum);
+
+        NodeId eligible = backend.getId("<http://schema.org/eligibleQuantity>");
+        it = backend.search(backend.any(), eligible,backend.any());
+        casted =(ProgressJenaIterator)((LazyIterator)it).iterator;
+        assertEquals(90000, casted.getTreeOfCardinality().sum);
+
+        NodeId text = backend.getId("<http://schema.org/text>");
+        it = backend.search(backend.any(),text,backend.any());
+        casted =(ProgressJenaIterator)((LazyIterator)it).iterator;
+        assertEquals(7476, casted.getTreeOfCardinality().sum);
+
+        NodeId include = backend.getId("<http://purl.org/goodrelations/includes>");
+        it = backend.search(backend.any(),include,backend.any());
+        casted =(ProgressJenaIterator)((LazyIterator)it).iterator;
+        assertEquals(90000, casted.getTreeOfCardinality().sum);
+
+        NodeId valid = backend.getId("<http://purl.org/goodrelations/validThrough>");
+        it = backend.search(backend.any(),valid,backend.any());
+        casted =(ProgressJenaIterator)((LazyIterator)it).iterator;
+        assertEquals(36346, casted.getTreeOfCardinality().sum);
+
+        NodeId region = backend.getId("<http://schema.org/eligibleRegion>");
+        NodeId country21 = backend.getId("<http://db.uwaterloo.ca/~galuc/wsdbm/Country21>");
+        it = backend.search(backend.any(),region,country21);
+        casted =(ProgressJenaIterator)((LazyIterator)it).iterator;
+        assertEquals(2613, casted.getTreeOfCardinality().sum);
     }
 
     @Disabled
@@ -246,12 +282,33 @@ class ProgressJenaIteratorTest {
 
     @Disabled
     @Test
-    public void testing_for_depth() {
+    public void try_to_get_a_uniform_sample_out_of_spo() {
         ProgressJenaIterator.NB_WALKS = 1000;
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
         LazyIterator spo = (LazyIterator) backend.search(backend.any(), backend.any(), backend.any());
         ProgressJenaIterator spoR = (ProgressJenaIterator) spo.iterator;
-        var counts = spoR.countNodes();
-        System.out.println(counts.sum);
+
+        int sampleSize = 10_000;
+        List<Double> results = new ArrayList<>();
+        for (int j = 0; j < 10; ++j) {
+            double sum = 0.;
+            for (int i = 0; i < sampleSize; ++i) {
+                var rWp = spoR.getUniformRandom();
+                Tuple<NodeId> ids = backend.getId(rWp);
+                // LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
+                LazyIterator o = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
+                ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
+                sum += 1. / oR.cardinality();
+            }
+            double estimate = spoR.cardinality() / sampleSize * sum;
+            System.out.println(estimate);
+            results.add(estimate);
+        }
+
+        Double average = results.stream().mapToDouble(v->v).average().getAsDouble();
+        System.out.println("Average = " + average);
+        System.out.println("Error = " + Math.abs(average-521_585)/521_585);
+        //System.out.println("Error = " + Math.abs(average-1_005_832)/1_005_832);
+
     }
 }
