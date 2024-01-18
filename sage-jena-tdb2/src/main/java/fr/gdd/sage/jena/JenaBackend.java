@@ -133,6 +133,7 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
 
     public Tuple<NodeId> getId(Record record) throws NotFoundException {
         Tuple<NodeId> ids = TupleLib.tuple(record, preemptableTripleTupleTable.getIndex(0).getMapping());
+        // TODO reorder tuple depending on used index
         // TODO QuadTupleTable ?
         // TODO Not found etc.
         return ids;

@@ -1,5 +1,6 @@
 package org.apache.jena.dboe.trans.bplustree;
 
+import fr.gdd.sage.ArtificallySkewedGraph;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2;
 import fr.gdd.sage.databases.persistent.Watdiv10M;
 import fr.gdd.sage.generics.LazyIterator;
@@ -8,8 +9,11 @@ import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.jena.SerializableRecord;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.store.NodeId;
@@ -311,4 +315,260 @@ class ProgressJenaIteratorTest {
         //System.out.println("Error = " + Math.abs(average-1_005_832)/1_005_832);
 
     }
+
+    @Disabled
+    @Test
+    public void try_resampling_using_counts() {
+        // TODO TODO TODO
+        ProgressJenaIterator.NB_WALKS = 1000;
+
+        JenaBackend backend = new JenaBackend("../target/watdiv10M");
+        ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
+        Map<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
+        Map<NodeId, Double> object2card = new HashMap<>();
+        Map<NodeId, Double> subject2card = new HashMap<>();
+        Map<NodeId, Double> subject2proba = new HashMap<>();
+        log.debug("Start random sampling…");
+        for (int i = 0; i < 10000; ++i) {
+            // var rWp = it.getUniformRandom();
+            var rWp = it.randomWithProbability();
+            // Tuple<NodeId> ids = backend.getId(rWp.getLeft());
+            Tuple<NodeId> ids = backend.getId(rWp.getLeft());
+            LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
+            ProgressJenaIterator sR = (ProgressJenaIterator) s.iterator;
+            LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
+            ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
+            // recordToProba.put(rWp.getLeft(), new ImmutableTriple<>(rWp.getRight(), oR.cardinality(), sR.cardinality()));
+            subject2card.put(ids.get(0), sR.cardinality());
+            subject2proba.put(ids.get(0), rWp.getRight());
+            object2card.put(ids.get(2), oR.cardinality());
+        }
+
+        /* List<Double> cumulativeCard = new ArrayList<>();
+        double sum = 0.;
+        for (Double subjectCard : subject2card.values()) {
+            sum += subjectCard;
+            cumulativeCard.add(sum);
+        }*/
+
+        double sumOfCards = subject2card.values().stream().mapToDouble(v->v).sum();
+        List<Double> subjectCards = subject2card.values().stream().toList();
+        // TODO resample
+        log.debug("Resampling…");
+        var rng = new Random();
+        List<Double> resample = new ArrayList<>();
+        for (int j = 0; j < 1_000_000; ++j) {
+            // System.out.println(j);
+            int random = rng.nextInt((int) Math.ceil(sumOfCards));
+            // System.out.println("random " + random);
+            double currentSum = 0.;
+            int i = 0;
+            while (currentSum <= random && i < subjectCards.size()) {
+                currentSum += subjectCards.get(i);
+                ++i;
+            }
+            i = i-1;
+            // System.out.println(i);
+            double toAdd = subjectCards.get(i);
+            resample.add(toAdd);
+        }
+
+        Double sumOfProbas = 0.;
+        for (Double sampled_card: resample) {
+            sumOfProbas += 1. / sampled_card;
+        }
+
+        double estimate = it.cardinality() / resample.size() * sumOfProbas;
+        System.out.println("estimate = " + estimate);
+
+
+        // Another strategy
+        resample = new ArrayList<>();
+        for (int j = 0; j < 100_000_00; ++j) {
+            int random = rng.nextInt((int) Math.ceil(subjectCards.size()));
+            resample.add(subjectCards.get(random));
+        }
+
+        sumOfProbas = 0.;
+        for (Double sampled_card: resample) {
+            sumOfProbas += 1./sampled_card;
+
+        }
+        estimate = it.cardinality() / resample.size() * sumOfProbas;
+        System.out.println("estimate = " + estimate);
+
+
+        // Another strategy
+        List<Double> subjectProbas = subject2card.entrySet().stream().map(e-> 1./subject2proba.get(e.getKey())).collect(Collectors.toList());
+        sumOfCards = subjectProbas.stream().mapToDouble(v->v).sum();
+        // TODO resample
+        log.debug("Resampling…");
+        rng = new Random();
+        resample = new ArrayList<>();
+        for (int j = 0; j < 1_000_000; ++j) {
+            // System.out.println(j);
+            double random = rng.nextDouble(sumOfCards);
+            // System.out.println("random " + random);
+            double currentSum = 0.;
+            int i = 0;
+            while (currentSum <= random && i < subjectProbas.size()) {
+                currentSum += subjectProbas.get(i);
+                ++i;
+            }
+            i = i-1;
+            // System.out.println(i);
+            double toAdd = subjectCards.get(i);
+            resample.add(toAdd);
+        }
+
+        sumOfProbas = 0.;
+        for (Double sampled_card: resample) {
+            sumOfProbas += 1./sampled_card;
+        }
+        estimate = it.cardinality() / resample.size() * sumOfProbas;
+        System.out.println("estimate = " + estimate);
+    }
+
+
+    @Disabled
+    @Test
+    public void performing_skewed_query() {
+        ProgressJenaIterator.NB_WALKS = 1000;
+
+        int DISTINCT = 15000;
+        ArtificallySkewedGraph graph = new ArtificallySkewedGraph(DISTINCT, 50);
+        JenaBackend backend = new JenaBackend(graph.getDataset());
+
+
+        ProgressJenaIterator spo = (ProgressJenaIterator)((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
+        Long cardinality = spo.count();
+        Double estimated = spo.cardinality();
+        Double relativeErr = Math.abs(cardinality- estimated)/cardinality;
+
+        ///////////////////
+
+        int SAMPLESIZE = 50000;
+        NodeId is_a = backend.getId("<http://is_a>", SPOC.PREDICATE);
+        NodeId prof = backend.getId("<http://Prof>", SPOC.OBJECT);
+        NodeId teaches = backend.getId("<http://teaches>", SPOC.PREDICATE);
+        NodeId belongs_to = backend.getId("<http://belongs_to>", SPOC.PREDICATE);
+
+        ////////////
+
+        Double total = 0.;
+        BackendIterator<NodeId, ?> pIsAProfIt = backend.search(backend.any(), is_a, prof);
+        Map<NodeId, Double> group2cardinality = new HashMap<>();
+        while (pIsAProfIt.hasNext()) {
+            pIsAProfIt.next();
+            // ?p teaches ?s
+            BackendIterator<NodeId, ?> pTeachesSIt = backend.search(pIsAProfIt.getId(SPOC.SUBJECT), teaches, backend.any());
+            while (pTeachesSIt.hasNext()) {
+                pTeachesSIt.next();
+                BackendIterator<NodeId, ?> sBelongsToGIt = backend.search(pTeachesSIt.getId(SPOC.OBJECT), belongs_to, backend.any());
+
+                boolean found = false;
+                while (sBelongsToGIt.hasNext()){
+                    found = true;
+                    sBelongsToGIt.next();
+                //    System.out.println(total);
+                    total += 1;
+                    if (!group2cardinality.containsKey(sBelongsToGIt.getId(SPOC.OBJECT))) {
+                        group2cardinality.put(sBelongsToGIt.getId(SPOC.OBJECT), 0.);
+                    }
+                    group2cardinality.put(sBelongsToGIt.getId(SPOC.OBJECT), group2cardinality.get(sBelongsToGIt.getId(SPOC.OBJECT)) + 1);
+                }
+                if (!found) { // failures get recorded in "any"
+                    if (!group2cardinality.containsKey(backend.any())) {
+                        group2cardinality.put(backend.any(), 0.);
+                    }
+                    group2cardinality.put(backend.any(), group2cardinality.get(backend.any()) + 1);
+                }
+            }
+        }
+
+        Double actualSampleSize = 0.;
+        Double sum = 0.;
+        List<ImmutablePair<Double, Double>> resultsProbaAndCard = new ArrayList<>();
+        // ?p is_a Prof
+        ProgressJenaIterator pIsAProf = (ProgressJenaIterator)((LazyIterator) backend.search(backend.any(), is_a, prof)).iterator;
+        for (int i = 0; i < SAMPLESIZE; ++i) {
+
+            Record pRecord = pIsAProf.getUniformRandom();
+            NodeId pId = backend.getId(pRecord).get(SPOC.OBJECT); // TODO id of Record reordered depending on used index
+
+            // ?p teaches ?s
+            ProgressJenaIterator pTeachesS = (ProgressJenaIterator)((LazyIterator) backend.search(pId, teaches, backend.any())).iterator;
+            Record sRecord = pTeachesS.getUniformRandom();
+            NodeId sId = backend.getId(sRecord).get(SPOC.OBJECT);
+
+            ProgressJenaIterator sBelongsToG = (ProgressJenaIterator)((LazyIterator) backend.search(sId, belongs_to, backend.any())).iterator;
+
+            if (sBelongsToG.count() >= 1) { // TODO ugly but needed for this
+                Record gRecord = sBelongsToG.getUniformRandom();
+                NodeId gId = backend.getId(gRecord).get(SPOC.OBJECT);
+
+                // String pString = backend.getValue(gId);
+                // System.out.println(pString);
+                // here group are unique each teacher, so its easier, but we should count in the global query
+                sum += 1. / group2cardinality.get(gId); //sBelongsToG.count(); // which is always 1 actually
+                actualSampleSize += 1.;
+                resultsProbaAndCard.add(new ImmutablePair<>(
+                        (1. / pIsAProf.count()) * (1. / pTeachesS.count()) * 1. / 1.,
+                        group2cardinality.get(gId)
+                ));
+            }
+        }
+
+        Map<Double, Integer> distributionOfCardinality = new HashMap<>();
+        for (ImmutablePair<Double, Double> p : resultsProbaAndCard) {
+            if (!distributionOfCardinality.containsKey(p.getRight())) {
+                distributionOfCardinality.put(p.getRight(), 0);
+            }
+            distributionOfCardinality.put(p.getRight(), distributionOfCardinality.get(p.getRight())+ 1);
+        }
+        List<Integer> sorted = distributionOfCardinality.values().stream().sorted().toList();
+
+        double estimatedCountDistinct = total / actualSampleSize * sum;
+        double relativeErrCountDistinct = Math.abs(DISTINCT-estimatedCountDistinct)/DISTINCT;
+
+        ///////////////////////////////////////////
+
+        Double maxProba = resultsProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).max().getAsDouble();
+        resultsProbaAndCard = resultsProbaAndCard.stream().map(e ->
+                new ImmutablePair<>(1./e.getLeft() * maxProba, e.getRight())
+        ).collect(Collectors.toList());
+
+        double sumOfProbas = resultsProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).sum();
+        // TODO resample
+        log.debug("Resampling…");
+        Random rng = new Random();
+        List<Double> resample = new ArrayList<>();
+        for (int j = 0; j < 50_000; ++j) {
+            // System.out.println(j);
+            double random = rng.nextDouble(sumOfProbas);
+            // System.out.println("random " + random);
+            double currentSum = 0.;
+            int i = 0;
+            while (currentSum <= random && i < resultsProbaAndCard.size()) {
+                currentSum += resultsProbaAndCard.get(i).getLeft();
+                ++i;
+            }
+            i = i-1;
+            // System.out.println(i);
+            double toAdd = resultsProbaAndCard.get(i).getRight();
+            resample.add(toAdd);
+        }
+
+        sumOfProbas = 0.;
+        for (Double sampled_card: resample) {
+                sumOfProbas += 1./sampled_card;
+        }
+
+
+        double resampleEstimate = total / resample.size() * sumOfProbas;
+        double resampleRelativeErrCountDistinct = Math.abs(DISTINCT-resampleEstimate)/DISTINCT;
+    }
+
+
+
 }
