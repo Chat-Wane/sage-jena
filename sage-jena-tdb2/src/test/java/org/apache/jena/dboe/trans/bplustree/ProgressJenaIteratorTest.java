@@ -425,11 +425,10 @@ class ProgressJenaIteratorTest {
         ////
 
         sumOfProbas = 0.;
-        Double maxProba2 = sampleWithProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).max().getAsDouble();
         Double sumOfRevisedSample = 0.;
         for (ImmutablePair<Double, Double> result : sampleWithProbaAndCard) {
-            sumOfProbas += (1./result.getLeft())*maxProba2/result.getRight();
-            sumOfRevisedSample += 1./result.getLeft()*maxProba2;
+            sumOfProbas += (1./result.getLeft())/result.getRight();
+            sumOfRevisedSample += 1./result.getLeft();
         }
 
         double estimate = (it.count() / sumOfRevisedSample) * sumOfProbas;
