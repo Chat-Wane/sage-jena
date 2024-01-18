@@ -16,6 +16,7 @@ import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.tdb2.store.Hash;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
@@ -432,10 +433,40 @@ class ProgressJenaIteratorTest {
 
     @Disabled
     @Test
-    public void performing_skewed_query() {
+    public void check_uniformity_of_triple_pattern() {
         ProgressJenaIterator.NB_WALKS = 1000;
 
         int DISTINCT = 15000;
+        ArtificallySkewedGraph graph = new ArtificallySkewedGraph(DISTINCT, 50);
+        JenaBackend backend = new JenaBackend(graph.getDataset());
+        int SAMPLESIZE = 5000000;
+        NodeId is_a = backend.getId("<http://is_a>", SPOC.PREDICATE);
+        NodeId prof = backend.getId("<http://Prof>", SPOC.OBJECT);
+        NodeId teaches = backend.getId("<http://teaches>", SPOC.PREDICATE);
+        NodeId belongs_to = backend.getId("<http://belongs_to>", SPOC.PREDICATE);
+
+        ////////////
+
+        ProgressJenaIterator pIsAProf = (ProgressJenaIterator)((LazyIterator) backend.search(backend.any(), is_a, prof)).iterator;
+        Map<Record, Integer> record2Count = new HashMap<>();
+        for (int i = 0; i < SAMPLESIZE; ++i) {
+            Record record = pIsAProf.getUniformRandom();
+            if (!record2Count.containsKey(record)){
+                record2Count.put(record, 0);
+            }
+            record2Count.put(record, record2Count.get(record) + 1);
+        }
+        Double mean = record2Count.values().stream().mapToDouble(v->v).average().getAsDouble();
+        Double max  =record2Count.values().stream().mapToDouble(v->v).max().getAsDouble();
+        Double min = record2Count.values().stream().mapToDouble(v->v).min().getAsDouble();
+    }
+
+    @Disabled
+    @Test
+    public void performing_skewed_query() {
+        ProgressJenaIterator.NB_WALKS = 1000;
+
+        int DISTINCT = 10000;
         ArtificallySkewedGraph graph = new ArtificallySkewedGraph(DISTINCT, 50);
         JenaBackend backend = new JenaBackend(graph.getDataset());
 
@@ -447,13 +478,13 @@ class ProgressJenaIteratorTest {
 
         ///////////////////
 
-        int SAMPLESIZE = 50000;
+        int SAMPLESIZE = 20000;
         NodeId is_a = backend.getId("<http://is_a>", SPOC.PREDICATE);
         NodeId prof = backend.getId("<http://Prof>", SPOC.OBJECT);
         NodeId teaches = backend.getId("<http://teaches>", SPOC.PREDICATE);
         NodeId belongs_to = backend.getId("<http://belongs_to>", SPOC.PREDICATE);
 
-        ////////////
+        //////////// run the full query
 
         Double total = 0.;
         BackendIterator<NodeId, ?> pIsAProfIt = backend.search(backend.any(), is_a, prof);
@@ -486,41 +517,64 @@ class ProgressJenaIteratorTest {
             }
         }
 
+        //////// Draw a sample
+
         Double actualSampleSize = 0.;
         Double sum = 0.;
-        List<ImmutablePair<Double, Double>> resultsProbaAndCard = new ArrayList<>();
+        List<ImmutableTriple<Double, String, Double>> resultsProbaAndCard = new ArrayList<>();
+        Map<String, Double> id2count = new HashMap<>();
         // ?p is_a Prof
         ProgressJenaIterator pIsAProf = (ProgressJenaIterator)((LazyIterator) backend.search(backend.any(), is_a, prof)).iterator;
         for (int i = 0; i < SAMPLESIZE; ++i) {
 
             Record pRecord = pIsAProf.getUniformRandom();
+            Double firstTripleProba = 1./pIsAProf.count();
+            // var pRP = pIsAProf.randomWithProbability();
+            // Record pRecord = pRP.getLeft();
+            // Double firstTripleProba = pRP.getRight();
             NodeId pId = backend.getId(pRecord).get(SPOC.OBJECT); // TODO id of Record reordered depending on used index
+
+            String id = pRecord.toString();
 
             // ?p teaches ?s
             ProgressJenaIterator pTeachesS = (ProgressJenaIterator)((LazyIterator) backend.search(pId, teaches, backend.any())).iterator;
             Record sRecord = pTeachesS.getUniformRandom();
+            Double secondTripleProba = 1./ pTeachesS.count();
+            // var sRP = pIsAProf.randomWithProbability();
+            // Record sRecord = sRP.getLeft();
+            // Double secondTripleProba = sRP.getRight();
+
             NodeId sId = backend.getId(sRecord).get(SPOC.OBJECT);
+
+            id += sRecord;
 
             ProgressJenaIterator sBelongsToG = (ProgressJenaIterator)((LazyIterator) backend.search(sId, belongs_to, backend.any())).iterator;
 
             if (sBelongsToG.count() >= 1) { // TODO ugly but needed for this
                 Record gRecord = sBelongsToG.getUniformRandom();
                 NodeId gId = backend.getId(gRecord).get(SPOC.OBJECT);
+                id += gRecord;
 
                 // String pString = backend.getValue(gId);
                 // System.out.println(pString);
                 // here group are unique each teacher, so its easier, but we should count in the global query
                 sum += 1. / group2cardinality.get(gId); //sBelongsToG.count(); // which is always 1 actually
                 actualSampleSize += 1.;
-                resultsProbaAndCard.add(new ImmutablePair<>(
-                        (1. / pIsAProf.count()) * (1. / pTeachesS.count()) * 1. / 1.,
+                resultsProbaAndCard.add(new ImmutableTriple<>(
+                        firstTripleProba * secondTripleProba * 1. / 1.,
+                        id,
                         group2cardinality.get(gId)
                 ));
+
+                if (!id2count.containsKey(id))
+                    id2count.put(id, 0.);
+
+                id2count.put(id, id2count.get(id) + 1);
             }
         }
 
         Map<Double, Integer> distributionOfCardinality = new HashMap<>();
-        for (ImmutablePair<Double, Double> p : resultsProbaAndCard) {
+        for (ImmutableTriple<Double, String, Double> p : resultsProbaAndCard) {
             if (!distributionOfCardinality.containsKey(p.getRight())) {
                 distributionOfCardinality.put(p.getRight(), 0);
             }
@@ -533,17 +587,18 @@ class ProgressJenaIteratorTest {
 
         ///////////////////////////////////////////
 
-        Double maxProba = resultsProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).max().getAsDouble();
+        Double maxProba = resultsProbaAndCard.stream().mapToDouble(ImmutableTriple::getLeft).max().getAsDouble();
         resultsProbaAndCard = resultsProbaAndCard.stream().map(e ->
-                new ImmutablePair<>(1./e.getLeft() * maxProba, e.getRight())
+                new ImmutableTriple<Double, String, Double>(1./e.getLeft() * maxProba,// * 1./id2count.get(e.getMiddle()),
+                        e.getMiddle(),
+                        e.getRight())
         ).collect(Collectors.toList());
 
-        double sumOfProbas = resultsProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).sum();
-        // TODO resample
         log.debug("Resampling…");
+        double sumOfProbas = resultsProbaAndCard.stream().mapToDouble(ImmutableTriple::getLeft).sum();
         Random rng = new Random();
         List<Double> resample = new ArrayList<>();
-        for (int j = 0; j < 50_000; ++j) {
+        for (int j = 0; j < 2*SAMPLESIZE; ++j) { // TODO size of resample?
             // System.out.println(j);
             double random = rng.nextDouble(sumOfProbas);
             // System.out.println("random " + random);
@@ -560,8 +615,8 @@ class ProgressJenaIteratorTest {
         }
 
         sumOfProbas = 0.;
-        for (Double sampled_card: resample) {
-                sumOfProbas += 1./sampled_card;
+        for (Double resampledCardinality: resample) {
+                sumOfProbas += 1./resampledCardinality;
         }
 
 

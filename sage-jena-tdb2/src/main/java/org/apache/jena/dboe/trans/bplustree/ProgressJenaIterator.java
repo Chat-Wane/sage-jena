@@ -181,7 +181,8 @@ public class ProgressJenaIterator {
         idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
 
         if (idxMin == idxMax) {
-            return new ImmutablePair<Record,Double>(null, 0.0);
+            // return new ImmutablePair<Record,Double>(null, 0.0);
+            return new ImmutablePair<>(recordBuffer.get(idxRnd), proba);
         }
 
         idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin)); // no need for -1 in a `RecordBuffer`
