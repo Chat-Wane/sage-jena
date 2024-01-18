@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Creates an artifical graph where the cardinality of the groups are different (there are
+ * a lot more small groups that big groups), and have different probability to appear.
+ */
 public class ArtificallySkewedGraph {
 
     Dataset dataset;

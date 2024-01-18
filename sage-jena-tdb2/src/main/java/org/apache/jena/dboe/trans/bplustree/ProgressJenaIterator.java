@@ -182,7 +182,8 @@ public class ProgressJenaIterator {
 
         if (idxMin == idxMax) {
             // return new ImmutablePair<Record,Double>(null, 0.0);
-            return new ImmutablePair<>(recordBuffer.get(idxRnd), proba);
+            // TODO double check all this: when it exists when it does not
+            return new ImmutablePair<>(recordBuffer.get(idxMin), proba);
         }
 
         idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin)); // no need for -1 in a `RecordBuffer`

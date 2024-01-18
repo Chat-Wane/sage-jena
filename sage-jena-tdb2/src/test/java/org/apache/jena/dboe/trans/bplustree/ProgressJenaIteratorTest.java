@@ -57,13 +57,6 @@ class ProgressJenaIteratorTest {
         TDBInternal.expel(dataset.asDatasetGraph());
     }
 
-    @Disabled
-    @Test
-    public void simple_progression_test_of_two_loops() {
-        SageOutput output = run_loops(backend, new HashMap<>(), 1);
-        // (TODO) (TODO) (TODO)
-    }
-
     /**
      * Function that ease the creation of two loops, it stops at the `stopAt`^th next();
      */
@@ -320,48 +313,40 @@ class ProgressJenaIteratorTest {
     @Disabled
     @Test
     public void try_resampling_using_counts() {
-        // TODO TODO TODO
         ProgressJenaIterator.NB_WALKS = 1000;
 
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
         ProgressJenaIterator it = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
-        Map<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
+        // Map<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
         Map<NodeId, Double> object2card = new HashMap<>();
         Map<NodeId, Double> subject2card = new HashMap<>();
         Map<NodeId, Double> subject2proba = new HashMap<>();
+        List<ImmutablePair<Double, Double>> sampleWithProbaAndCard = new ArrayList<>();
         log.debug("Start random sampling…");
-        for (int i = 0; i < 10000; ++i) {
-            // var rWp = it.getUniformRandom();
+        Double SAMPLESIZE = 100_000.;
+        for (int i = 0; i < SAMPLESIZE; ++i) {
+            // var rWp = new ImmutablePair<>(it.getUniformRandom(), 1./ it.getTreeOfCardinality().sum);
             var rWp = it.randomWithProbability();
             // Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
             ProgressJenaIterator sR = (ProgressJenaIterator) s.iterator;
-            LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
-            ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
+            // LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
+            // ProgressJenaIterator oR = (ProgressJenaIterator) o.iterator;
             // recordToProba.put(rWp.getLeft(), new ImmutableTriple<>(rWp.getRight(), oR.cardinality(), sR.cardinality()));
-            subject2card.put(ids.get(0), sR.cardinality());
-            subject2proba.put(ids.get(0), rWp.getRight());
-            object2card.put(ids.get(2), oR.cardinality());
+            // subject2card.put(ids.get(0), sR.cardinality());
+            // subject2proba.put(ids.get(0), rWp.getRight());
+            // object2card.put(ids.get(2), oR.cardinality());
+            sampleWithProbaAndCard.add(new ImmutablePair<>(rWp.getRight(), (double) sR.count()));
         }
-
-        /* List<Double> cumulativeCard = new ArrayList<>();
-        double sum = 0.;
-        for (Double subjectCard : subject2card.values()) {
-            sum += subjectCard;
-            cumulativeCard.add(sum);
-        }*/
 
         double sumOfCards = subject2card.values().stream().mapToDouble(v->v).sum();
         List<Double> subjectCards = subject2card.values().stream().toList();
-        // TODO resample
         log.debug("Resampling…");
         var rng = new Random();
         List<Double> resample = new ArrayList<>();
-        for (int j = 0; j < 1_000_000; ++j) {
-            // System.out.println(j);
+        /*for (int j = 0; j < 1_000_000; ++j) {
             int random = rng.nextInt((int) Math.ceil(sumOfCards));
-            // System.out.println("random " + random);
             double currentSum = 0.;
             int i = 0;
             while (currentSum <= random && i < subjectCards.size()) {
@@ -372,19 +357,20 @@ class ProgressJenaIteratorTest {
             // System.out.println(i);
             double toAdd = subjectCards.get(i);
             resample.add(toAdd);
-        }
+        }*/
 
         Double sumOfProbas = 0.;
+        /*
         for (Double sampled_card: resample) {
             sumOfProbas += 1. / sampled_card;
         }
 
         double estimate = it.cardinality() / resample.size() * sumOfProbas;
         System.out.println("estimate = " + estimate);
-
+        */
 
         // Another strategy
-        resample = new ArrayList<>();
+        /* resample = new ArrayList<>();
         for (int j = 0; j < 100_000_00; ++j) {
             int random = rng.nextInt((int) Math.ceil(subjectCards.size()));
             resample.add(subjectCards.get(random));
@@ -395,30 +381,34 @@ class ProgressJenaIteratorTest {
             sumOfProbas += 1./sampled_card;
 
         }
-        estimate = it.cardinality() / resample.size() * sumOfProbas;
+        double estimate = it.cardinality() / resample.size() * sumOfProbas;
         System.out.println("estimate = " + estimate);
 
+           */
 
         // Another strategy
-        List<Double> subjectProbas = subject2card.entrySet().stream().map(e-> 1./subject2proba.get(e.getKey())).collect(Collectors.toList());
-        sumOfCards = subjectProbas.stream().mapToDouble(v->v).sum();
-        // TODO resample
-        log.debug("Resampling…");
+        Double maxProba = sampleWithProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).max().getAsDouble();
+        List<ImmutablePair<Double,Double>> subjectProbas = sampleWithProbaAndCard.stream().map(e->
+                new ImmutablePair<>(1./e.getLeft() * maxProba, e.getRight()))
+                .collect(Collectors.toList());
+        sumOfCards = subjectProbas.stream().mapToDouble(ImmutablePair::getLeft).sum();
+
+        /*log.debug("Resampling…");
         rng = new Random();
         resample = new ArrayList<>();
-        for (int j = 0; j < 1_000_000; ++j) {
+        for (int j = 0; j < 2*SAMPLESIZE; ++j) {
             // System.out.println(j);
             double random = rng.nextDouble(sumOfCards);
             // System.out.println("random " + random);
             double currentSum = 0.;
             int i = 0;
             while (currentSum <= random && i < subjectProbas.size()) {
-                currentSum += subjectProbas.get(i);
+                currentSum += subjectProbas.get(i).getLeft();
                 ++i;
             }
             i = i-1;
             // System.out.println(i);
-            double toAdd = subjectCards.get(i);
+            double toAdd = subjectProbas.get(i).getRight();
             resample.add(toAdd);
         }
 
@@ -426,8 +416,24 @@ class ProgressJenaIteratorTest {
         for (Double sampled_card: resample) {
             sumOfProbas += 1./sampled_card;
         }
-        estimate = it.cardinality() / resample.size() * sumOfProbas;
+        double estimate = it.count() / resample.size() * sumOfProbas;
         System.out.println("estimate = " + estimate);
+        double relativeError = Math.abs(521585. - estimate)/521585.;
+        System.out.println("relative error = " + relativeError);*/
+
+
+        ////
+
+        sumOfProbas = 0.;
+        Double maxProba2 = sampleWithProbaAndCard.stream().mapToDouble(ImmutablePair::getLeft).max().getAsDouble();
+        Double sumOfRevisedSample = 0.;
+        for (ImmutablePair<Double, Double> result : sampleWithProbaAndCard) {
+            sumOfProbas += (1./result.getLeft())*maxProba2/result.getRight();
+            sumOfRevisedSample += 1./result.getLeft()*maxProba2;
+        }
+
+        double estimate = (it.count() / sumOfRevisedSample) * sumOfProbas;
+        double relativeError = Math.abs(521585. - estimate)/521585.;
     }
 
 
