@@ -9,14 +9,11 @@ import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.io.SageOutput;
 import fr.gdd.sage.jena.JenaBackend;
-import fr.gdd.sage.jena.SerializableRecord;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.jena.atlas.lib.tuple.Tuple;
-import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.tdb2.store.Hash;
 import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
@@ -220,7 +217,7 @@ class ProgressJenaIteratorTest {
         HashMap<Record, ImmutableTriple<Double, Double, Double>> recordToProba = new HashMap<>();
         log.debug("Start random sampling…");
         for (int i = 0; i < 100_000; ++i) {
-            var rWp = it.randomWithProbability();
+            var rWp = it.getRandomWithProbability();
             Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
             ProgressJenaIterator sR = (ProgressJenaIterator) s.iterator;
@@ -265,7 +262,7 @@ class ProgressJenaIteratorTest {
         for (int j = 0; j < 5; ++j) {
             double sum = 0.;
             for (int i = 0; i < sampleSize; ++i) {
-                var rWp = spoR.randomWithProbability();
+                var rWp = spoR.getRandomWithProbability();
                 Tuple<NodeId> ids = backend.getId(rWp.getLeft());
                 LazyIterator o = (LazyIterator) backend.search(backend.any(), backend.any(), ids.get(2));
                 //LazyIterator o = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
@@ -326,7 +323,7 @@ class ProgressJenaIteratorTest {
         Double SAMPLESIZE = 100_000.;
         for (int i = 0; i < SAMPLESIZE; ++i) {
             // var rWp = new ImmutablePair<>(it.getUniformRandom(), 1./ it.getTreeOfCardinality().sum);
-            var rWp = it.randomWithProbability();
+            var rWp = it.getRandomWithProbability();
             // Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             Tuple<NodeId> ids = backend.getId(rWp.getLeft());
             LazyIterator s = (LazyIterator) backend.search(ids.get(0), backend.any(), backend.any());
@@ -477,7 +474,7 @@ class ProgressJenaIteratorTest {
 
 
         ProgressJenaIterator spo = (ProgressJenaIterator)((LazyIterator) backend.search(backend.any(), backend.any(), backend.any())).iterator;
-        Long cardinality = spo.count();
+        Double cardinality = spo.count();
         Double estimated = spo.cardinality();
         Double relativeErr = Math.abs(cardinality- estimated)/cardinality;
 
@@ -532,22 +529,22 @@ class ProgressJenaIteratorTest {
         ProgressJenaIterator pIsAProf = (ProgressJenaIterator)((LazyIterator) backend.search(backend.any(), is_a, prof)).iterator;
         for (int i = 0; i < SAMPLESIZE; ++i) {
 
-            Record pRecord = pIsAProf.getUniformRandom();
-            Double firstTripleProba = 1./pIsAProf.count();
-            // var pRP = pIsAProf.randomWithProbability();
-            // Record pRecord = pRP.getLeft();
-            // Double firstTripleProba = pRP.getRight();
+            // Record pRecord = pIsAProf.getUniformRandom();
+            // Double firstTripleProba = 1./pIsAProf.count();
+            var pRP = pIsAProf.getRandomWithProbability();
+            Record pRecord = pRP.getLeft();
+            Double firstTripleProba = pRP.getRight();
             NodeId pId = backend.getId(pRecord).get(SPOC.OBJECT); // TODO id of Record reordered depending on used index
 
             String id = pRecord.toString();
 
             // ?p teaches ?s
             ProgressJenaIterator pTeachesS = (ProgressJenaIterator)((LazyIterator) backend.search(pId, teaches, backend.any())).iterator;
-            Record sRecord = pTeachesS.getUniformRandom();
-            Double secondTripleProba = 1./ pTeachesS.count();
-            // var sRP = pIsAProf.randomWithProbability();
-            // Record sRecord = sRP.getLeft();
-            // Double secondTripleProba = sRP.getRight();
+            // Record sRecord = pTeachesS.getUniformRandom();
+            //Double secondTripleProba = 1./ pTeachesS.count();
+            var sRP = pIsAProf.getRandomWithProbability();
+            Record sRecord = sRP.getLeft();
+            Double secondTripleProba = sRP.getRight();
 
             NodeId sId = backend.getId(sRecord).get(SPOC.OBJECT);
 
@@ -556,7 +553,9 @@ class ProgressJenaIteratorTest {
             ProgressJenaIterator sBelongsToG = (ProgressJenaIterator)((LazyIterator) backend.search(sId, belongs_to, backend.any())).iterator;
 
             if (sBelongsToG.count() >= 1) { // TODO ugly but needed for this
-                Record gRecord = sBelongsToG.getUniformRandom();
+                // Record gRecord = sBelongsToG.getUniformRandom();
+                var gRP = sBelongsToG.getRandomWithProbability();
+                Record gRecord = gRP.getLeft();
                 NodeId gId = backend.getId(gRecord).get(SPOC.OBJECT);
                 id += gRecord;
 

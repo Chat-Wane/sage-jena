@@ -138,8 +138,6 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP>, Random
         iterator.skip(to);
     }
 
-
-    
     @Override
     public boolean random() {
         ((RandomIterator) iterator).random();
@@ -151,5 +149,9 @@ public class LazyIterator<ID, SKIP> implements BackendIterator<ID, SKIP>, Random
         return ((RandomIterator) iterator).cardinality();
     }
 
+
+    public BackendIterator<ID, SKIP> getWrapped() {
+        return this.iterator;
+    }
 
 }

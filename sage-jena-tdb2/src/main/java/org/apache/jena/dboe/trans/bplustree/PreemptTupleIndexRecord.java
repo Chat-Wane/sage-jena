@@ -113,7 +113,7 @@ public class PreemptTupleIndexRecord {
                  // Set the max Record to the leading NodeIds, +1.
                  // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
                  NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
-                 return new PreemptJenaIterator(this, pattern);
+                 return new PreemptJenaIterator(this, pattern, minRec); // singleton iterator
              } else {
                  return new PreemptJenaIterator(); // null iterator
              }
@@ -125,7 +125,7 @@ public class PreemptTupleIndexRecord {
             // if ( ! fullScanAllowed )
             // return null;
             // Full scan necessary
-            tuples = new PreemptJenaIterator(this, null, null);
+            tuples = new PreemptJenaIterator(this);
         } else {
             // Adjust the maxRec.
             NodeId X = pattern.get(leadingIdx);
@@ -149,7 +149,7 @@ public class PreemptTupleIndexRecord {
             // tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
             // tuples, patternNaturalOrder);
             // (TODO) double check this part.
-            tuples = new PreemptJenaIterator(this, null, null);
+            tuples = new PreemptJenaIterator(this);
         }
         
         return tuples;
@@ -158,10 +158,12 @@ public class PreemptTupleIndexRecord {
     /* *************** More generic scan **********************/
 
     public class IteratorBuilder {
-        public final PreemptTupleIndexRecord ptir;
-        public final Record min;
-        public final Record max;
-        public final Tuple<NodeId> pattern;
+        public PreemptTupleIndexRecord ptir = null;
+        public Record min = null;
+        public Record max = null;
+        public Tuple<NodeId> pattern = null;
+
+        public IteratorBuilder() {} // all is null
 
         public IteratorBuilder(PreemptTupleIndexRecord ptir, Record min, Record max, Tuple<NodeId> pattern) {
             this.ptir = ptir;
@@ -215,7 +217,7 @@ public class PreemptTupleIndexRecord {
                 NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
                 return new IteratorBuilder(this, minRec, maxRec, pattern);
             } else {
-                return new IteratorBuilder(null, null, null, null); // null iterator
+                return new IteratorBuilder(); // null iterator
             }
         }
 
@@ -225,7 +227,7 @@ public class PreemptTupleIndexRecord {
             // if ( ! fullScanAllowed )
             // return null;
             // Full scan necessary
-            tuples = new IteratorBuilder(this, null, null, null);
+            tuples = new IteratorBuilder();
         } else {
             // Adjust the maxRec.
             NodeId X = pattern.get(leadingIdx);
@@ -249,7 +251,7 @@ public class PreemptTupleIndexRecord {
             // tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
             // tuples, patternNaturalOrder);
             // (TODO) double check this part.
-            tuples = new IteratorBuilder(this, null, null, null);
+            tuples = new IteratorBuilder();
         }
 
         return tuples;

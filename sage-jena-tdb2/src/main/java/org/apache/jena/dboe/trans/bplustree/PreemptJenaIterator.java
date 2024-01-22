@@ -38,7 +38,16 @@ public class PreemptJenaIterator extends ProgressJenaIterator implements Backend
 
     Iterator<Tuple<NodeId>> wrapped;
 
-    public PreemptJenaIterator(PreemptTupleIndexRecord ptir, Record min, Record max) {
+    public PreemptJenaIterator(PreemptTupleIndexRecord ptir) { // full scan iterator
+        super(ptir, null, null);
+        this.tree = ptir.bpt;
+        this.mapper = ptir.getRecordMapper();
+        this.recordFactory = ptir.recordFactory;
+        this.tupleMap = ptir.tupleMap;
+        wrapped = tree.iterator(null, null, this.mapper);
+    }
+
+    public PreemptJenaIterator(PreemptTupleIndexRecord ptir, Record min, Record max) { // range iterator
         super(ptir, min, max);
         this.min = min;
         this.max = max;
@@ -49,10 +58,7 @@ public class PreemptJenaIterator extends ProgressJenaIterator implements Backend
         wrapped = tree.iterator(min, max, this.mapper);
     }
 
-    /**
-     * Null Iterator, does not need any preemptive behavior.
-     **/
-    public PreemptJenaIterator() {
+    public PreemptJenaIterator() { // empty iterator
         super();
         this.wrapped = new NullIterator<>();
     }
@@ -65,8 +71,8 @@ public class PreemptJenaIterator extends ProgressJenaIterator implements Backend
      * Singleton Iterator, still need basic parameters since they are
      * needed for `previous()`/`current()` and `skip(to)` as well.
      */
-    public PreemptJenaIterator(PreemptTupleIndexRecord ptir, Tuple<NodeId> pattern) {
-        super(ptir, pattern);
+    public PreemptJenaIterator(PreemptTupleIndexRecord ptir, Tuple<NodeId> pattern, Record record) {
+        super(record);
         this.tree = ptir.bpt;
         this.mapper = ptir.getRecordMapper();
         this.recordFactory = ptir.recordFactory;

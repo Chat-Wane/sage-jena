@@ -2,8 +2,12 @@ package org.apache.jena.dboe.trans.bplustree;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
+/**
+ * Cardinality nodes build a tree of the sum of the number of children
+ * to perform uniform sampling, using weighted random depending on the
+ * number of children in each branch.
+ */
 public class CardinalityNode {
 
     Integer sum = 0;
@@ -23,8 +27,11 @@ public class CardinalityNode {
         return this;
     }
 
+    /**
+     * @return A number between 0 and sum.
+     */
     public int getRandomWeightedIndex() {
-        int random = new Random().nextInt(this.sum); // TODO static class that does random
+        int random = ProgressJenaIterator.rng.nextInt(this.sum);
         if (children.isEmpty()) { // leaf
             return random;
         }

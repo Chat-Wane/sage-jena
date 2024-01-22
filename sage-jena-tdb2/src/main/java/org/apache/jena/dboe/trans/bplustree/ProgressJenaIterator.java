@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.Random;
 
 /**
  * An iterator that allows measuring the estimated progress of execution, i.e.,
@@ -21,6 +22,8 @@ import java.util.Objects;
 public class ProgressJenaIterator {
 
     private static Logger log = LoggerFactory.getLogger(ProgressJenaIterator.class);
+    public static Random rng = new Random(12); // random seed is accessible
+    private static Pair<Record, Double> NOTFOUND = new ImmutablePair<>(null, 0.);
 
     /**
      * Number of walks to approximate how filled bptree's records are.
@@ -28,13 +31,13 @@ public class ProgressJenaIterator {
     public static int NB_WALKS = 2; // (TODO) could be self-adaptive, and depend on the number of possible nodes between bounds
 
     long offset = 0; // the number of elements explored
-    Double cardinality = null; // lazy loaded cardinality
+    Double cardinality = null; // lazy
 
-    private final Record minRecord;
-    private final Record maxRecord;
+    private Record minRecord = null;
+    private Record maxRecord = null;
 
-    private final BPTreeNode root;
-    private final PreemptTupleIndexRecord ptir;
+    private BPTreeNode root = null;
+    private PreemptTupleIndexRecord ptir = null;
     private CardinalityNode cardinalityNode = null; // lazy
 
     public ProgressJenaIterator(PreemptTupleIndexRecord ptir, Record minRec, Record maxRec) {
@@ -45,26 +48,24 @@ public class ProgressJenaIterator {
     }
 
     /**
-     * Empty iterator. Cardinality is zero.
+     * Empty iterator. Cardinality is zero. More efficient to handle such a specific case.
      */
     public ProgressJenaIterator() {
         this.cardinality = 0.;
-        this.maxRecord = null;
-        this.minRecord = null;
-        this.root = null;
-        this.ptir = null;
     }
 
+    public boolean isNullIterator() {return this.cardinality == 0. && Objects.isNull(this.ptir);}
+
     /**
-     * Singleton iterator. Cardinality is one.
+     * Singleton iterator. Cardinality is one. More efficient to handle such a specific case.
      */
-    public ProgressJenaIterator(PreemptTupleIndexRecord ptir, Tuple<NodeId> pattern) {
+    public ProgressJenaIterator(Record record) {
         this.cardinality = 1.;
-        this.root = ptir.bpt.getNodeManager().getRead(ptir.bpt.getRootId());
-        this.maxRecord = null;
-        this.minRecord = null;
-        this.ptir = null;
+        this.minRecord = record;
+        this.maxRecord = record;
     }
+
+    public boolean isSingletonIterator() {return this.cardinality == 1. && Objects.isNull(this.ptir);}
 
     public void next() {
         this.offset += 1;
@@ -87,15 +88,8 @@ public class ProgressJenaIterator {
     }
 
     public double getProgress() {
-        if (Objects.isNull(cardinality)) {
-            this.cardinality();
-        }
-
-        if (cardinality == 0.) {
-            return 1.0;
-        } // already finished
-
-        return ((double) this.offset) / cardinality;
+        if (this.cardinality() == 0.) return 1.0; // already finished
+        return ((double) this.offset) / cardinality();
     }
 
     /**
@@ -103,17 +97,9 @@ public class ProgressJenaIterator {
      * cardinality. Mostly useful for debugging purposes.
      * @return The exact number of elements in the iterator.
      */
-    public long count() {
-        if (Objects.isNull(ptir)) {
-            return 0L;
-        }
-        Iterator<Tuple<NodeId>> wrapped = ptir.bpt.iterator(minRecord, maxRecord, ptir.getRecordMapper());
-        long nbElements = 0;
-        while (wrapped.hasNext()) {
-            wrapped.next();
-            nbElements += 1;
-        }
-        return nbElements;
+    public double count() {
+        if (isNullIterator() || isSingletonIterator()) return this.cardinality;
+        return getTreeOfCardinality().sum; // slightly more efficient + cached
     }
 
     /**
@@ -146,12 +132,10 @@ public class ProgressJenaIterator {
      * @return A pair comprising the random record and its probability of getting drawn.
      */
     private ImmutablePair<Record, Double> randomWalkWJ(AccessPath minPath, AccessPath maxPath) {
-        assert minPath.getPath().size() == maxPath.getPath().size();
-        
         int idxMin = minPath.getPath().get(0).idx;
         int idxMax = maxPath.getPath().get(0).idx;
 
-        int idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin + 1));
+        int idxRnd = idxMin + rng.nextInt(idxMax - idxMin + 1);
 
         BPTreeNode node = minPath.getPath().get(0).node;
         AccessPath.AccessStep lastStep = new AccessStep(node, idxRnd, node.get(idxRnd));
@@ -166,7 +150,7 @@ public class ProgressJenaIterator {
             idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
             idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
 
-            idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin + 1));
+            idxRnd = idxMin + rng.nextInt(idxMax - idxMin + 1);
             
             lastStep = new AccessStep(node, idxRnd, node.get(idxRnd));
             proba *= 1.0 / (idxMax - idxMin + 1.0);
@@ -181,38 +165,38 @@ public class ProgressJenaIterator {
         idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
 
         if (idxMin == idxMax) {
-            // return new ImmutablePair<Record,Double>(null, 0.0);
+            return new ImmutablePair<>(null, 0.);
             // TODO double check all this: when it exists when it does not
-            return new ImmutablePair<>(recordBuffer.get(idxMin), proba);
+            // return new ImmutablePair<>(recordBuffer.get(idxMin), proba);
         }
 
-        idxRnd = (int) (idxMin + Math.random() * (idxMax - idxMin)); // no need for -1 in a `RecordBuffer`
+        idxRnd = idxMin + rng.nextInt(idxMax - idxMin); // no need for -1 in a `RecordBuffer`
         
-        proba *= 1.0 / (idxMax - idxMin);
+        proba *= 1. / (idxMax - idxMin);
 
-        return new ImmutablePair<Record,Double>(recordBuffer.get(idxRnd), proba);
+        return new ImmutablePair<>(recordBuffer.get(idxRnd), proba);
     }
 
     /**
      * @return A random record between the set boundaries of the object.
      */
-    public Record random() {
-        return this.randomWithProbability().getLeft();
+    public Record getRandom() {
+        return this.getRandomWithProbability().getLeft();
     }
 
     /**
      * @return A random record between the set boundaries of the object along
      * with the probability of being chosen in the balanced tree index.
      */
-    public Pair<Record, Double> randomWithProbability() {
+    public Pair<Record, Double> getRandomWithProbability() {
+        if (isNullIterator()) return NOTFOUND;
+        if (isSingletonIterator()) return new ImmutablePair<>(minRecord, 1.);
+
         AccessPath minPath = new AccessPath(null);
         AccessPath maxPath = new AccessPath(null);
-
         root.internalSearch(minPath, minRecord);
         root.internalSearch(maxPath, maxRecord);
-        ImmutablePair<Record, Double> recordAndProba = randomWalkWJ(minPath, maxPath);
-
-        return recordAndProba;
+        return randomWalkWJ(minPath, maxPath);
     }
 
     /**
@@ -225,16 +209,15 @@ public class ProgressJenaIterator {
      * @return An estimated cardinality.
      */
     public double cardinality(Integer... sample) {
-        if (Objects.isNull(minRecord) && Objects.isNull(maxRecord) && Objects.isNull(root)) {
-            return 0;
-        }
+        if (isNullIterator() || isSingletonIterator()) return this.cardinality;
 
         // number of random walks to estimate cardinalities in between boundaries.
         int nbWalks = Objects.isNull(sample) || sample.length == 0 ? NB_WALKS : sample[0];
 
         if (nbWalks == Integer.MAX_VALUE) {
             // MAX_VALUE goes for counting since it's the most costly, at least we want exact cardinality
-            return count();
+            // return count();
+            return getTreeOfCardinality().sum; // slightly more efficient
         }
 
         if (Objects.nonNull(this.cardinality)) {
@@ -250,7 +233,7 @@ public class ProgressJenaIterator {
         AccessPath.AccessStep minStep = minPath.getPath().get(minPath.getPath().size() - 1);
         AccessPath.AccessStep maxStep = maxPath.getPath().get(maxPath.getPath().size() - 1);
 
-        double cardinality = 0;
+        double cardinality = 0.;
 
         // exact count for the leftmost and rightmost page
         RecordBuffer minRecordBuffer = ((BPTreeRecords) minStep.page).getRecordBuffer();
@@ -290,8 +273,9 @@ public class ProgressJenaIterator {
         return this.cardinality;
     }
 
-    // TODO rename
-    // TODO use it for uniform sample
+    /**
+     * @return A tree comprising the sum of all downstream elements.
+     */
     public CardinalityNode getTreeOfCardinality() {
         if (Objects.nonNull(this.cardinalityNode)) {
             return this.cardinalityNode;
@@ -319,7 +303,10 @@ public class ProgressJenaIterator {
         return cardinalityNode;
     }
 
-
+    /*
+     * @param step The step in the tree where the count need to be made.
+     * @return A cardinality node starting from the current step.
+     */
     private CardinalityNode _getTreeOfCardinality(AccessStep step) {
         if (!step.node.isLeaf()) {
             BPTreeNode node = (BPTreeNode) step.page;
@@ -352,16 +339,25 @@ public class ProgressJenaIterator {
         }
     }
 
-
+    /**
+     * @return A random record chosen uniformly at random between the bounds.
+     * Beware: it may be costly since it needs the cardinality of each node.
+     * It performs a weighted random at every successive depth of the balanced tree.
+     */
     public Record getUniformRandom() {
+        if (isNullIterator()) return NOTFOUND.getKey();
+        if (isSingletonIterator()) return minRecord;
+
         AccessPath minPath = new AccessPath(null);
         root.internalSearch(minPath, minRecord);
 
         AccessPath maxPath = new AccessPath(null);
         root.internalSearch(maxPath, maxRecord);
 
-
         CardinalityNode cardinalityNode = getTreeOfCardinality();
+        if (cardinalityNode.sum == 0) {
+            return null; // Does not exist any element, hence any random element
+        }
 
         int idxMin = minPath.getPath().get(0).idx;
         BPTreeNode node = minPath.getPath().get(0).node;
@@ -393,6 +389,23 @@ public class ProgressJenaIterator {
         idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
 
         return recordBuffer.get(idxMin+randomIndex);
+    }
+
+    /**
+     * @return A random record chosen uniformly at random between the bounds.
+     * Since it's uniform, its probability is 1 over the number of elements between the bounds.
+     * Beware: it may be costly since it requires to compute the cardinality of each node.
+     */
+    public Pair<Record, Double> getUniformRandomWithProbability() {
+        if (isNullIterator()) return NOTFOUND;
+        if (isSingletonIterator()) return new ImmutablePair<>(minRecord, 1.);
+
+        CardinalityNode cardinalityNode = getTreeOfCardinality();
+        if (cardinalityNode.sum == 0) { // nothing exists
+            return NOTFOUND;
+        } else {
+            return new ImmutablePair<>(getUniformRandom(), 1./cardinalityNode.sum);
+        }
     }
 
 }

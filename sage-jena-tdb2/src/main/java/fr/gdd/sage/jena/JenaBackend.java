@@ -132,6 +132,7 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
     }
 
     public Tuple<NodeId> getId(Record record) throws NotFoundException {
+        // TODO assumed that record is built using SPO but it may not be the case
         Tuple<NodeId> ids = TupleLib.tuple(record, preemptableTripleTupleTable.getIndex(0).getMapping());
         // TODO reorder tuple depending on used index
         // TODO QuadTupleTable ?
