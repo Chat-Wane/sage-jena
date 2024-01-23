@@ -6,14 +6,13 @@ import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.dboe.base.buffer.RecordBuffer;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.dboe.trans.bplustree.AccessPath.AccessStep;
+import org.apache.jena.tdb2.lib.TupleLib;
 import org.apache.jena.tdb2.store.NodeId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.util.Iterator;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 
 /**
  * An iterator that allows measuring the estimated progress of execution, i.e.,
@@ -21,7 +20,6 @@ import java.util.Random;
  */
 public class ProgressJenaIterator {
 
-    private static Logger log = LoggerFactory.getLogger(ProgressJenaIterator.class);
     public static Random rng = new Random(12); // random seed is accessible
     private static Pair<Record, Double> NOTFOUND = new ImmutablePair<>(null, 0.);
 
@@ -105,12 +103,26 @@ public class ProgressJenaIterator {
     /**
      * Convenience function that checks the equality of two access paths.
      **/
-    private static boolean equalsStep(AccessPath.AccessStep o1, AccessPath.AccessStep o2) {
+    private static boolean equalsStep(AccessStep o1, AccessStep o2) {
         return o1.node.getId() == o2.node.getId() &&
                 o1.idx == o2.idx &&
                 o1.page.getId() == o2.page.getId();
     }
 
+    private static boolean equalsNode(AccessStep o1, AccessStep o2) {
+        return o1.node.getId() == o2.node.getId() &&
+                o1.idx == o2.idx;
+    }
+
+    private static boolean equalsPath(List<AccessStep> p1, List<AccessStep> p2) {
+        if (p1.size() != p2.size()) return false;
+        for (int i = 0; i < p1.size(); ++i) {
+            if (!equalsNode(p1.get(i), p2.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private boolean isParent(AccessPath randomWalk, AccessPath base, AccessPath other) {
         for (int i = 0; i < base.getPath().size(); ++i) {
@@ -131,7 +143,7 @@ public class ProgressJenaIterator {
      * @param maxPath The higher boundary.
      * @return A pair comprising the random record and its probability of getting drawn.
      */
-    private ImmutablePair<Record, Double> randomWalkWJ(AccessPath minPath, AccessPath maxPath) {
+    private Pair<Record, Double> randomWalkWJ(AccessPath minPath, AccessPath maxPath) {
         int idxMin = minPath.getPath().get(0).idx;
         int idxMax = maxPath.getPath().get(0).idx;
 
@@ -153,6 +165,7 @@ public class ProgressJenaIterator {
             idxRnd = idxMin + rng.nextInt(idxMax - idxMin + 1);
             
             lastStep = new AccessStep(node, idxRnd, node.get(idxRnd));
+
             proba *= 1.0 / (idxMax - idxMin + 1.0);
         }
 
@@ -164,14 +177,21 @@ public class ProgressJenaIterator {
         idxMin = idxMin < 0 ? -idxMin - 1 : idxMin;
         idxMax = idxMax < 0 ? -idxMax - 1 : idxMax;
 
-        if (idxMin == idxMax) {
-            return new ImmutablePair<>(null, 0.);
-            // TODO double check all this: when it exists when it does not
-            // return new ImmutablePair<>(recordBuffer.get(idxMin), proba);
+        // create an iterator to be sure that there is at least one element
+        // this might be overkill but at least it's consistent
+        if (idxMin == idxMax && !this.root.iterator(minRecord,maxRecord).hasNext()) {
+            // Nothing found, becomes a null iterator :)
+            this.ptir = null;
+            this.cardinality = 0.;
+            return NOTFOUND;
+        } else if (idxMin == idxMax) {
+            // ends up in a boundary leaf (either min or max) that do not have any element
+            Pair<Record, Double> retry = this.randomWalkWJ(minPath,maxPath); // we try again.
+            return new ImmutablePair<>(retry.getLeft(), retry.getRight() * proba); // proba is updated
         }
+        // otherwise, the page has element(s), randomize in it.
 
         idxRnd = idxMin + rng.nextInt(idxMax - idxMin); // no need for -1 in a `RecordBuffer`
-        
         proba *= 1. / (idxMax - idxMin);
 
         return new ImmutablePair<>(recordBuffer.get(idxRnd), proba);
@@ -258,7 +278,7 @@ public class ProgressJenaIterator {
             int count = 0;
 
             for (int i = 0; i < nbWalks; i++) {
-                ImmutablePair<Record, Double> pair = this.randomWalkWJ(minPath, maxPath);
+                Pair<Record, Double> pair = this.randomWalkWJ(minPath, maxPath);
                 // records in the leftmost and rightmost page are ignored
                 if (pair.getLeft() != null && minRecordBuffer.find(pair.getLeft()) < 0 && maxRecordBuffer.find(pair.getLeft()) < 0) {
                     sum += 1 / pair.getRight();
@@ -347,17 +367,14 @@ public class ProgressJenaIterator {
     public Record getUniformRandom() {
         if (isNullIterator()) return NOTFOUND.getKey();
         if (isSingletonIterator()) return minRecord;
+        CardinalityNode cardinalityNode = getTreeOfCardinality();
+        if (cardinalityNode.sum == 0) return NOTFOUND.getKey(); // Does not exist any element, hence no random element
 
         AccessPath minPath = new AccessPath(null);
         root.internalSearch(minPath, minRecord);
 
         AccessPath maxPath = new AccessPath(null);
         root.internalSearch(maxPath, maxRecord);
-
-        CardinalityNode cardinalityNode = getTreeOfCardinality();
-        if (cardinalityNode.sum == 0) {
-            return null; // Does not exist any element, hence any random element
-        }
 
         int idxMin = minPath.getPath().get(0).idx;
         BPTreeNode node = minPath.getPath().get(0).node;
@@ -366,7 +383,6 @@ public class ProgressJenaIterator {
         cardinalityNode = cardinalityNode.children.get(randomIndex);
 
         AccessStep lastStep = new AccessStep(node, idxMin + randomIndex, node.get(idxMin + randomIndex));
-
 
         while (!cardinalityNode.children.isEmpty()) {
             node = (BPTreeNode) lastStep.page;

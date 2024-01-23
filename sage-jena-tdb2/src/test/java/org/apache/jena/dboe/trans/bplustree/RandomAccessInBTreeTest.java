@@ -9,11 +9,9 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Testing the randomness features of a triple pattern iterator.
@@ -52,8 +50,8 @@ public class RandomAccessInBTreeTest {
 
         Record random = iterator.getRandom();
         Record randomUniform = iterator.getUniformRandom();
-        assertEquals(null, randomUniform);
-        assertEquals(null, random);
+        assertNull(randomUniform);
+        assertNull(random);
     }
 
     @Test
@@ -66,9 +64,11 @@ public class RandomAccessInBTreeTest {
 
         Record random = iterator.getRandom();
         Record randomUniform = iterator.getUniformRandom();
-        assertTrue (Objects.nonNull(randomUniform));
-        assertTrue (Objects.nonNull(random));
+        assertNotNull(randomUniform);
+        assertNotNull(random);
         assertEquals(random, randomUniform);
+        assertEquals(1, iterator.count());
+        assertEquals(1, iterator.cardinality(Integer.MAX_VALUE));
     }
 
     @Test
@@ -82,8 +82,8 @@ public class RandomAccessInBTreeTest {
 
         Record random = iterator.getRandom();
         Record randomUniform = iterator.getUniformRandom();
-        assertTrue (Objects.nonNull(randomUniform));
-        assertTrue (Objects.nonNull(random));
+        assertNotNull(randomUniform);
+        assertNotNull(random);
         assertEquals(random, randomUniform);
     }
 
@@ -97,8 +97,8 @@ public class RandomAccessInBTreeTest {
 
         Record random = iterator.getRandom();
         Record randomUniform = iterator.getUniformRandom();
-        assertTrue (Objects.isNull(randomUniform));
-        assertTrue (Objects.isNull(random));
+        assertNull(randomUniform);
+        assertNull(random);
     }
 
 

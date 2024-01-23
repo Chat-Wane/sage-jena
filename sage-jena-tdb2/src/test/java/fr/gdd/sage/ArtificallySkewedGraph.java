@@ -20,12 +20,12 @@ import java.util.Random;
 public class ArtificallySkewedGraph {
 
     Dataset dataset;
+    public static Random rng = new Random(12);
 
     public ArtificallySkewedGraph(Integer distinct, Integer probaRange) {
         dataset = TDB2Factory.createDataset();
         dataset.begin(ReadWrite.WRITE);
 
-        Random rng = new Random();
         List<String> statements = new ArrayList<>();
         for (int i = 0; i < distinct; ++i) {
             statements.add(String.format("<http://prof_%s> <http://is_a> <http://Prof> .", i));
