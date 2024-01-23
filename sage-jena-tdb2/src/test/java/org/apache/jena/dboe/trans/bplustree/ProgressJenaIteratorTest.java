@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -355,6 +354,12 @@ class ProgressJenaIteratorTest {
         log.info("Sample occurrences [min (avg, med) max] = [{}, ({}, {}) {}]", min, avg, med, max);
     }
 
+    public static ImmutablePair<Record, Double> getRandomWithProbability(ProgressJenaIterator iterator, boolean uniform) {
+        return uniform ?
+                new ImmutablePair<>(iterator.getUniformRandomWithProbability().getLeft(), 1./iterator.count()) :
+                (ImmutablePair<Record, Double>) iterator.getRandomWithProbability();
+    }
+
     @Disabled
     @Test
     public void count_distinct_in_a_skewed_bgp_query() {
@@ -364,6 +369,8 @@ class ProgressJenaIteratorTest {
         //     ?student <http://belongs_to> ?group .
         // }
         ProgressJenaIterator.NB_WALKS = 1_000;
+
+        final boolean UNIFORM = true;
 
         int DISTINCT = 10_000;
         ArtificallySkewedGraph graph = new ArtificallySkewedGraph(DISTINCT, 50);
@@ -403,25 +410,21 @@ class ProgressJenaIteratorTest {
         }
 
         log.info("Sampling the query…");
-        int SAMPLE_SIZE = 100_000;
+        int SAMPLE_SIZE = 1_000_000;
         List<ImmutablePair<Double, Double>> resultsProbaAndCard = new ArrayList<>();
         // ?teacher <http://is_a> <http://Prof>
         ProgressJenaIterator pIsAProf = (ProgressJenaIterator)((LazyIterator<?,?>) backend.search(backend.any(), is_a, prof)).iterator;
         for (int i = 0; i < SAMPLE_SIZE; ++i) {
-            Record pRecord = pIsAProf.getUniformRandom();
-            Double firstTripleProba = 1./pIsAProf.count();
-            // var pRP = pIsAProf.getRandomWithProbability();
-            // Record pRecord = pRP.getLeft();
-            // Double firstTripleProba = pRP.getRight();
+            var pRP = getRandomWithProbability(pIsAProf, UNIFORM);
+            Record pRecord = pRP.getLeft();
+            Double firstTripleProba = pRP.getRight();
             NodeId pId = backend.getId(pRecord).get(SPOC.OBJECT); // TODO id of Record reordered depending on used index
 
             // ?teacher <http://teaches> ?student
             ProgressJenaIterator pTeachesS = (ProgressJenaIterator)((LazyIterator<?,?>) backend.search(pId, teaches, backend.any())).iterator;
-            Record sRecord = pTeachesS.getUniformRandom();
-            Double secondTripleProba = 1./ pTeachesS.count();
-            // var sRP = pTeachesS.getRandomWithProbability();
-            // Record sRecord = sRP.getLeft();
-            // Double secondTripleProba = sRP.getRight();
+            var sRP = getRandomWithProbability(pTeachesS, UNIFORM);
+            Record sRecord = sRP.getLeft();
+            Double secondTripleProba = sRP.getRight();
 
             NodeId sId = backend.getId(sRecord).get(SPOC.OBJECT);
 
@@ -429,9 +432,8 @@ class ProgressJenaIteratorTest {
             ProgressJenaIterator sBelongsToG = (ProgressJenaIterator)((LazyIterator<?,?>) backend.search(sId, belongs_to, backend.any())).iterator;
 
             if (sBelongsToG.count() >= 1) { // TODO ugly but needed for this
-                Record gRecord = sBelongsToG.getUniformRandom();
-                // var gRP = sBelongsToG.getRandomWithProbability();
-                // Record gRecord = gRP.getLeft();
+                var gRP = getRandomWithProbability(sBelongsToG, UNIFORM);
+                Record gRecord = gRP.getLeft();
                 NodeId gId = backend.getId(gRecord).get(SPOC.OBJECT);
 
                 double thirdTripleProba = 1./1.; // always 1. since there is only one link possible if it exists
