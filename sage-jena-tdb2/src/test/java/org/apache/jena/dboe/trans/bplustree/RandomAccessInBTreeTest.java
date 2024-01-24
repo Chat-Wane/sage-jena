@@ -3,6 +3,7 @@ package org.apache.jena.dboe.trans.bplustree;
 import fr.gdd.sage.ArtificallySkewedGraph;
 import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.jena.JenaBackend;
+import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.store.NodeId;
@@ -101,6 +102,22 @@ public class RandomAccessInBTreeTest {
         assertNull(random);
     }
 
+    @Test
+    public void identifier_appear_in_spo_order_whatever_the_index_used() {
+        Dataset dataset = new ArtificallySkewedGraph(1, 10).getDataset();
+        JenaBackend backend = new JenaBackend(dataset);
+        NodeId is_a = backend.getId("<http://is_a>");
+        NodeId prof = backend.getId("<http://Prof>");
+        ProgressJenaIterator iterator = (ProgressJenaIterator) ((LazyIterator) backend.search(backend.any(), is_a, prof)).getWrapped();
 
+        Tuple<NodeId> spo = iterator.getRandomSPO();
+        // since we look for ?prof <http://is_a> <http://Prof>, the index used is POS.
+        // Using Record, the subject identifier would be last, but using the iterator
+        // itself allows reordering so the subject comes first, as expected.
+        assertEquals("http://prof_0", backend.getValue(spo.get(0)));
+
+        Tuple<NodeId> spoUniform = iterator.getUniformRandomSPO();
+        assertEquals("http://prof_0", backend.getValue(spoUniform.get(0)));
+    }
 
 }

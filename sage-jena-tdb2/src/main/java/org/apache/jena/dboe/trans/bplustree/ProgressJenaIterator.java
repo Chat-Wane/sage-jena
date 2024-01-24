@@ -187,7 +187,7 @@ public class ProgressJenaIterator {
         } else if (idxMin == idxMax) {
             // ends up in a boundary leaf (either min or max) that do not have any element
             Pair<Record, Double> retry = this.randomWalkWJ(minPath,maxPath); // we try again.
-            // return new ImmutablePair<>(retry.getLeft(), retry.getRight() * proba); // proba is updated
+            retry.setValue(retry.getRight() * proba); // proba is updated
             return retry;
         }
         // otherwise, the page has element(s), randomize in it.
@@ -203,6 +203,22 @@ public class ProgressJenaIterator {
      */
     public Record getRandom() {
         return this.getRandomWithProbability().getLeft();
+    }
+
+    /**
+     * @return The node identifiers order naturally.
+     */
+    public Tuple<NodeId> getRandomSPO() {
+        return TupleLib.tuple(this.getRandom(), this.ptir.tupleMap);
+    }
+
+    /**
+     * @return The node identifiers order naturally along with the probability
+     * of getting it.
+     */
+    public Pair<Tuple<NodeId>, Double> getRandomSPOWithProbability() {
+        Pair<Record, Double> rWp = getRandomWithProbability();
+        return new ImmutablePair<>(TupleLib.tuple(rWp.getLeft(), this.ptir.tupleMap), rWp.getRight());
     }
 
     /**
@@ -423,6 +439,22 @@ public class ProgressJenaIterator {
         } else {
             return new ImmutablePair<>(getUniformRandom(), 1./cardinalityNode.sum);
         }
+    }
+
+    /**
+     * @return The node identifiers order naturally.
+     */
+    public Tuple<NodeId> getUniformRandomSPO() {
+        return TupleLib.tuple(this.getUniformRandom(), this.ptir.tupleMap);
+    }
+
+    /**
+     * @return The node identifiers order naturally along with the probability
+     * of getting it.
+     */
+    public Pair<Tuple<NodeId>, Double> getUniformRandomSPOWithProbability() {
+        Pair<Record, Double> rWp = getUniformRandomWithProbability();
+        return new ImmutablePair<>(TupleLib.tuple(rWp.getLeft(), this.ptir.tupleMap), rWp.getRight());
     }
 
 }
