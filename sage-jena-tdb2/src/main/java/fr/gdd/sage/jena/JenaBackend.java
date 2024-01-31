@@ -110,6 +110,17 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
         return node.toString();
     }
 
+    public Node getNode(final NodeId id, final int... code) throws NotFoundException {
+        Node node = nodeTripleTable.getNodeForNodeId(id);
+        if (Objects.isNull(node)) {
+            node = nodeQuadTable.getNodeForNodeId(id);
+            if (Objects.isNull(node)) {
+                throw new NotFoundException(String.format("Id of %s does not exist.", id.toString()));
+            }
+        }
+        return node;
+    }
+
     @Override
     public NodeId any() {
         return NodeId.NodeIdAny;

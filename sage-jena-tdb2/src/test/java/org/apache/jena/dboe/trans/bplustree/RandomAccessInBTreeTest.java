@@ -2,15 +2,22 @@ package org.apache.jena.dboe.trans.bplustree;
 
 import fr.gdd.sage.ArtificallySkewedGraph;
 import fr.gdd.sage.generics.LazyIterator;
+import fr.gdd.sage.interfaces.BackendIterator;
+import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.jena.JenaBackend;
 import org.apache.jena.atlas.lib.tuple.Tuple;
+import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.store.NodeId;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -118,6 +125,18 @@ public class RandomAccessInBTreeTest {
 
         Tuple<NodeId> spoUniform = iterator.getUniformRandomSPO();
         assertEquals("http://prof_0", backend.getValue(spoUniform.get(0)));
+    }
+
+    @Disabled
+    @Test
+    public void empty_iterator_was_infinitely_looping_when_empty () {
+        JenaBackend backend = new JenaBackend("../../FedUP/temp/fedup-id");
+        NodeId predicate = backend.getId("<http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>");
+
+        NodeId graph = backend.getId("<http://www.vendor88.fr/>");
+        LazyIterator iterator =  (LazyIterator) backend.search(backend.any(), predicate, backend.any(), graph);
+        ProgressJenaIterator progress = (ProgressJenaIterator) iterator.getWrapped();
+        assertNull(progress.getRandomSPOWithProbability().getLeft());
     }
 
 }

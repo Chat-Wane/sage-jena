@@ -179,7 +179,7 @@ public class ProgressJenaIterator {
 
         // create an iterator to be sure that there is at least one element
         // this might be overkill but at least it's consistent
-        if (idxMin == idxMax && !this.root.iterator(minRecord,maxRecord).hasNext()) {
+        if ((idxMin == idxMax && !this.ptir.bpt.iterator(minRecord,maxRecord,ptir.getRecordMapper()).hasNext()) || isNullIterator()) {
             // Nothing found, becomes a null iterator :)
             this.ptir = null;
             this.cardinality = 0.;
@@ -209,7 +209,8 @@ public class ProgressJenaIterator {
      * @return The node identifiers order naturally.
      */
     public Tuple<NodeId> getRandomSPO() {
-        return TupleLib.tuple(this.getRandom(), this.ptir.tupleMap);
+        Record randomRecord = this.getRandom();
+        return Objects.isNull(randomRecord) ? null : TupleLib.tuple(this.getRandom(), this.ptir.tupleMap);
     }
 
     /**
@@ -218,6 +219,9 @@ public class ProgressJenaIterator {
      */
     public Pair<Tuple<NodeId>, Double> getRandomSPOWithProbability() {
         Pair<Record, Double> rWp = getRandomWithProbability();
+        if (rWp.equals(NOTFOUND)) {
+            return new ImmutablePair<>(null, 0.);
+        }
         return new ImmutablePair<>(TupleLib.tuple(rWp.getLeft(), this.ptir.tupleMap), rWp.getRight());
     }
 
@@ -445,7 +449,8 @@ public class ProgressJenaIterator {
      * @return The node identifiers order naturally.
      */
     public Tuple<NodeId> getUniformRandomSPO() {
-        return TupleLib.tuple(this.getUniformRandom(), this.ptir.tupleMap);
+        Record randomRecord = this.getUniformRandom();
+        return Objects.isNull(randomRecord) ? null : TupleLib.tuple(this.getUniformRandom(), this.ptir.tupleMap);
     }
 
     /**
@@ -454,6 +459,9 @@ public class ProgressJenaIterator {
      */
     public Pair<Tuple<NodeId>, Double> getUniformRandomSPOWithProbability() {
         Pair<Record, Double> rWp = getUniformRandomWithProbability();
+        if (rWp.equals(NOTFOUND)) {
+            return new ImmutablePair<>(null, rWp.getRight());
+        }
         return new ImmutablePair<>(TupleLib.tuple(rWp.getLeft(), this.ptir.tupleMap), rWp.getRight());
     }
 
