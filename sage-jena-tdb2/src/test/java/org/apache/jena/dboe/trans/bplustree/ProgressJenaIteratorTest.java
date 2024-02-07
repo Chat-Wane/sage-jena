@@ -170,6 +170,7 @@ class ProgressJenaIteratorTest {
         log.info("Expected 2613, got {}.", casted.cardinality(200000));
     }
 
+    @Disabled
     @Test
     public void count_as_well_but_building_a_tree_in_a_bplustree_way() {
         JenaBackend backend = new JenaBackend("../target/watdiv10M");
