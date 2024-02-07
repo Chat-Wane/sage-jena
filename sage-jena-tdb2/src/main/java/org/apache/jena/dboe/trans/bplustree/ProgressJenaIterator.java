@@ -187,8 +187,8 @@ public class ProgressJenaIterator {
         } else if (idxMin == idxMax) {
             // ends up in a boundary leaf (either min or max) that do not have any element
             Pair<Record, Double> retry = this.randomWalkWJ(minPath,maxPath); // we try again.
-            retry.setValue(retry.getRight() * proba); // proba is updated
-            return retry;
+            // retry.setValue(retry.getRight() * proba); // proba is updated (BUT since it's immutable, we create new one)
+            return new ImmutablePair<>(retry.getLeft(), retry.getRight()*proba);
         }
         // otherwise, the page has element(s), randomize in it.
 
