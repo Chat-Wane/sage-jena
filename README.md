@@ -30,6 +30,18 @@ on top of Jena**.
   computation. [**Benchmarks**](https://github.com/Chat-Wane/sage-jena-benchmarks)
   highlight the marginal cost of these great features.
 
+
+## Installation
+
+```sh
+# Get the latest version or choose a particular release
+git clone https://github.com/Chat-Wane/sage-jena.git
+cd sage-jena
+
+# Install it in your local maven repository
+mvn clean install -Dmaven.test.skip=true
+```
+
 ## References
 
 \[1] T. Minier, H. Skaf-Molli and P. Molli. __SaGe: Web
