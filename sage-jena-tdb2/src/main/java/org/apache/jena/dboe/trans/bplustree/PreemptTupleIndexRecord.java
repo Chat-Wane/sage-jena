@@ -11,8 +11,6 @@ import org.apache.jena.tdb2.store.NodeId;
 import org.apache.jena.tdb2.store.NodeIdFactory;
 import org.apache.jena.tdb2.store.tupletable.TupleIndexRecord;
 
-import java.util.Iterator;
-
 import static org.apache.jena.tdb2.sys.SystemTDB.SizeOfNodeId;
 
 /**
@@ -157,13 +155,23 @@ public class PreemptTupleIndexRecord {
 
     /* *************** More generic scan **********************/
 
-    public class IteratorBuilder {
+    public static class IteratorBuilder {
         public PreemptTupleIndexRecord ptir = null;
         public Record min = null;
         public Record max = null;
         public Tuple<NodeId> pattern = null;
 
         public IteratorBuilder() {} // all is null
+
+        IteratorBuilder(PreemptTupleIndexRecord ptir) {
+            this.ptir = ptir;
+        }
+
+        IteratorBuilder(PreemptTupleIndexRecord ptir, Record min, Record max) {
+            this.ptir = ptir;
+            this.min = min;
+            this.max = max;
+        }
 
         public IteratorBuilder(PreemptTupleIndexRecord ptir, Record min, Record max, Tuple<NodeId> pattern) {
             this.ptir = ptir;
@@ -227,7 +235,7 @@ public class PreemptTupleIndexRecord {
             // if ( ! fullScanAllowed )
             // return null;
             // Full scan necessary
-            tuples = new IteratorBuilder();
+            tuples = new IteratorBuilder(this);
         } else {
             // Adjust the maxRec.
             NodeId X = pattern.get(leadingIdx);
@@ -235,7 +243,7 @@ public class PreemptTupleIndexRecord {
             // Example, SP? inclusive to S(P+1)? exclusive where ? is zero.
             NodeIdFactory.setNext(X, maxRec.getKey(), leadingIdx*SizeOfNodeId);
 
-            tuples = new IteratorBuilder(this, minRec, maxRec, null);
+            tuples = new IteratorBuilder(this, minRec, maxRec);
         }
 
         if ( leadingIdx < numSlots-1 ) {
@@ -251,7 +259,7 @@ public class PreemptTupleIndexRecord {
             // tuples = (Iterator<Tuple<NodeId>>) ReflectionUtils._callMethod(scanMethod, tir.getClass(), tir,
             // tuples, patternNaturalOrder);
             // (TODO) double check this part.
-            tuples = new IteratorBuilder();
+            tuples = new IteratorBuilder(this);
         }
 
         return tuples;

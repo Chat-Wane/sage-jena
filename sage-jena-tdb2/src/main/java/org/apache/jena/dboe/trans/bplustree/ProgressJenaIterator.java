@@ -52,7 +52,7 @@ public class ProgressJenaIterator {
         this.cardinality = 0.;
     }
 
-    public boolean isNullIterator() {return this.cardinality == 0. && Objects.isNull(this.ptir);}
+    public boolean isNullIterator() {return !Objects.isNull(this.cardinality) && this.cardinality == 0. && Objects.isNull(this.ptir);}
 
     /**
      * Singleton iterator. Cardinality is one. More efficient to handle such a specific case.
@@ -63,7 +63,7 @@ public class ProgressJenaIterator {
         this.maxRecord = record;
     }
 
-    public boolean isSingletonIterator() {return this.cardinality == 1. && Objects.isNull(this.ptir);}
+    public boolean isSingletonIterator() {return !Objects.isNull(this.cardinality) && this.cardinality == 1. && Objects.isNull(this.ptir);}
 
     public void next() {
         this.offset += 1;
