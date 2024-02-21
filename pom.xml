@@ -24,11 +24,13 @@
   </distributionManagement>
 
   <modules>
+    <module>jena-utils</module>
     <module>sage-commons</module>
     <module>sage-jena-databases</module>
     <module>sage-jena-tdb2</module>
     <module>sage-jena-volcano</module>
     <module>sage-jena-module</module>
+    <module>sager</module>
   </modules>
 
   <properties>
@@ -55,6 +57,11 @@
   <dependencyManagement>
     <dependencies>
       <!-- module versions -->
+      <dependency>
+        <groupId>fr.gdd.sage</groupId>
+        <artifactId>jena-utils</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>fr.gdd.sage</groupId>
         <artifactId>sage-commons</artifactId>
@@ -113,6 +120,11 @@
       <dependency>
         <groupId>org.apache.jena</groupId>
         <artifactId>jena-fuseki-main</artifactId>
+        <version>${jena.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.jena</groupId>
+        <artifactId>jena-arq</artifactId>
         <version>${jena.version}</version>
       </dependency>
 
