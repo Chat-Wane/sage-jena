@@ -14,6 +14,15 @@
 
     <dependencies>
         <dependency>
+            <groupId>fr.gdd.sage</groupId>
+            <artifactId>jena-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>fr.gdd.sage</groupId>
+            <artifactId>sage-jena-tdb2</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>

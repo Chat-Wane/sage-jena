@@ -1,4 +1,6 @@
-package org.apache.jena.sparql.engine.iterator;
+package fr.gdd.sage.sager.iterators;
+
+import org.apache.jena.sparql.algebra.Op;
 
 /**
  * Pause Exception that interrupt the iterator pipeline execution. We don't want any stacktrace
@@ -7,8 +9,16 @@ package org.apache.jena.sparql.engine.iterator;
  */
 public class PauseException extends RuntimeException {
 
+    public final Op caller;
+
     public PauseException() {
         super("Pause", null, false, false);
+        this.caller = null;
+    }
+
+    public PauseException(Op caller) {
+        super("Pause", null, false, false);
+        this.caller = caller;
     }
 
 }

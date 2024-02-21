@@ -1,6 +1,5 @@
 package fr.gdd.sage.optimizer;
 
-import com.github.jsonldjava.utils.Obj;
 import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.generics.Pair;
 import fr.gdd.sage.interfaces.BackendIterator;
@@ -12,11 +11,13 @@ import org.apache.jena.shared.NotFoundException;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.algebra.op.OpBGP;
+import org.apache.jena.sparql.algebra.op.OpJoin;
+import org.apache.jena.sparql.algebra.op.OpLeftJoin;
+import org.apache.jena.sparql.algebra.op.OpQuad;
 import org.apache.jena.sparql.algebra.optimize.VariableUsagePusher;
 import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
 import org.apache.jena.sparql.core.BasicPattern;
-import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.util.VarUtils;
 import org.apache.jena.tdb2.store.NodeId;
