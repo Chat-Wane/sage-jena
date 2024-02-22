@@ -1,18 +1,24 @@
 package fr.gdd.sage.sager.iterators;
 
+import fr.gdd.sage.sager.SagerConstants;
+import fr.gdd.sage.sager.Save2SPARQL;
+import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 
 import java.util.Iterator;
 
 public class SagerRoot implements Iterator<BindingNodeId> {
 
-    Iterator<BindingNodeId> wrapped;
+    final Save2SPARQL saver;
+    final Iterator<BindingNodeId> wrapped;
+
     boolean doesHaveNext = false;
     boolean consumed = true;
     BindingNodeId buffered = null;
 
-    public SagerRoot(Iterator<BindingNodeId> wrapped) {
+    public SagerRoot(ExecutionContext context, Iterator<BindingNodeId> wrapped) {
         this.wrapped = wrapped;
+        this.saver = context.getContext().get(SagerConstants.SAVER);
     }
 
     @Override
@@ -25,6 +31,7 @@ public class SagerRoot implements Iterator<BindingNodeId> {
             doesHaveNext = wrapped.hasNext();
         } catch (PauseException e) {
             // close(); TODO
+            this.saver.save(e.caller);
             return false;
         }
 
@@ -35,6 +42,7 @@ public class SagerRoot implements Iterator<BindingNodeId> {
                 // it expects and checks `true`. When it happens, it throws a `NoSuchElementException`
             } catch (PauseException e) {
                 // close(); TODO
+                this.saver.save(e.caller);
                 return false;
             }
             consumed = false;

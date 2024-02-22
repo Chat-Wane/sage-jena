@@ -58,7 +58,7 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
     }
 
     public JenaBackend(final DatasetGraph datasetGraph) {
-        graph = TDBInternal.getDatasetGraphTDB(this.dataset);
+        graph = TDBInternal.getDatasetGraphTDB(datasetGraph);
         if (!graph.isInTransaction()) {
             graph.begin();  // opened in at creation
         }

@@ -26,8 +26,8 @@ import java.util.Iterator;
  */
 public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingNodeId>, Iterator<BindingNodeId>> {
 
-    ExecutionContext execCxt;
-    JenaBackend backend;
+    final ExecutionContext execCxt;
+    final JenaBackend backend;
 
     public SagerOpExecutor(ExecutionContext execCxt) {
         this.execCxt = execCxt;
@@ -40,8 +40,9 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingNode
      * @return An iterator that can produce the bindings.
      */
     public QueryIterator execute(Op root) {
-        Iterator<BindingNodeId> wrapped = new SagerRoot(
-                ReturningArgsOpVisitorRouter.visit(this, root, Iter.empty()));
+        execCxt.getContext().set(SagerConstants.SAVER, new Save2SPARQL(root));
+        Iterator<BindingNodeId> wrapped = new SagerRoot(execCxt,
+                ReturningArgsOpVisitorRouter.visit(this, root, Iter.of(BindingNodeId.root)));
         // TODO make them abortable
         return QueryIterPlainWrapper.create(Iter.map(wrapped, bnid -> {
             BindingBuilder builder = BindingFactory.builder();
@@ -54,7 +55,8 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingNode
 
     /* ******************************************************************* */
 
-    protected Iterator<BindingNodeId> execute(OpTriple opTriple, Iterator<BindingNodeId> input) {
+    @Override
+    public Iterator<BindingNodeId> visit(OpTriple opTriple, Iterator<BindingNodeId> input) {
         return new SagerScanFactory(input, execCxt, opTriple);
     }
 

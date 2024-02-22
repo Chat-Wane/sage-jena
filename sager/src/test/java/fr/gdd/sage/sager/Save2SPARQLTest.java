@@ -9,20 +9,16 @@ import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.Binding;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SagerOpExecutorTest {
+class Save2SPARQLTest {
 
-    private static final Logger log = LoggerFactory.getLogger(SagerOpExecutorTest.class);
-
+    @Disabled
     @Test
-    public void create_a_simple_query_and_execute_it () {
+    public void create_a_simple_query_and_pause_at_first_result () {
         InMemoryInstanceOfTDB2WithSimpleData data = new InMemoryInstanceOfTDB2WithSimpleData();
         ExecutionContext ec = new ExecutionContext(data.getDataset().asDatasetGraph());
         SagerOpExecutor executor = new SagerOpExecutor(ec);
@@ -33,25 +29,10 @@ class SagerOpExecutorTest {
         QueryIterator iterator = executor.execute(query);
 
         int sum = 0;
-        while (iterator.hasNext()) {
-            Binding binding = iterator.next();
-            log.debug("{}", binding.toString());
-            sum += 1;
-        }
-        assertEquals(2, sum);
+        assertTrue(iterator.hasNext());
+        iterator.next();
+        Save2SPARQL saver = ec.getContext().get(SagerConstants.SAVER);
+        Op saved = saver.save(saver.op2it.keySet().iterator().next());
     }
 
-    @Disabled
-    @Test
-    public void create_a_subquery_to_see_what_it_looks_like () {
-        String queryAsString = """
-            SELECT * WHERE {
-                ?s <http://named> ?o . {
-                    SELECT * WHERE {?o <http://owns> ?a} ORDER BY ?o OFFSET 1 LIMIT 1
-                }}
-            """;
-        // Sub-queries are handled with JOIN of the inner operators of the query
-        // always slice outside, then order, the bgp
-        Op query = Algebra.compile(QueryFactory.create(queryAsString));
-    }
 }

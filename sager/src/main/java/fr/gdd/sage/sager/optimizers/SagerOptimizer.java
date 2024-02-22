@@ -1,4 +1,4 @@
-package fr.gdd.sage.sager;
+package fr.gdd.sage.sager.optimizers;
 
 import org.apache.jena.sparql.algebra.Op;
 
