@@ -9,6 +9,7 @@ import org.apache.jena.dboe.base.record.Record;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.shared.NotFoundException;
+import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.util.NodeFactoryExtra;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.lib.TupleLib;
@@ -51,6 +52,14 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
         this.dataset = dataset;
         graph = TDBInternal.getDatasetGraphTDB(this.dataset);
         if (!dataset.isInTransaction()) {
+            graph.begin();  // opened in at creation
+        }
+        loadDataset();
+    }
+
+    public JenaBackend(final DatasetGraph datasetGraph) {
+        graph = TDBInternal.getDatasetGraphTDB(this.dataset);
+        if (!graph.isInTransaction()) {
             graph.begin();  // opened in at creation
         }
         loadDataset();

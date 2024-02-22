@@ -1,40 +1,40 @@
 package fr.gdd.sage.sager.iterators;
 
-import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorWrapper;
+import org.apache.jena.tdb2.solver.BindingNodeId;
 
-public class SagerRoot extends QueryIteratorWrapper {
+import java.util.Iterator;
 
+public class SagerRoot implements Iterator<BindingNodeId> {
+
+    Iterator<BindingNodeId> wrapped;
     boolean doesHaveNext = false;
     boolean consumed = true;
-    Binding buffered = null;
+    BindingNodeId buffered = null;
 
-    public SagerRoot(QueryIterator qIter) {
-        super(qIter);
+    public SagerRoot(Iterator<BindingNodeId> wrapped) {
+        this.wrapped = wrapped;
     }
 
     @Override
-    public boolean hasNextBinding() {
+    public boolean hasNext() {
         if (!consumed) {
             return doesHaveNext;
         }
 
         try {
-            doesHaveNext = super.hasNextBinding();
+            doesHaveNext = wrapped.hasNext();
         } catch (PauseException e) {
-            close();
+            // close(); TODO
             return false;
         }
 
-
         if (doesHaveNext) {
             try {
-                buffered = super.moveToNextBinding();
+                buffered = wrapped.next();
                 // may save during the `.next()` which would set `.hasNext()` as false while
                 // it expects and checks `true`. When it happens, it throws a `NoSuchElementException`
             } catch (PauseException e) {
-                close();
+                // close(); TODO
                 return false;
             }
             consumed = false;
@@ -44,7 +44,7 @@ public class SagerRoot extends QueryIteratorWrapper {
     }
 
     @Override
-    protected Binding moveToNextBinding() {
+    public BindingNodeId next() {
         consumed = true;
         return buffered;
     }

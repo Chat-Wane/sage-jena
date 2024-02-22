@@ -2,52 +2,75 @@ package fr.gdd.sage.sager.iterators;
 
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.SagerConstants;
+import org.apache.jena.atlas.iterator.Iter;
+import org.apache.jena.atlas.lib.tuple.Tuple3;
+import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.core.Substitute;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.iterator.QueryIterNullIterator;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorWrapper;
-import org.apache.jena.sparql.engine.main.solver.SolverLib;
+import org.apache.jena.tdb2.solver.BindingNodeId;
+import org.apache.jena.tdb2.solver.BindingTDB;
+import org.apache.jena.tdb2.store.NodeId;
 
-public class SagerScanFactory extends QueryIteratorWrapper {
+import java.util.Iterator;
+import java.util.Objects;
+
+public class SagerScanFactory implements Iterator<BindingNodeId> {
+
+    JenaBackend backend;
+    ExecutionContext context;
 
     OpTriple triple;
-    QueryIterator instanciated;
-    Binding binding;
-    JenaBackend backend;
+    Iterator<BindingNodeId> input;
+    BindingNodeId binding;
 
-    public SagerScanFactory(QueryIterator qIter, ExecutionContext context, OpTriple triple) {
-        super(qIter);
+    Iterator<BindingNodeId> instantiated;
+
+    public SagerScanFactory(Iterator<BindingNodeId> input, ExecutionContext context, OpTriple triple) {
+        this.input = input;
         this.triple = triple;
-        instanciated = new QueryIterNullIterator(context);
+        instantiated = Iter.empty();
         backend = context.getContext().get(SagerConstants.BACKEND);
+        this.context = context;
     }
 
     @Override
-    protected boolean hasNextBinding() {
-        if (!instanciated.hasNext() && !super.hasNextBinding()) {
+    public boolean hasNext() {
+        if (!instantiated.hasNext() && !input.hasNext()) {
             return false;
-        } else if (!instanciated.hasNext() && super.hasNextBinding()) {
-            while (!instanciated.hasNext() && super.hasNextBinding()) {
-                binding = super.nextBinding();
-                Triple tPattern = Substitute.substitute(triple.getTriple(), binding);
-                Node s = SolverLib.nodeTopLevel(tPattern.getSubject());
-                Node p = SolverLib.nodeTopLevel(tPattern.getPredicate());
-                Node o = SolverLib.nodeTopLevel(tPattern.getObject());
+        } else while (!instantiated.hasNext() && input.hasNext()) {
+            binding = input.next();
+            Tuple3<NodeId> spo = substitute(triple.getTriple(), binding);
 
-                backend.search(backend.getId(s), backend.getId(p), backend.getId(o));
-            }
+            instantiated = new SagerScan(context,
+                    triple,
+                    backend.search(spo.get(0), spo.get(1), spo.get(2)));
         }
 
-        return super.hasNextBinding();
+        return instantiated.hasNext();
     }
 
     @Override
-    protected Binding moveToNextBinding() {
-        return instanciated.nextBinding();
+    public BindingNodeId next() {
+        BindingNodeId copy = new BindingNodeId(binding);
+        copy.putAll(instantiated.next());
+        return copy;
+    }
+
+    private Tuple3<NodeId> substitute(Triple triple, BindingNodeId binding) {
+        return TupleFactory.create3(substitute(triple.getSubject(), binding),
+                substitute(triple.getPredicate(),binding),
+                substitute(triple.getObject(), binding));
+    }
+
+    private NodeId substitute(Node sOrPOrO, BindingNodeId binding) {
+        if (sOrPOrO.isVariable()) {
+            NodeId id = binding.get(Var.alloc(sOrPOrO));
+            return Objects.isNull(id) ? NodeId.NodeIdAny : id;
+        } else {
+            return backend.getId(sOrPOrO);
+        }
     }
 }
