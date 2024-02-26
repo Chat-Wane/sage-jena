@@ -57,7 +57,12 @@ public class SagerScanFactory implements Iterator<BindingNodeId> {
     @Override
     public BindingNodeId next() {
         BindingNodeId copy = new BindingNodeId(binding);
-        copy.putAll(instantiated.next());
+        BindingNodeId newInstantiated = instantiated.next();
+        newInstantiated.forEach((bnid) -> {
+            if (!copy.containsKey(bnid)) { // ugly, maybe there is a better way to merge
+                copy.put(bnid, newInstantiated.get(bnid));
+            }
+        });
         return copy;
     }
 

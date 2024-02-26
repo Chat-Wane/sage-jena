@@ -28,4 +28,6 @@ public class ReturningOpVisitor<T> {
     public T visit(OpOrder orderBy)  {throw new UnsupportedOperationException("OpOrder");}
     public T visit(OpProject project) {throw new UnsupportedOperationException("OpProject");}
     public T visit(OpGroup groupBy) {throw new UnsupportedOperationException("OpGroup");}
+
+    public T visit(OpExtend extend) {throw new UnsupportedOperationException("OpExtend");}
 }

@@ -31,6 +31,8 @@ public class ReturningArgsOpVisitorRouter {
             case OpOrder o -> t.visit(o, args);
             case OpProject o -> t.visit(o, args);
             case OpGroup o -> t.visit(o, args);
+
+            case OpExtend o -> t.visit(o, args);
             default -> throw new UnsupportedOperationException(op + "\nWith args: " + args.toString());
         };
     }

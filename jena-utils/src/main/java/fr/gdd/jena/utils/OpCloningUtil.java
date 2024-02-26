@@ -19,6 +19,8 @@ public class OpCloningUtil {
     public static OpUnion clone(OpUnion union, Op left, Op right) {return new OpUnion(left, right);}
     public static OpJoin clone(OpJoin join, Op left, Op right) {return (OpJoin) OpJoin.create(left, right);}
 
+    public static OpExtend clone(OpExtend extend, Op subOp) {return OpExtend.create(subOp, extend.getVarExprList());}
+
     public static OpSequence clone(OpSequence sequence, List<Op> subops) {
         return (OpSequence) OpSequence.create().copy(subops);
     }

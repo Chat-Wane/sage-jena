@@ -93,6 +93,11 @@ public class ReturningOpBaseVisitor extends ReturningOpVisitor<Op> {
         return OpCloningUtil.clone(groupBy, ReturningOpVisitorRouter.visit(this, groupBy.getSubOp()));
     }
 
+    @Override
+    public Op visit(OpExtend extend) {
+        return OpCloningUtil.clone(extend, ReturningOpVisitorRouter.visit(this, extend.getSubOp()));
+    }
+
     /**
      * Visit all children and apply the visitor.
      * @param children The children to visit.

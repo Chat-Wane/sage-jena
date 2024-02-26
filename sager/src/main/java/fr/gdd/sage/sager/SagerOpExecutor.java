@@ -7,14 +7,21 @@ import fr.gdd.sage.sager.iterators.SagerRoot;
 import fr.gdd.sage.sager.iterators.SagerScanFactory;
 import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import org.apache.jena.atlas.iterator.Iter;
+import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.op.OpExtend;
+import org.apache.jena.sparql.algebra.op.OpJoin;
+import org.apache.jena.sparql.algebra.op.OpSequence;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.BindingBuilder;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
+import org.apache.jena.sparql.engine.iterator.QueryIterAssign;
 import org.apache.jena.sparql.engine.iterator.QueryIterPlainWrapper;
+import org.apache.jena.sparql.util.ExprUtils;
+import org.apache.jena.sparql.util.VarUtils;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 
 import java.util.Iterator;
@@ -48,7 +55,8 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingNode
     }
 
     public QueryIterator execute(Op root) {
-        execCxt.getContext().set(SagerConstants.SAVER, new Save2SPARQL(root));
+        execCxt.getContext().set(SagerConstants.SAVER, new Save2SPARQL(root, execCxt));
+
         Iterator<BindingNodeId> wrapped = new SagerRoot(execCxt,
                 ReturningArgsOpVisitorRouter.visit(this, root, Iter.of(BindingNodeId.root)));
         // TODO make them abortable
@@ -68,6 +76,30 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingNode
         return new SagerScanFactory(input, execCxt, opTriple);
     }
 
-    // TODO when subquery, identify the pattern
+    @Override
+    public Iterator<BindingNodeId> visit(OpSequence sequence, Iterator<BindingNodeId> input) {
+        for (Op op : sequence.getElements()) {
+            input = ReturningArgsOpVisitorRouter.visit(this, op, input);
+        }
+        return input;
+    }
 
+    @Override
+    public Iterator<BindingNodeId> visit(OpJoin join, Iterator<BindingNodeId> input) {
+        input = ReturningArgsOpVisitorRouter.visit(this, join.getLeft(), input);
+        return ReturningArgsOpVisitorRouter.visit(this, join.getRight(), input);
+    }
+
+    @Override
+    public Iterator<BindingNodeId> visit(OpExtend extend, Iterator<BindingNodeId> input) {
+        Iterator<BindingNodeId> qIter = ReturningArgsOpVisitorRouter.visit(this, extend.getSubOp(), input);
+        /*
+        extend.getVarExprList().get()
+
+        Node n = exprs.get(v, b.snapshot(), getExecContext());
+
+        qIter = new QueryIterAssign(qIter, extend.getVarExprList(), execCxt, true);
+        return qIter;*/
+        throw new UnsupportedOperationException("WiP");
+    }
 }

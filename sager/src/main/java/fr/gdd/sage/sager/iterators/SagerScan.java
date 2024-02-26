@@ -1,13 +1,13 @@
 package fr.gdd.sage.sager.iterators;
 
+import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.Save2SPARQL;
-import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.Tuple3;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
-import org.apache.jena.dboe.trans.bplustree.PreemptJenaIterator;
+import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -23,6 +23,7 @@ public class SagerScan implements Iterator<BindingNodeId> {
     final BackendIterator<NodeId, ?> wrapped;
     boolean first = true;
     final OpTriple op;
+    BindingNodeId current;
 
     Tuple3<Var> vars;
 
@@ -31,7 +32,7 @@ public class SagerScan implements Iterator<BindingNodeId> {
         this.wrapped = wrapped;
         this.op = op;
         Save2SPARQL saver = context.getContext().get(SagerConstants.SAVER);
-        saver.register(op, wrapped);
+        saver.register(op, this);
 
         vars = TupleFactory.create3(
                 op.getTriple().getSubject().isVariable() ? Var.alloc(op.getTriple().getSubject()) : null,
@@ -66,17 +67,29 @@ public class SagerScan implements Iterator<BindingNodeId> {
         if (Objects.nonNull(vars.get(2))) {
             binding.put(vars.get(2), wrapped.getId(SPOC.OBJECT));
         }
-        return binding;
+
+        current = binding;
+        return current;
+    }
+
+    public BindingNodeId current() {
+        return this.current;
     }
 
     public SagerScan skip(Long offset) {
         // TODO for now, poor complexity, replace it with logarithmic skip
         long i = 0;
         while (i < offset) {
+            wrapped.hasNext();
             wrapped.next();
             ++i;
         }
         return this;
+    }
+
+    public Long offset() {
+        // TODO remove casts
+        return ((ProgressJenaIterator)((LazyIterator) this.wrapped).iterator).getOffset();
     }
 
 }

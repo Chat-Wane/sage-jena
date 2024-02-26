@@ -30,4 +30,6 @@ public class ReturningArgsOpVisitor<R, A> {
     public R visit(OpOrder orderBy, A args)  {throw new UnsupportedOperationException("OpOrder");}
     public R visit(OpProject project, A args) {throw new UnsupportedOperationException("OpProject");}
     public R visit(OpGroup groupBy, A args) {throw new UnsupportedOperationException("OpGroup");}
+
+    public R visit(OpExtend extend, A args) {throw new UnsupportedOperationException("OpExtend");}
 }
