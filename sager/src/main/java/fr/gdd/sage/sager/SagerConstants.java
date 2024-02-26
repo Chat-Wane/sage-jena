@@ -8,6 +8,7 @@ public class SagerConstants {
     public static final String sageSymbolPrefix = "sager";
 
     static public final Symbol BACKEND = allocVariableSymbol("Backend");
+    static public final Symbol LOADER = allocVariableSymbol("Loader");
     static public final Symbol SAVER = allocVariableSymbol("Saver");
 
     static public final Symbol TIMEOUT = allocConstantSymbol("Timeout");

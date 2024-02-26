@@ -2,6 +2,7 @@ package fr.gdd.sage.sager.iterators;
 
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.SagerConstants;
+import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.atlas.lib.tuple.Tuple3;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
@@ -11,7 +12,6 @@ import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.solver.BindingNodeId;
-import org.apache.jena.tdb2.solver.BindingTDB;
 import org.apache.jena.tdb2.store.NodeId;
 
 import java.util.Iterator;
@@ -21,6 +21,7 @@ public class SagerScanFactory implements Iterator<BindingNodeId> {
 
     JenaBackend backend;
     ExecutionContext context;
+    SagerOptimizer loader;
 
     OpTriple triple;
     Iterator<BindingNodeId> input;
@@ -33,6 +34,7 @@ public class SagerScanFactory implements Iterator<BindingNodeId> {
         this.triple = triple;
         instantiated = Iter.empty();
         backend = context.getContext().get(SagerConstants.BACKEND);
+        loader = context.getContext().get(SagerConstants.LOADER);
         this.context = context;
     }
 
@@ -46,7 +48,7 @@ public class SagerScanFactory implements Iterator<BindingNodeId> {
 
             instantiated = new SagerScan(context,
                     triple,
-                    backend.search(spo.get(0), spo.get(1), spo.get(2)));
+                    backend.search(spo.get(0), spo.get(1), spo.get(2))).skip(loader.getOffset2skip().getOffset(triple));
         }
 
         return instantiated.hasNext();

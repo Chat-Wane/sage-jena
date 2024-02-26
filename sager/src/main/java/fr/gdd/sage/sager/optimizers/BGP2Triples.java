@@ -10,10 +10,10 @@ public class BGP2Triples extends ReturningOpBaseVisitor {
 
     @Override
     public Op visit(OpBGP bgp) {
-        switch (bgp.getPattern().getList().size()) {
-            case 0: throw new QueryExecException();
-            case 1: return new OpTriple(bgp.getPattern().get(0));
-            default: throw new UnsupportedOperationException("bgp > 1");
-        }
+        return switch (bgp.getPattern().getList().size()) {
+            case 0 -> throw new QueryExecException();
+            case 1 -> new OpTriple(bgp.getPattern().get(0));
+            default -> throw new UnsupportedOperationException("bgp > 1");
+        };
     }
 }

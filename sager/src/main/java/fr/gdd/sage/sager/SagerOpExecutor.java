@@ -5,6 +5,7 @@ import fr.gdd.jena.visitors.ReturningArgsOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.iterators.SagerRoot;
 import fr.gdd.sage.sager.iterators.SagerScanFactory;
+import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpTriple;
@@ -33,12 +34,19 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingNode
         this.execCxt = execCxt;
         execCxt.getContext().setIfUndef(SagerConstants.BACKEND, new JenaBackend(execCxt.getDataset()));
         backend = execCxt.getContext().get(SagerConstants.BACKEND);
+        execCxt.getContext().setIfUndef(SagerConstants.LOADER, new SagerOptimizer());
     }
 
     /**
      * @param root The query to execute in the form of a Jena `Op`.
      * @return An iterator that can produce the bindings.
      */
+    public QueryIterator optimizeThenExecute(Op root) {
+        SagerOptimizer optimizer = execCxt.getContext().get(SagerConstants.LOADER);
+        root = optimizer.optimize(root);
+        return this.execute(root);
+    }
+
     public QueryIterator execute(Op root) {
         execCxt.getContext().set(SagerConstants.SAVER, new Save2SPARQL(root));
         Iterator<BindingNodeId> wrapped = new SagerRoot(execCxt,

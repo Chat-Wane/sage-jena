@@ -30,7 +30,7 @@ class SagerOpExecutorTest {
         ARQ.enableOptimizer(false);
         Op query = Algebra.compile(QueryFactory.create("SELECT * WHERE {?s <http://named> ?o}"));
         query = ReturningOpVisitorRouter.visit(new BGP2Triples(), query);
-        QueryIterator iterator = executor.execute(query);
+        QueryIterator iterator = executor.optimizeThenExecute(query);
 
         int sum = 0;
         while (iterator.hasNext()) {

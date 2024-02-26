@@ -69,13 +69,14 @@ public class SagerScan implements Iterator<BindingNodeId> {
         return binding;
     }
 
-    public void skip(Integer offset) {
+    public SagerScan skip(Long offset) {
         // TODO for now, poor complexity, replace it with logarithmic skip
-        int i = 0;
+        long i = 0;
         while (i < offset) {
             wrapped.next();
             ++i;
         }
+        return this;
     }
 
 }
