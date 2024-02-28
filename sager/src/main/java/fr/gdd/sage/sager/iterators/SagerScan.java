@@ -3,6 +3,8 @@ package fr.gdd.sage.sager.iterators;
 import fr.gdd.sage.generics.LazyIterator;
 import fr.gdd.sage.interfaces.BackendIterator;
 import fr.gdd.sage.interfaces.SPOC;
+import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.Save2SPARQL;
 import org.apache.jena.atlas.lib.tuple.Tuple3;
@@ -11,27 +13,29 @@ import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.tdb2.solver.BindingNodeId;
 import org.apache.jena.tdb2.store.NodeId;
 
 import java.util.Iterator;
 import java.util.Objects;
 
-public class SagerScan implements Iterator<BindingNodeId> {
+public class SagerScan implements Iterator<BindingId2Value> {
 
     final Long deadline;
     final BackendIterator<NodeId, ?> wrapped;
     boolean first = true;
     final OpTriple op;
-    BindingNodeId current;
+    BindingId2Value current;
+    final Save2SPARQL saver;
+    JenaBackend backend;
 
     Tuple3<Var> vars;
 
     public SagerScan(ExecutionContext context, OpTriple op, BackendIterator<NodeId, ?> wrapped) {
         this.deadline = context.getContext().getLong(SagerConstants.DEADLINE, Long.MAX_VALUE);
+        this.backend = context.getContext().get(SagerConstants.BACKEND);
         this.wrapped = wrapped;
         this.op = op;
-        Save2SPARQL saver = context.getContext().get(SagerConstants.SAVER);
+        this.saver = context.getContext().get(SagerConstants.SAVER);
         saver.register(op, this);
 
         vars = TupleFactory.create3(
@@ -49,30 +53,32 @@ public class SagerScan implements Iterator<BindingNodeId> {
             throw new PauseException(op);
         }
 
+        if (!result) { saver.unregister(op); }
+
         return result;
     }
 
     @Override
-    public BindingNodeId next() {
+    public BindingId2Value next() {
         first = false; // at least one iteration
         wrapped.next();
 
-        BindingNodeId binding = new BindingNodeId();
+        current = new BindingId2Value().setDefaultTable(backend.getNodeTripleTable()); // TODO quads
+
         if (Objects.nonNull(vars.get(0))) { // ugly x3
-            binding.put(vars.get(0), wrapped.getId(SPOC.SUBJECT));
+            current.put(vars.get(0), wrapped.getId(SPOC.SUBJECT));
         }
         if (Objects.nonNull(vars.get(1))) {
-            binding.put(vars.get(1), wrapped.getId(SPOC.PREDICATE));
+            current.put(vars.get(1), wrapped.getId(SPOC.PREDICATE));
         }
         if (Objects.nonNull(vars.get(2))) {
-            binding.put(vars.get(2), wrapped.getId(SPOC.OBJECT));
+            current.put(vars.get(2), wrapped.getId(SPOC.OBJECT));
         }
 
-        current = binding;
         return current;
     }
 
-    public BindingNodeId current() {
+    public BindingId2Value current() {
         return this.current;
     }
 

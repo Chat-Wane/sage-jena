@@ -3,20 +3,24 @@ package fr.gdd.sage.sager.iterators;
 import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.Save2SPARQL;
 import org.apache.jena.sparql.engine.ExecutionContext;
-import org.apache.jena.tdb2.solver.BindingNodeId;
 
 import java.util.Iterator;
 
-public class SagerRoot implements Iterator<BindingNodeId> {
+/**
+ * Iterator that is in charge of catching the Pause event thrown
+ * by a downstream iterator.
+ * @param <T> The type returned by the iterators.
+ */
+public class SagerRoot<T> implements Iterator<T> {
 
     final Save2SPARQL saver;
-    final Iterator<BindingNodeId> wrapped;
+    final Iterator<T> wrapped;
 
     boolean doesHaveNext = false;
     boolean consumed = true;
-    BindingNodeId buffered = null;
+    T buffered = null;
 
-    public SagerRoot(ExecutionContext context, Iterator<BindingNodeId> wrapped) {
+    public SagerRoot(ExecutionContext context, Iterator<T> wrapped) {
         this.wrapped = wrapped;
         this.saver = context.getContext().get(SagerConstants.SAVER);
     }
@@ -52,7 +56,7 @@ public class SagerRoot implements Iterator<BindingNodeId> {
     }
 
     @Override
-    public BindingNodeId next() {
+    public T next() {
         consumed = true;
         return buffered;
     }

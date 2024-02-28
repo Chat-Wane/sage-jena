@@ -1,6 +1,7 @@
 package fr.gdd.sage.sager;
 
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
+import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2WithSimpleData;
 import fr.gdd.sage.sager.optimizers.BGP2Triples;
 import org.apache.jena.query.ARQ;
@@ -40,6 +41,31 @@ class SagerOpExecutorTest {
         }
         assertEquals(2, sum);
     }
+
+    @Test
+    public void create_a_bgp_and_execute_it () {
+        InMemoryInstanceOfTDB2ForRandom data = new InMemoryInstanceOfTDB2ForRandom();
+        ExecutionContext ec = new ExecutionContext(data.getDataset().asDatasetGraph());
+        SagerOpExecutor executor = new SagerOpExecutor(ec);
+
+        ARQ.enableOptimizer(false);
+        Op query = Algebra.compile(QueryFactory.create("""
+               SELECT * WHERE {
+                ?p <http://address> <http://nantes> .
+                ?p  <http://own>  ?a .
+               }"""));
+        query = ReturningOpVisitorRouter.visit(new BGP2Triples(), query);
+        QueryIterator iterator = executor.optimizeThenExecute(query);
+
+        int sum = 0;
+        while (iterator.hasNext()) {
+            Binding binding = iterator.next();
+            log.debug("{}", binding.toString());
+            sum += 1;
+        }
+        assertEquals(3, sum); // Alice, Alice, and Alice.
+    }
+
 
     @Disabled
     @Test

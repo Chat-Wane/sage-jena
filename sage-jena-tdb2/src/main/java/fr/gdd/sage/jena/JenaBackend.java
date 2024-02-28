@@ -160,4 +160,11 @@ public class JenaBackend implements Backend<NodeId, Serializable> {
         return ids;
     }
 
+    public NodeTable getNodeTripleTable() {
+        return nodeTripleTable;
+    }
+
+    public NodeTable getNodeQuadTable() {
+        return nodeQuadTable;
+    }
 }

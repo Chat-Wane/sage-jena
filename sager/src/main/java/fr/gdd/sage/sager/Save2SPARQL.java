@@ -11,35 +11,29 @@ import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.expr.Expr;
-import org.apache.jena.sparql.expr.ExprBuild;
-import org.apache.jena.sparql.expr.ExprVar;
 import org.apache.jena.sparql.util.ExprUtils;
-import org.apache.jena.sparql.util.NodeUtils;
 import org.apache.jena.tdb2.solver.BindingNodeId;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Generate a SPARQL query from the paused state.
+ */
 public class Save2SPARQL extends ReturningOpBaseVisitor {
 
     final JenaBackend backend;
     final Op root; // origin
     Op saved; // preempted
     Op caller;
-    final Map<Op, SagerScan> op2it = new HashMap<>(); // TODO check pointer's identity.
+    final HashMapWithPtrs<Op, SagerScan> op2it = new HashMapWithPtrs<>(); // TODO check pointer's identity.
 
     public Save2SPARQL(Op root, ExecutionContext context) {
         this.root = root;
         this.backend = context.getContext().get(SagerConstants.BACKEND);
     }
 
-    public void register(Op op, SagerScan it) {
-        op2it.put(op, it);
-    }
-    public void unregister(Op op) {
-        op2it.remove(op);
-    }
+    public void register(Op op, SagerScan it) {op2it.put(op, it);}
+    public void unregister(Op op) {op2it.remove(op);}
 
     /* **************************************************************************** */
 
@@ -54,13 +48,13 @@ public class Save2SPARQL extends ReturningOpBaseVisitor {
         SagerScan it = op2it.get(triple);
 
         // TODO remove op2it.size() > 1 which is to experiment when the last throws
-        // TODO but it does not work always
-        if (Objects.nonNull(it) && triple != caller && op2it.size() > 1) {
-            BindingNodeId lastBinding = it.current();
+        // TODO but it does not work always || OR MAYBE IT DOES ?
+        if (Objects.nonNull(it) && op2it.size() > 1) {
+            BindingId2Value lastBinding = it.current();
             op2it.remove(triple);
             OpSequence sequence = OpSequence.create();
             for (Var v : lastBinding) {
-                Node node = backend.getNode(lastBinding.get(v));
+                Node node = lastBinding.getValue(v);
                 String nodeAsString = NodeFmtLib.displayStr(node);
                 Expr asExpr = ExprUtils.parse(nodeAsString);
                 sequence.add(OpExtend.extend(OpTable.unit(), v, asExpr));
