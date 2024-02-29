@@ -30,6 +30,7 @@ public class InMemoryInstanceOfTDB2ForRandom {
                     "<http://Alice> <http://address> <http://nantes> .",
                     "<http://Bob>   <http://address> <http://paris>  .",
                     "<http://Carol> <http://address> <http://nantes> .",
+
                     "<http://Alice> <http://own>     <http://cat> .",
                     "<http://Alice> <http://own>     <http://dog> .",
                     "<http://Alice> <http://own>     <http://snake> .",

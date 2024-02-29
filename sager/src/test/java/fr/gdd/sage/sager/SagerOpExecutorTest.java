@@ -1,9 +1,6 @@
 package fr.gdd.sage.sager;
 
-import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
-import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2WithSimpleData;
-import fr.gdd.sage.sager.optimizers.BGP2Triples;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
@@ -16,45 +13,50 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SagerOpExecutorTest {
 
     private static final Logger log = LoggerFactory.getLogger(SagerOpExecutorTest.class);
+    private static final InMemoryInstanceOfTDB2ForRandom dataset = new InMemoryInstanceOfTDB2ForRandom();
 
     @Test
     public void create_a_simple_query_and_execute_it () {
-        InMemoryInstanceOfTDB2WithSimpleData data = new InMemoryInstanceOfTDB2WithSimpleData();
-        ExecutionContext ec = new ExecutionContext(data.getDataset().asDatasetGraph());
-        SagerOpExecutor executor = new SagerOpExecutor(ec);
-
-        ARQ.enableOptimizer(false);
-        Op query = Algebra.compile(QueryFactory.create("SELECT * WHERE {?s <http://named> ?o}"));
-        query = ReturningOpVisitorRouter.visit(new BGP2Triples(), query);
-        QueryIterator iterator = executor.optimizeThenExecute(query);
-
-        int sum = 0;
-        while (iterator.hasNext()) {
-            Binding binding = iterator.next();
-            log.debug("{}", binding.toString());
-            sum += 1;
-        }
-        assertEquals(2, sum);
+        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
+        String queryAsString = "SELECT * WHERE {?p <http://address> ?c}";
+        int nbResults = executeWithSager(queryAsString, ec);
+        assertEquals(3, nbResults); // Bob, Alice, and Carol.
     }
 
     @Test
     public void create_a_bgp_and_execute_it () {
-        InMemoryInstanceOfTDB2ForRandom data = new InMemoryInstanceOfTDB2ForRandom();
-        ExecutionContext ec = new ExecutionContext(data.getDataset().asDatasetGraph());
-        SagerOpExecutor executor = new SagerOpExecutor(ec);
-
-        ARQ.enableOptimizer(false);
-        Op query = Algebra.compile(QueryFactory.create("""
+        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
+        String queryAsString = """
                SELECT * WHERE {
                 ?p <http://address> <http://nantes> .
                 ?p  <http://own>  ?a .
-               }"""));
-        query = ReturningOpVisitorRouter.visit(new BGP2Triples(), query);
+               }""";
+        int nbResults = executeWithSager(queryAsString, ec);
+        assertEquals(3, nbResults); // Alice, Alice, and Alice.
+    }
+
+    @Test
+    public  void create_a_bind_and_execute () {
+        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
+        String queryAsString = """
+               SELECT * WHERE {
+                BIND (<http://Alice> AS ?p)
+                ?p  <http://own>  ?a .
+               }""";
+        int nbResults = executeWithSager(queryAsString, ec);
+        assertEquals(3, nbResults); // Alice, Alice, and Alice.
+    }
+
+    public static int executeWithSager(String queryAsString, ExecutionContext ec) {
+        ARQ.enableOptimizer(false);
+        SagerOpExecutor executor = new SagerOpExecutor(ec);
+
+        Op query = Algebra.compile(QueryFactory.create(queryAsString));
         QueryIterator iterator = executor.optimizeThenExecute(query);
 
         int sum = 0;
@@ -63,9 +65,11 @@ class SagerOpExecutorTest {
             log.debug("{}", binding.toString());
             sum += 1;
         }
-        assertEquals(3, sum); // Alice, Alice, and Alice.
+
+        return sum;
     }
 
+    /* ****************************************************************** */
 
     @Disabled
     @Test
@@ -79,5 +83,6 @@ class SagerOpExecutorTest {
         // Sub-queries are handled with JOIN of the inner operators of the query
         // always slice outside, then order, the bgp
         Op query = Algebra.compile(QueryFactory.create(queryAsString));
+        log.debug("{}", query);
     }
 }

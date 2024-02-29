@@ -2,7 +2,6 @@ package fr.gdd.sage.sager;
 
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
-import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2WithSimpleData;
 import fr.gdd.sage.sager.optimizers.BGP2Triples;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
@@ -19,20 +18,25 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class Save2SPARQLTest {
 
     private static final Logger log = LoggerFactory.getLogger(Save2SPARQLTest.class);
-    private static final InMemoryInstanceOfTDB2WithSimpleData data = new InMemoryInstanceOfTDB2WithSimpleData();
-    private static final InMemoryInstanceOfTDB2ForRandom data2 = new InMemoryInstanceOfTDB2ForRandom();
+    private static final InMemoryInstanceOfTDB2ForRandom dataset = new InMemoryInstanceOfTDB2ForRandom();
 
     @Disabled
     @Test
     public void create_a_simple_query_and_pause_at_each_result () {
-        String queryAsString = "SELECT * WHERE {?s <http://named> ?o}";
+        String queryAsString = "SELECT * WHERE {?p <http://address> ?c}";
 
+        int sum = 0;
         while (Objects.nonNull(queryAsString)) {
-            queryAsString = executeQuery(queryAsString, data.getDataset());
+            queryAsString = executeQuery(queryAsString, dataset.getDataset());
+            sum += 1;
         }
+        sum -= 1; // last call does not retrieve results
+        assertEquals(3, sum);
     }
 
     @Disabled
@@ -44,10 +48,34 @@ class Save2SPARQLTest {
                 ?p  <http://own>  ?a .
                }""";
 
+        int sum = 0;
         while (Objects.nonNull(queryAsString)) {
-            queryAsString = executeQuery(queryAsString, data2.getDataset());
+            queryAsString = executeQuery(queryAsString, dataset.getDataset());
+            sum += 1;
         }
+        sum -= 1; // last call does not retrieve results
+        assertEquals(3, sum);
     }
+
+    @Disabled
+    @Test
+    public void create_a_bgp_query_and_pause_at_each_result_but_different_order () {
+        String queryAsString = """
+               SELECT * WHERE {
+                ?p  <http://own>  ?a .
+                ?p <http://address> <http://nantes> .
+               }""";
+
+        int sum = 0;
+        while (Objects.nonNull(queryAsString)) {
+            queryAsString = executeQuery(queryAsString, dataset.getDataset());
+            sum += 1;
+        }
+        sum -= 1; // last call does not retrieve results
+        assertEquals(3, sum);
+    }
+
+
 
     /* ************************************************************** */
 

@@ -1,6 +1,6 @@
 package fr.gdd.sage.sager;
 
-import fr.gdd.jena.visitors.ReturningOpBaseVisitor;
+import fr.gdd.jena.visitors.ReturningOpVisitor;
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.iterators.SagerScan;
@@ -12,14 +12,15 @@ import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.expr.Expr;
 import org.apache.jena.sparql.util.ExprUtils;
-import org.apache.jena.tdb2.solver.BindingNodeId;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Generate a SPARQL query from the paused state.
  */
-public class Save2SPARQL extends ReturningOpBaseVisitor {
+public class Save2SPARQL extends ReturningOpVisitor<List<Op>> {
 
     final JenaBackend backend;
     final Op root; // origin
@@ -39,12 +40,12 @@ public class Save2SPARQL extends ReturningOpBaseVisitor {
 
     public Op save(Op caller) {
         this.caller = caller;
-        this.saved = ReturningOpVisitorRouter.visit(this, root);
+        this.saved = unionize(ReturningOpVisitorRouter.visit(this, root));
         return this.saved;
     }
 
     @Override
-    public Op visit(OpTriple triple) {
+    public List<Op> visit(OpTriple triple) {
         SagerScan it = op2it.get(triple);
 
         // TODO remove op2it.size() > 1 which is to experiment when the last throws
@@ -59,12 +60,29 @@ public class Save2SPARQL extends ReturningOpBaseVisitor {
                 Expr asExpr = ExprUtils.parse(nodeAsString);
                 sequence.add(OpExtend.extend(OpTable.unit(), v, asExpr));
             }
-            return sequence;
+            return List.of(sequence);
         } else if (Objects.nonNull(it)) { // should save it
-            return new OpSlice(triple, it.offset(), Long.MIN_VALUE);
+            return List.of(new OpSlice(triple, it.offset(), Long.MIN_VALUE));
         }
         // else nothing
-        return triple;
+        return List.of(triple);
     }
 
+
+    /* ************************************************************ */
+
+    public static Op unionize(List<Op> ops) {
+        return switch (ops.size()) {
+            case 0 -> null;
+            case 1 -> ops.get(0);
+            default -> {
+                Op left = ops.get(0);
+                for (int i = 1; i < ops.size(); ++i) {
+                    Op right = ops.get(i);
+                    left = OpUnion.create(left, right);
+                }
+                yield left;
+            }
+        };
+    }
 }

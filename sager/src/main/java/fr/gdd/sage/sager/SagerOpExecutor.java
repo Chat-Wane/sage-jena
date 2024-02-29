@@ -9,10 +9,7 @@ import fr.gdd.sage.sager.iterators.SagerScanFactory;
 import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.op.OpExtend;
-import org.apache.jena.sparql.algebra.op.OpJoin;
-import org.apache.jena.sparql.algebra.op.OpSequence;
-import org.apache.jena.sparql.algebra.op.OpTriple;
+import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -90,6 +87,14 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
 
     @Override
     public Iterator<BindingId2Value> visit(OpExtend extend, Iterator<BindingId2Value> input) {
-        return new SagerBind(input, extend, execCxt);
+        Iterator<BindingId2Value> newInput = ReturningArgsOpVisitorRouter.visit(this, extend.getSubOp(), input);
+        return new SagerBind(newInput, extend, execCxt);
+    }
+
+    @Override
+    public Iterator<BindingId2Value> visit(OpTable table, Iterator<BindingId2Value> input) {
+        if (table.isJoinIdentity())
+            return input;
+        throw new UnsupportedOperationException("TODO: Should be considered as a Scan iterator…"); // TODO
     }
 }

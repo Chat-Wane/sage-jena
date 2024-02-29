@@ -21,7 +21,7 @@ public class BindingId2Value implements Iterable<Var>, Binding {
     public static class IdValueTable {
         NodeId id = null;
         Node value = null;
-        final NodeTable table;
+        NodeTable table;
 
         public IdValueTable() {this.table = null; }
         public IdValueTable(final NodeTable table) { this.table = table; }
@@ -33,6 +33,11 @@ public class BindingId2Value implements Iterable<Var>, Binding {
 
         public IdValueTable setValue(Node value) {
             this.value = value;
+            return this;
+        }
+
+        public IdValueTable setTable(NodeTable table) {
+            this.table = table;
             return this;
         }
 
@@ -80,12 +85,32 @@ public class BindingId2Value implements Iterable<Var>, Binding {
         return found.getId();
     }
 
+    public NodeId getId(Var var, NodeTable table) {
+        IdValueTable found = var2all.getOrDefault(var, null);
+        if (Objects.isNull(found)) {
+            found = Objects.isNull(parent) ? null : parent.getIdValueTable(var);
+        }
+        if (Objects.nonNull(found)) {
+            found.setTable(table);
+            return found.getId();
+        }
+        return null;
+    }
+
     public Node getValue(Var var) {
         IdValueTable found = var2all.getOrDefault(var, null);
         if (Objects.isNull(found)) {
             return Objects.isNull(parent) ? null : parent.getValue(var);
         }
         return found.getValue();
+    }
+
+    public IdValueTable getIdValueTable(Var var) {
+        IdValueTable found = var2all.getOrDefault(var, null);
+        if (Objects.isNull(found)) {
+            return Objects.isNull(parent) ? null : parent.getIdValueTable(var);
+        }
+        return found;
     }
 
     @Override

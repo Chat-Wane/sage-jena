@@ -67,7 +67,7 @@ public class SagerScanFactory implements Iterator<BindingId2Value> {
 
     private NodeId substitute(Node sOrPOrO, BindingId2Value binding) {
         if (sOrPOrO.isVariable()) {
-            NodeId id = binding.getId(Var.alloc(sOrPOrO));
+            NodeId id = binding.getId(Var.alloc(sOrPOrO), backend.getNodeTripleTable());
             return Objects.isNull(id) ? NodeId.NodeIdAny : id;
         } else {
             return backend.getId(sOrPOrO);
