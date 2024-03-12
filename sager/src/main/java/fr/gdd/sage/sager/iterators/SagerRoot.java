@@ -1,7 +1,7 @@
 package fr.gdd.sage.sager.iterators;
 
 import fr.gdd.sage.sager.SagerConstants;
-import fr.gdd.sage.sager.Save2SPARQL;
+import fr.gdd.sage.sager.pause.Save2SPARQL;
 import org.apache.jena.sparql.engine.ExecutionContext;
 
 import java.util.Iterator;

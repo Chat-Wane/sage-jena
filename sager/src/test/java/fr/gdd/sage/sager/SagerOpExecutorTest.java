@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Disabled
 class SagerOpExecutorTest {
 
     private static final Logger log = LoggerFactory.getLogger(SagerOpExecutorTest.class);

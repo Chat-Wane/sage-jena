@@ -25,7 +25,7 @@ public class BGP2Triples extends ReturningOpBaseVisitor {
             case 0 -> throw new QueryExecException();
             case 1 -> new OpTriple(bgp.getPattern().get(0));
             default ->
-                asSequence(bgp.getPattern().getList().stream().map(OpTriple::new).collect(Collectors.toList()));
+                asJoins(bgp.getPattern().getList().stream().map(OpTriple::new).collect(Collectors.toList()));
         };
     }
 

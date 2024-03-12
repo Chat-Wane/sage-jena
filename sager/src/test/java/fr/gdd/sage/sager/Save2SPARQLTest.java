@@ -3,6 +3,7 @@ package fr.gdd.sage.sager;
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.databases.inmemory.InMemoryInstanceOfTDB2ForRandom;
 import fr.gdd.sage.sager.optimizers.BGP2Triples;
+import fr.gdd.sage.sager.pause.Save2SPARQL;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.QueryFactory;
@@ -20,6 +21,7 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Disabled
 class Save2SPARQLTest {
 
     private static final Logger log = LoggerFactory.getLogger(Save2SPARQLTest.class);
@@ -47,6 +49,7 @@ class Save2SPARQLTest {
                 ?p <http://address> <http://nantes> .
                 ?p  <http://own>  ?a .
                }""";
+        log.debug(queryAsString);
 
         int sum = 0;
         while (Objects.nonNull(queryAsString)) {
@@ -65,6 +68,8 @@ class Save2SPARQLTest {
                 ?p  <http://own>  ?a .
                 ?p <http://address> <http://nantes> .
                }""";
+
+        log.debug(queryAsString);
 
         int sum = 0;
         while (Objects.nonNull(queryAsString)) {

@@ -6,7 +6,7 @@ import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.SagerConstants;
-import fr.gdd.sage.sager.Save2SPARQL;
+import fr.gdd.sage.sager.pause.Save2SPARQL;
 import org.apache.jena.atlas.lib.tuple.Tuple3;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;

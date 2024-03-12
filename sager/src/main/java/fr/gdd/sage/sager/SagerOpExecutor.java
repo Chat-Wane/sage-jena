@@ -2,12 +2,16 @@ package fr.gdd.sage.sager;
 
 import fr.gdd.jena.visitors.ReturningArgsOpVisitor;
 import fr.gdd.jena.visitors.ReturningArgsOpVisitorRouter;
+import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.iterators.SagerBind;
 import fr.gdd.sage.sager.iterators.SagerRoot;
 import fr.gdd.sage.sager.iterators.SagerScanFactory;
+import fr.gdd.sage.sager.iterators.SagerUnion;
 import fr.gdd.sage.sager.optimizers.SagerOptimizer;
+import fr.gdd.sage.sager.pause.Save2SPARQL;
 import org.apache.jena.atlas.iterator.Iter;
+import org.apache.jena.graph.compose.Union;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
@@ -16,10 +20,11 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.BindingBuilder;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.engine.iterator.QueryIterPlainWrapper;
-import org.apache.jena.tdb2.solver.BindingNodeId;
-import org.apache.jena.tdb2.solver.BindingTDB;
+import org.apache.jena.sparql.engine.main.iterator.QueryIterUnion;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Execute only operators that can be preempted. Operators work
@@ -86,6 +91,14 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
     }
 
     @Override
+    public Iterator<BindingId2Value> visit(OpUnion union, Iterator<BindingId2Value> input) {
+        // TODO What about some parallelism here? :)
+        // QueryIterator cIter = new QueryIterUnion(input, x, execCxt);
+        // return cIter;
+        return new SagerUnion(this, input, union.getLeft(), union.getRight());
+    }
+
+    @Override
     public Iterator<BindingId2Value> visit(OpExtend extend, Iterator<BindingId2Value> input) {
         Iterator<BindingId2Value> newInput = ReturningArgsOpVisitorRouter.visit(this, extend.getSubOp(), input);
         return new SagerBind(newInput, extend, execCxt);
@@ -96,5 +109,21 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
         if (table.isJoinIdentity())
             return input;
         throw new UnsupportedOperationException("TODO: Should be considered as a Scan iterator…"); // TODO
+    }
+
+
+    /* **************************************************************************** */
+
+    public static List<Op> flattenUnion(Op op) {
+        return switch (op) {
+            case OpUnion u -> {
+                List<Op> ops = new ArrayList<>();
+                ops.addAll(flattenUnion(u.getLeft()));
+                ops.addAll(flattenUnion(u.getRight()));
+                yield ops;
+            }
+            case null -> List.of();
+            default -> List.of(op);
+        };
     }
 }
