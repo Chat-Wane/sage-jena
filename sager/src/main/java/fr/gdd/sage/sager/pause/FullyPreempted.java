@@ -29,7 +29,7 @@ public class FullyPreempted extends ReturningOpVisitor<Op> {
 
     @Override
     public Op visit(OpTriple triple) {
-        SagerScan it = saver.op2it.get(triple);
+        SagerScan it = (SagerScan) saver.op2it.get(triple);
 
         if (Objects.isNull(it)) return null;
 

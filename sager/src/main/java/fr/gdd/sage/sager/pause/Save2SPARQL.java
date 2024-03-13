@@ -3,6 +3,7 @@ package fr.gdd.sage.sager.pause;
 import fr.gdd.jena.visitors.ReturningOpVisitor;
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
+import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.HashMapWithPtrs;
 import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.SagerOpExecutor;
@@ -11,7 +12,7 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
 
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,14 +25,14 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
     final Op root; // origin
     Op saved; // preempted
     Op caller;
-    final HashMapWithPtrs<Op, SagerScan> op2it = new HashMapWithPtrs<>(); // TODO check pointer's identity.
+    final HashMapWithPtrs<Op, Iterator<BindingId2Value>> op2it = new HashMapWithPtrs<>(); // TODO check pointer's identity.
 
     public Save2SPARQL(Op root, ExecutionContext context) {
         this.root = root;
         this.backend = context.getContext().get(SagerConstants.BACKEND);
     }
 
-    public void register(Op op, SagerScan it) {op2it.put(op, it);}
+    public void register(Op op, Iterator<BindingId2Value> it) {op2it.put(op, it);}
     public void unregister(Op op) {op2it.remove(op);}
 
     /* **************************************************************************** */
@@ -44,7 +45,7 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
 
     @Override
     public Op visit(OpTriple triple) {
-        SagerScan it = op2it.get(triple);
+        SagerScan it = (SagerScan) op2it.get(triple);
 
         if (Objects.isNull(it)) {return null;}
 

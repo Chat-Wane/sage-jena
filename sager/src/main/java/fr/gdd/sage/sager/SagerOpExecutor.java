@@ -2,7 +2,6 @@ package fr.gdd.sage.sager;
 
 import fr.gdd.jena.visitors.ReturningArgsOpVisitor;
 import fr.gdd.jena.visitors.ReturningArgsOpVisitorRouter;
-import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.iterators.SagerBind;
 import fr.gdd.sage.sager.iterators.SagerRoot;
@@ -11,7 +10,6 @@ import fr.gdd.sage.sager.iterators.SagerUnion;
 import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import fr.gdd.sage.sager.pause.Save2SPARQL;
 import org.apache.jena.atlas.iterator.Iter;
-import org.apache.jena.graph.compose.Union;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
@@ -20,7 +18,6 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.BindingBuilder;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.engine.iterator.QueryIterPlainWrapper;
-import org.apache.jena.sparql.engine.main.iterator.QueryIterUnion;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -93,9 +90,10 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
     @Override
     public Iterator<BindingId2Value> visit(OpUnion union, Iterator<BindingId2Value> input) {
         // TODO What about some parallelism here? :)
-        // QueryIterator cIter = new QueryIterUnion(input, x, execCxt);
-        // return cIter;
-        return new SagerUnion(this, input, union.getLeft(), union.getRight());
+        Save2SPARQL saver = execCxt.getContext().get(SagerConstants.SAVER);
+        SagerUnion iterator = new SagerUnion(this, input, union.getLeft(), union.getRight());
+        saver.register(union, iterator);
+        return iterator;
     }
 
     @Override

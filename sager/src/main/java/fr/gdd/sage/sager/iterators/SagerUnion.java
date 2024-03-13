@@ -1,15 +1,12 @@
 package fr.gdd.sage.sager.iterators;
 
 import fr.gdd.jena.visitors.ReturningArgsOpVisitorRouter;
-import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.SagerOpExecutor;
 import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.engine.ExecutionContext;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 
 public class SagerUnion implements Iterator<BindingId2Value> {
@@ -32,9 +29,11 @@ public class SagerUnion implements Iterator<BindingId2Value> {
 
     @Override
     public boolean hasNext() {
-
-        while (input.hasNext() && !currentIt.hasNext()) {
+        if (Objects.isNull(current) && input.hasNext()) {
             current = input.next();
+        }
+
+        while (Objects.isNull(currentIt) || !currentIt.hasNext()) {
             if (currentOp < 0) {
                 currentOp = 0;
                 currentIt = ReturningArgsOpVisitorRouter.visit(executor, left, Iter.of(current));
@@ -47,6 +46,12 @@ public class SagerUnion implements Iterator<BindingId2Value> {
 
             if (currentOp == 1 && !currentIt.hasNext()) {
                 currentOp = -1;
+                current = null;
+                if (!input.hasNext()) {
+                    return false;
+                } else {
+                    return this.hasNext();
+                }
             }
         }
 
