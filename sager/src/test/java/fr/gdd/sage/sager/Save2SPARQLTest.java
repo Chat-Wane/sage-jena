@@ -27,7 +27,6 @@ class Save2SPARQLTest {
     private static final Logger log = LoggerFactory.getLogger(Save2SPARQLTest.class);
     private static final InMemoryInstanceOfTDB2ForRandom dataset = new InMemoryInstanceOfTDB2ForRandom();
 
-    @Disabled
     @Test
     public void create_a_simple_query_and_pause_at_each_result () {
         String queryAsString = "SELECT * WHERE {?p <http://address> ?c}";
@@ -41,7 +40,6 @@ class Save2SPARQLTest {
         assertEquals(3, sum);
     }
 
-    @Disabled
     @Test
     public void create_a_bgp_query_and_pause_at_each_result () {
         String queryAsString = """
@@ -60,7 +58,6 @@ class Save2SPARQLTest {
         assertEquals(3, sum);
     }
 
-    @Disabled
     @Test
     public void create_a_bgp_query_and_pause_at_each_result_but_different_order () {
         String queryAsString = """
@@ -80,6 +77,41 @@ class Save2SPARQLTest {
         assertEquals(3, sum);
     }
 
+    @Test
+    public void create_an_simple_union_that_does_not_come_from_preemption() {
+        String queryAsString = """
+               SELECT * WHERE {
+                {?p  <http://own>  ?a } UNION { ?p <http://address> <http://nantes> }
+               }""";
+
+        log.debug(queryAsString);
+
+        int sum = 0;
+        while (Objects.nonNull(queryAsString)) {
+            queryAsString = executeQuery(queryAsString, dataset.getDataset());
+            sum += 1;
+        }
+        sum -= 1; // last call does not retrieve results
+        assertEquals(5, sum); // Alice * 3 + Alice + Carol
+    }
+
+    @Test
+    public void create_an_simple_union_with_bgp_inside() {
+        String queryAsString = """
+               SELECT * WHERE {
+                {?p  <http://own>  ?a . ?a <http://species> ?s } UNION { ?p <http://address> <http://nantes> }
+               }""";
+
+        log.debug(queryAsString);
+
+        int sum = 0;
+        while (Objects.nonNull(queryAsString)) {
+            queryAsString = executeQuery(queryAsString, dataset.getDataset());
+            sum += 1;
+        }
+        sum -= 1; // last call does not retrieve results
+        assertEquals(5, sum); // Alice * 3 + Alice + Carol
+    }
 
 
     /* ************************************************************** */

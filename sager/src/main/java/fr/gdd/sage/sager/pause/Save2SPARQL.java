@@ -63,14 +63,18 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
         FullyPreempted fp = new FullyPreempted(this);
         Op leftFullyPreempt = ReturningOpVisitorRouter.visit(fp, join.getLeft());
         Op right = ReturningOpVisitorRouter.visit(this, join.getRight());
-        Op left = ReturningOpVisitorRouter.visit(this, join.getLeft());
 
         // TODO left + right only if left is preemptable
-
-        return OpUnion.create(
-                distributeJoin(leftFullyPreempt, right), // preempted
-                OpJoin.create(left, join.getRight()) // rest
-        );
+        boolean shouldI = ReturningOpVisitorRouter.visit(new ShouldPreempt(this), join.getLeft());
+        if (shouldI) {
+            Op left = ReturningOpVisitorRouter.visit(this, join.getLeft());
+            return OpUnion.create(
+                    distributeJoin(leftFullyPreempt, right), // preempted
+                    OpJoin.create(left, join.getRight()) // rest
+            );
+        } else {
+            return distributeJoin(leftFullyPreempt, right);
+        }
     }
 
     @Override
