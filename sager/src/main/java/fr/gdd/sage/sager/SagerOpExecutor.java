@@ -109,6 +109,17 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
         throw new UnsupportedOperationException("TODO: Should be considered as a Scan iterator…"); // TODO
     }
 
+    /**
+     * Preemption mostly comes from this: the ability to start over from an OFFSET efficiently.
+     * When we find a pattern like SELECT * WHERE {?s ?p ?o} OFFSET X, the engine know that
+     * it must skip X elements of the iterator. But the pattern must be accurate: a single
+     * triple pattern.
+     */
+    @Override
+    public Iterator<BindingId2Value> visit(OpSlice slice, Iterator<BindingId2Value> args) {
+        // TODO TODO TODO
+        return super.visit(slice, args);
+    }
 
     /* **************************************************************************** */
 
