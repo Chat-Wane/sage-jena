@@ -62,4 +62,12 @@ public class SagerUnion implements Iterator<BindingId2Value> {
     public BindingId2Value next() {
         return currentIt.next();
     }
+
+    public boolean onLeft () {
+        return currentOp == 0;
+    }
+
+    public boolean onRight () {
+        return currentOp == 1;
+    }
 }

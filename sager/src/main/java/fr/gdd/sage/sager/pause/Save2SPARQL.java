@@ -8,6 +8,9 @@ import fr.gdd.sage.sager.HashMapWithPtrs;
 import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.SagerOpExecutor;
 import fr.gdd.sage.sager.iterators.SagerScan;
+import fr.gdd.sage.sager.iterators.SagerUnion;
+import fr.gdd.sage.sager.optimizers.Offset2Skip;
+import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -25,11 +28,14 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
     final Op root; // origin
     Op saved; // preempted
     Op caller;
-    final HashMapWithPtrs<Op, Iterator<BindingId2Value>> op2it = new HashMapWithPtrs<>(); // TODO check pointer's identity.
+    final HashMapWithPtrs<Op, Iterator<BindingId2Value>> op2it = new HashMapWithPtrs<>();
+    final Offset2Skip loader;
 
     public Save2SPARQL(Op root, ExecutionContext context) {
         this.root = root;
         this.backend = context.getContext().get(SagerConstants.BACKEND);
+        SagerOptimizer optimizer = context.getContext().get(SagerConstants.LOADER);
+        this.loader = optimizer.getOffset2skip();
     }
 
     public void register(Op op, Iterator<BindingId2Value> it) {op2it.put(op, it);}
@@ -59,6 +65,8 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
         Op right = ReturningOpVisitorRouter.visit(this, join.getRight());
         Op left = ReturningOpVisitorRouter.visit(this, join.getLeft());
 
+        // TODO left + right only if left is preemptable
+
         return OpUnion.create(
                 distributeJoin(leftFullyPreempt, right), // preempted
                 OpJoin.create(left, join.getRight()) // rest
@@ -67,9 +75,17 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
 
     @Override
     public Op visit(OpUnion union) {
-        Op left = ReturningOpVisitorRouter.visit(this, union.getLeft());
-        Op right = ReturningOpVisitorRouter.visit(this, union.getRight());
-        return OpUnion.create(left, right);
+        SagerUnion u = (SagerUnion) op2it.get(union);
+        if (Objects.isNull(u)) {
+            return union;
+        }
+
+        if (u.onLeft()) {
+            Op left = ReturningOpVisitorRouter.visit(this, union.getLeft());
+            return OpUnion.create(left, ReturningOpVisitorRouter.visit(new Copy(loader), union.getRight()));
+        } else { // on right
+            return  ReturningOpVisitorRouter.visit(this, union.getRight());
+        }
     }
 
     @Override
