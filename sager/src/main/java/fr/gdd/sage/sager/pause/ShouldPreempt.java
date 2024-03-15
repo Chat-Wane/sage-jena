@@ -2,10 +2,7 @@ package fr.gdd.sage.sager.pause;
 
 import fr.gdd.jena.visitors.ReturningOpVisitor;
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
-import org.apache.jena.sparql.algebra.op.OpExtend;
-import org.apache.jena.sparql.algebra.op.OpJoin;
-import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.algebra.op.OpUnion;
+import org.apache.jena.sparql.algebra.op.*;
 
 import java.util.Objects;
 
@@ -35,5 +32,13 @@ public class ShouldPreempt extends ReturningOpVisitor<Boolean> {
     @Override
     public Boolean visit(OpUnion union) {
         return Objects.nonNull(saver.op2it.get(union));
+    }
+
+    @Override
+    public Boolean visit(OpSlice slice) {
+        if (slice.getSubOp() instanceof OpTriple triple) {
+            return this.visit(triple);
+        }
+        throw new UnsupportedOperationException("TODO regular slice should it be preempted ?"); // TODO
     }
 }

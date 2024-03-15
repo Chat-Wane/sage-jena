@@ -106,7 +106,7 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
     public Iterator<BindingId2Value> visit(OpTable table, Iterator<BindingId2Value> input) {
         if (table.isJoinIdentity())
             return input;
-        throw new UnsupportedOperationException("TODO: Should be considered as a Scan iterator…"); // TODO
+        throw new UnsupportedOperationException("TODO: VALUES Should be considered as a Scan iterator…"); // TODO
     }
 
     /**
@@ -116,9 +116,12 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
      * triple pattern.
      */
     @Override
-    public Iterator<BindingId2Value> visit(OpSlice slice, Iterator<BindingId2Value> args) {
-        // TODO TODO TODO
-        return super.visit(slice, args);
+    public Iterator<BindingId2Value> visit(OpSlice slice, Iterator<BindingId2Value> input) {
+        if (slice.getSubOp() instanceof OpTriple triple) { // TODO OpQuad
+            return new SagerScanFactory(input, execCxt, triple, slice.getStart());
+        }
+        // TODO otherwise it's a normal slice
+        throw new UnsupportedOperationException("TODO Default LIMIT OFFSET not implemented yet.");
     }
 
     /* **************************************************************************** */

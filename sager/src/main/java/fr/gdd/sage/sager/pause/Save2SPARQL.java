@@ -9,8 +9,6 @@ import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.SagerOpExecutor;
 import fr.gdd.sage.sager.iterators.SagerScan;
 import fr.gdd.sage.sager.iterators.SagerUnion;
-import fr.gdd.sage.sager.optimizers.Offset2Skip;
-import fr.gdd.sage.sager.optimizers.SagerOptimizer;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -29,13 +27,10 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
     Op saved; // preempted
     Op caller;
     final HashMapWithPtrs<Op, Iterator<BindingId2Value>> op2it = new HashMapWithPtrs<>();
-    final Offset2Skip loader;
 
     public Save2SPARQL(Op root, ExecutionContext context) {
         this.root = root;
         this.backend = context.getContext().get(SagerConstants.BACKEND);
-        SagerOptimizer optimizer = context.getContext().get(SagerConstants.LOADER);
-        this.loader = optimizer.getOffset2skip();
     }
 
     public void register(Op op, Iterator<BindingId2Value> it) {op2it.put(op, it);}
@@ -86,11 +81,20 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
 
         if (u.onLeft()) {
             Op left = ReturningOpVisitorRouter.visit(this, union.getLeft());
-            return OpUnion.create(left, ReturningOpVisitorRouter.visit(new Copy(loader), union.getRight()));
+            return OpUnion.create(left, union.getRight());
         } else { // on right
             return  ReturningOpVisitorRouter.visit(this, union.getRight());
         }
     }
+
+    @Override
+    public Op visit(OpSlice slice) {
+        if (slice.getSubOp() instanceof OpTriple triple) {
+            return ReturningOpVisitorRouter.visit(this, triple);
+        }
+        throw new UnsupportedOperationException("TODO OpSlice cannot be saved right now."); // TODO
+    }
+
 
     @Override
     public Op visit(OpExtend extend) {

@@ -8,16 +8,11 @@ import org.apache.jena.sparql.algebra.Op;
  */
 public class SagerOptimizer {
 
-    Offset2Skip offset2skip = new Offset2Skip();
-
     public Op optimize(Op toOptimize) {
         toOptimize = ReturningOpVisitorRouter.visit(new BGP2Triples(), toOptimize);
         // TODO ordering, by sending estimated COUNT queries to the opened dataset
         // TODO This is already partially done in `SageOptimizer`
-        return ReturningOpVisitorRouter.visit(offset2skip, toOptimize);
+        return toOptimize;
     }
 
-    public Offset2Skip getOffset2skip() {
-        return offset2skip;
-    }
 }

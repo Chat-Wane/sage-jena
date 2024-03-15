@@ -24,6 +24,7 @@ public class SagerScanFactory implements Iterator<BindingId2Value> {
     SagerOptimizer loader;
 
     OpTriple triple;
+    final Long skip; // offset
     Iterator<BindingId2Value> input;
     BindingId2Value binding;
 
@@ -36,6 +37,17 @@ public class SagerScanFactory implements Iterator<BindingId2Value> {
         backend = context.getContext().get(SagerConstants.BACKEND);
         loader = context.getContext().get(SagerConstants.LOADER);
         this.context = context;
+        this.skip = 0L;
+    }
+
+    public SagerScanFactory(Iterator<BindingId2Value> input, ExecutionContext context, OpTriple triple, Long skip) {
+        this.input = input;
+        this.triple = triple;
+        instantiated = Iter.empty();
+        backend = context.getContext().get(SagerConstants.BACKEND);
+        loader = context.getContext().get(SagerConstants.LOADER);
+        this.context = context;
+        this.skip = skip;
     }
 
     @Override
@@ -48,7 +60,7 @@ public class SagerScanFactory implements Iterator<BindingId2Value> {
 
             instantiated = new SagerScan(context,
                     triple,
-                    backend.search(spo.get(0), spo.get(1), spo.get(2))).skip(loader.getOffset2skip().getOffset(triple));
+                    backend.search(spo.get(0), spo.get(1), spo.get(2))).skip(skip);
         }
 
         return instantiated.hasNext();
