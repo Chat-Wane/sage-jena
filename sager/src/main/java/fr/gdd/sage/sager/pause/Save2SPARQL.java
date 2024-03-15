@@ -9,6 +9,7 @@ import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.SagerOpExecutor;
 import fr.gdd.sage.sager.iterators.SagerScan;
 import fr.gdd.sage.sager.iterators.SagerUnion;
+import fr.gdd.sage.sager.optimizers.Triples2BGP;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -41,6 +42,7 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
     public Op save(Op caller) {
         this.caller = caller;
         this.saved = ReturningOpVisitorRouter.visit(this, root);
+        this.saved = ReturningOpVisitorRouter.visit(new Triples2BGP(), this.saved);
         return this.saved;
     }
 

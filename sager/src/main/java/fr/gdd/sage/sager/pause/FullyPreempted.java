@@ -1,5 +1,6 @@
 package fr.gdd.sage.sager.pause;
 
+import fr.gdd.jena.visitors.ReturningOpBaseVisitor;
 import fr.gdd.jena.visitors.ReturningOpVisitor;
 import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.iterators.SagerScan;
@@ -16,7 +17,7 @@ import java.util.Objects;
 /**
  * Fully preempted operators. If it cannot be preempted, then it returns null.
  */
-public class FullyPreempted extends ReturningOpVisitor<Op> {
+public class FullyPreempted extends ReturningOpBaseVisitor {
 
     final Save2SPARQL saver;
 

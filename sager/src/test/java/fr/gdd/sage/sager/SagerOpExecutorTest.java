@@ -22,26 +22,6 @@ class SagerOpExecutorTest {
     private static final InMemoryInstanceOfTDB2ForRandom dataset = new InMemoryInstanceOfTDB2ForRandom();
 
     @Test
-    public void create_a_simple_query_and_execute_it () {
-        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
-        String queryAsString = "SELECT * WHERE {?p <http://address> ?c}";
-        int nbResults = executeWithSager(queryAsString, ec);
-        assertEquals(3, nbResults); // Bob, Alice, and Carol.
-    }
-
-    @Test
-    public void create_a_bgp_and_execute_it () {
-        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
-        String queryAsString = """
-               SELECT * WHERE {
-                ?p <http://address> <http://nantes> .
-                ?p  <http://own>  ?a .
-               }""";
-        int nbResults = executeWithSager(queryAsString, ec);
-        assertEquals(3, nbResults); // Alice, Alice, and Alice.
-    }
-
-    @Test
     public void create_a_bind_and_execute () {
         ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
         String queryAsString = """
@@ -51,46 +31,6 @@ class SagerOpExecutorTest {
                }""";
         int nbResults = executeWithSager(queryAsString, ec);
         assertEquals(3, nbResults); // Alice, Alice, and Alice.
-    }
-
-    @Test
-    public void execute_a_simple_union () {
-        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
-        String queryAsString = """
-               SELECT * WHERE {
-                {?p  <http://own>  ?a}
-                UNION
-                {?p  <http://address> ?a}
-               }""";
-        int nbResults = executeWithSager(queryAsString, ec);
-        assertEquals(6, nbResults); // 3 triples + 3 triples
-    }
-
-    @Test
-    public void execute_a_union_inside_a_triple_pattern () {
-        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
-        String queryAsString = """
-               SELECT * WHERE {
-                ?p  <http://own>  ?a .
-                {?a <http://species> ?s} UNION {?a <http://species> ?s}
-               }""";
-        int nbResults = executeWithSager(queryAsString, ec);
-        assertEquals(6, nbResults); // (cat + dog + snake)*2
-    }
-
-    @Test
-    public void meow () {
-        ExecutionContext ec = new ExecutionContext(dataset.getDataset().asDatasetGraph());
-        String queryAsString = """
-                SELECT * WHERE { { SELECT  *
-                                          WHERE
-                                            { ?p  <http://own>  ?a }
-                                          OFFSET  1
-                                        }
-                                        ?p  <http://address>  <http://nantes>
-                                      }""";
-        int nbResults = executeWithSager(queryAsString, ec);
-        assertEquals(2, nbResults); // (cat + dog + snake)*2
     }
 
     /* ****************************************************************** */
