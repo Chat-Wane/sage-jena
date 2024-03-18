@@ -7,9 +7,12 @@ import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.pause.Save2SPARQL;
+import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.Tuple3;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -30,7 +33,7 @@ public class SagerScan implements Iterator<BindingId2Value> {
 
     Tuple3<Var> vars;
 
-    public SagerScan(ExecutionContext context, OpTriple op, BackendIterator<NodeId, ?> wrapped) {
+    public SagerScan(ExecutionContext context, OpTriple op, Tuple<NodeId> spo, BackendIterator<NodeId, ?> wrapped) {
         this.deadline = context.getContext().getLong(SagerConstants.DEADLINE, Long.MAX_VALUE);
         this.backend = context.getContext().get(SagerConstants.BACKEND);
         this.wrapped = wrapped;
@@ -39,9 +42,9 @@ public class SagerScan implements Iterator<BindingId2Value> {
         saver.register(op, this);
 
         vars = TupleFactory.create3(
-                op.getTriple().getSubject().isVariable() ? Var.alloc(op.getTriple().getSubject()) : null,
-                op.getTriple().getPredicate().isVariable() ? Var.alloc(op.getTriple().getPredicate()) : null,
-                op.getTriple().getObject().isVariable() ? Var.alloc(op.getTriple().getObject()) : null);
+                op.getTriple().getSubject().isVariable() && NodeId.isAny(spo.get(0)) ? Var.alloc(op.getTriple().getSubject()) : null,
+                op.getTriple().getPredicate().isVariable() && NodeId.isAny(spo.get(1)) ? Var.alloc(op.getTriple().getPredicate()) : null,
+                op.getTriple().getObject().isVariable() && NodeId.isAny(spo.get(2)) ? Var.alloc(op.getTriple().getObject()) : null);
     }
 
     @Override
@@ -96,6 +99,19 @@ public class SagerScan implements Iterator<BindingId2Value> {
     public Long offset() {
         // TODO remove casts
         return ((ProgressJenaIterator)((LazyIterator) this.wrapped).iterator).getOffset();
+    }
+
+    public OpTriple asOpTriple() {
+        Triple t = new Triple(Objects.nonNull(vars.get(0)) ? op.getTriple().getSubject(): // true variable
+                    op.getTriple().getSubject().isVariable() ? current.get(op.getTriple().getSubject().getName()): // bounded variable
+                            op.getTriple().getSubject(),
+                Objects.nonNull(vars.get(1)) ? op.getTriple().getPredicate(): // true variable
+                        op.getTriple().getPredicate().isVariable() ? current.get(op.getTriple().getPredicate().getName()): // bounded variable
+                                op.getTriple().getPredicate(),
+                Objects.nonNull(vars.get(2)) ? op.getTriple().getObject(): // true variable
+                        op.getTriple().getPredicate().isVariable() ? current.get(op.getTriple().getObject().getName()): // bounded variable
+                                op.getTriple().getObject());
+        return new OpTriple(t);
     }
 
 }

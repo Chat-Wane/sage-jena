@@ -9,7 +9,7 @@ import fr.gdd.sage.sager.SagerConstants;
 import fr.gdd.sage.sager.SagerOpExecutor;
 import fr.gdd.sage.sager.iterators.SagerScan;
 import fr.gdd.sage.sager.iterators.SagerUnion;
-import fr.gdd.sage.sager.optimizers.Triples2BGP;
+import fr.gdd.sage.sager.resume.Subqueries2LeftOfJoins;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -43,6 +43,7 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
         this.caller = caller;
         this.saved = ReturningOpVisitorRouter.visit(this, root);
         this.saved = ReturningOpVisitorRouter.visit(new Triples2BGP(), this.saved);
+        this.saved = ReturningOpVisitorRouter.visit(new Subqueries2LeftOfJoins(), this.saved);
         return this.saved;
     }
 
@@ -52,6 +53,9 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
 
         if (Objects.isNull(it)) {return null;}
 
+        // OpTriple must remain the same, we cannot transform it by setting
+        // the variables that are bound since the offset would be wrong after
+        // that…
         return new OpSlice(triple, it.offset(), Long.MIN_VALUE);
     }
 

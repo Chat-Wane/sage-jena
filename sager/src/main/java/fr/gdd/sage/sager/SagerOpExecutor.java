@@ -2,6 +2,7 @@ package fr.gdd.sage.sager;
 
 import fr.gdd.jena.visitors.ReturningArgsOpVisitor;
 import fr.gdd.jena.visitors.ReturningArgsOpVisitorRouter;
+import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.iterators.SagerBind;
 import fr.gdd.sage.sager.iterators.SagerRoot;
@@ -126,6 +127,10 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
 
     /* **************************************************************************** */
 
+    /**
+     * @param op The operator to visit.
+     * @return The list of operators that are under the (nested) unions.
+     */
     public static List<Op> flattenUnion(Op op) {
         return switch (op) {
             case OpUnion u -> {
@@ -138,4 +143,24 @@ public class SagerOpExecutor extends ReturningArgsOpVisitor<Iterator<BindingId2V
             default -> List.of(op);
         };
     }
+
+    /**
+     * @param join The join operator to visit.
+     * @return The list of operators that are under the (nested) joins.
+     */
+    public static List<Op> flattenJoin(OpJoin join) {
+        List<Op> result = new ArrayList<>();
+        if (join.getLeft() instanceof OpJoin left) {
+            result.addAll(flattenJoin(left));
+        } else {
+            result.add(join.getLeft());
+        }
+        if (join.getRight() instanceof OpJoin right) {
+            result.addAll(flattenJoin(right));
+        } else {
+            result.add(join.getRight());
+        }
+        return result;
+    }
+
 }

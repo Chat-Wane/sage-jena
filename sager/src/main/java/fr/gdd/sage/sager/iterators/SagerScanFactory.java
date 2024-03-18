@@ -60,6 +60,7 @@ public class SagerScanFactory implements Iterator<BindingId2Value> {
 
             instantiated = new SagerScan(context,
                     triple,
+                    spo,
                     backend.search(spo.get(0), spo.get(1), spo.get(2))).skip(skip);
         }
 

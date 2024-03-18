@@ -1,4 +1,4 @@
-package fr.gdd.sage.sager.optimizers;
+package fr.gdd.sage.sager.resume;
 
 import fr.gdd.jena.visitors.ReturningOpBaseVisitor;
 import org.apache.jena.query.QueryExecException;
@@ -29,7 +29,7 @@ public class BGP2Triples extends ReturningOpBaseVisitor {
         };
     }
 
-    static Op asJoins(List<Op> ops) {
+    public static Op asJoins(List<Op> ops) {
         Op left = ops.get(0);
         for (int i = 1; i < ops.size(); ++i) {
             Op right = ops.get(i);
@@ -38,7 +38,7 @@ public class BGP2Triples extends ReturningOpBaseVisitor {
         return left;
     }
 
-    static Op asSequence(List<Op> ops) {
+    public static Op asSequence(List<Op> ops) {
         OpSequence sequence = OpSequence.create();
         for (Op t : ops) {
             sequence.add(t);
