@@ -1,7 +1,6 @@
 package fr.gdd.sage.sager.pause;
 
 import fr.gdd.jena.visitors.ReturningOpBaseVisitor;
-import fr.gdd.jena.visitors.ReturningOpVisitor;
 import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.iterators.SagerScan;
 import org.apache.jena.graph.Node;
@@ -9,7 +8,6 @@ import org.apache.jena.riot.out.NodeFmtLib;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
-import org.apache.jena.sparql.expr.Expr;
 import org.apache.jena.sparql.util.ExprUtils;
 
 import java.util.Objects;
@@ -35,9 +33,7 @@ public class FullyPreempted extends ReturningOpBaseVisitor {
         OpSequence sequence = OpSequence.create();
         for (Var v : lastBinding) {
             Node node = lastBinding.getValue(v);
-            String nodeAsString = NodeFmtLib.displayStr(node);
-            Expr asExpr = ExprUtils.parse(nodeAsString);
-            sequence.add(OpExtend.extend(OpTable.unit(), v, asExpr));
+            sequence.add(toBind(node, v));
         }
         return sequence;
     }
@@ -53,5 +49,11 @@ public class FullyPreempted extends ReturningOpBaseVisitor {
             return this.visit(triple);
         }
         throw new UnsupportedOperationException("TODO normal slice fully preempted."); // TODO
+    }
+
+    /* ************************************************************************** */
+
+    public static Op toBind(Node value, Var variable) {
+        return OpExtend.extend(OpTable.unit(), variable, ExprUtils.parse(NodeFmtLib.displayStr(value)));
     }
 }

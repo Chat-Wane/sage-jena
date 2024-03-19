@@ -6,19 +6,26 @@ import fr.gdd.sage.interfaces.SPOC;
 import fr.gdd.sage.jena.JenaBackend;
 import fr.gdd.sage.sager.BindingId2Value;
 import fr.gdd.sage.sager.SagerConstants;
+import fr.gdd.sage.sager.SagerOpExecutor;
+import fr.gdd.sage.sager.pause.FullyPreempted;
 import fr.gdd.sage.sager.pause.Save2SPARQL;
+import fr.gdd.sage.sager.resume.BGP2Triples;
 import org.apache.jena.atlas.lib.tuple.Tuple;
 import org.apache.jena.atlas.lib.tuple.Tuple3;
 import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.dboe.trans.bplustree.ProgressJenaIterator;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.op.OpJoin;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.tdb2.store.NodeId;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 public class SagerScan implements Iterator<BindingId2Value> {
@@ -101,7 +108,26 @@ public class SagerScan implements Iterator<BindingId2Value> {
         return ((ProgressJenaIterator)((LazyIterator) this.wrapped).iterator).getOffset();
     }
 
-    public OpTriple asOpTriple() {
+    public Op asOpTriple() {
+        /* List<Op> extendList = new ArrayList<>();
+        if (Objects.isNull(vars.get(0)) && op.getTriple().getSubject().isVariable()) {
+            extendList.add(FullyPreempted.toBind(current.get(op.getTriple().getSubject().getName()), Var.alloc(op.getTriple().getSubject().getName())));
+        }
+        if (Objects.isNull(vars.get(1)) && op.getTriple().getPredicate().isVariable()) {
+            extendList.add(FullyPreempted.toBind(current.get(op.getTriple().getPredicate().getName()), Var.alloc(op.getTriple().getPredicate().getName())));
+        }
+        if (Objects.isNull(vars.get(2)) && op.getTriple().getObject().isVariable()) {
+            extendList.add(FullyPreempted.toBind(current.get(op.getTriple().getObject().getName()), Var.alloc(op.getTriple().getObject().getName())));
+        }
+
+        Op extendJoined = BGP2Triples.asJoins(extendList);
+
+        if (Objects.isNull(extendJoined)) {
+            return op;
+        } else {
+            return OpJoin.create(extendJoined, op);
+        }*/
+
         Triple t = new Triple(Objects.nonNull(vars.get(0)) ? op.getTriple().getSubject(): // true variable
                     op.getTriple().getSubject().isVariable() ? current.get(op.getTriple().getSubject().getName()): // bounded variable
                             op.getTriple().getSubject(),

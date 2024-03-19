@@ -30,6 +30,12 @@ public class BGP2Triples extends ReturningOpBaseVisitor {
     }
 
     public static Op asJoins(List<Op> ops) {
+        if (ops.isEmpty()) {
+            return null;
+        }
+        if (ops.size() == 1) {
+            return ops.get(0);
+        }
         Op left = ops.get(0);
         for (int i = 1; i < ops.size(); ++i) {
             Op right = ops.get(i);

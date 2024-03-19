@@ -1,5 +1,6 @@
 package fr.gdd.sage.sager.pause;
 
+import fr.gdd.jena.utils.OpCloningUtil;
 import fr.gdd.jena.visitors.ReturningOpVisitor;
 import fr.gdd.jena.visitors.ReturningOpVisitorRouter;
 import fr.gdd.sage.jena.JenaBackend;
@@ -10,6 +11,7 @@ import fr.gdd.sage.sager.SagerOpExecutor;
 import fr.gdd.sage.sager.iterators.SagerScan;
 import fr.gdd.sage.sager.iterators.SagerUnion;
 import fr.gdd.sage.sager.resume.Subqueries2LeftOfJoins;
+import org.apache.http.client.utils.CloneUtils;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.engine.ExecutionContext;
@@ -54,9 +56,9 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
         if (Objects.isNull(it)) {return null;}
 
         // OpTriple must remain the same, we cannot transform it by setting
-        // the variables that are bound since the offset would be wrong after
-        // that…
-        return new OpSlice(triple, it.offset(), Long.MIN_VALUE);
+        // the variables that are bound since the join variable would not match
+        // after...
+        return new OpSlice(it.asOpTriple(), it.offset(), Long.MIN_VALUE);
     }
 
     @Override
@@ -104,7 +106,7 @@ public class Save2SPARQL extends ReturningOpVisitor<Op> {
 
     @Override
     public Op visit(OpExtend extend) {
-        return extend;
+        return OpCloningUtil.clone(extend, ReturningOpVisitorRouter.visit(this, extend.getSubOp()));
     }
 
     /* ************************************************************ */
